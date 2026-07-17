@@ -1,0 +1,46 @@
+
+### `config.yaml`
+
+```yaml
+# ============================================================
+# HIL仿真系统全局配置文件
+# 修改后重启Python服务即可生效，无需重新编译
+# ============================================================
+
+# ---------- 本地UDP通信 ----------
+local_udp:
+  command_port: 9997
+  status_port: 9998
+
+# ---------- 外部TCP服务 ----------
+tcp_services:
+  init_port: 9997
+  tune_port: 8888
+  upload_port: 9996
+
+# ---------- 外部UDP转发（Spring Boot） ----------
+udp_forward:
+  target_ip: "192.168.1.100"
+  target_port: 9999
+  send_hz: 10
+
+# ---------- UE4 TCP服务 ----------
+ue4_tcp:
+  port: 8889
+  send_hz: 10
+
+# ---------- 模型构建 ----------
+model_build:
+  matlab_script: "matlab_scripts/build_script.m"
+  upload_dir: "models/uploads"
+  output_dir: "models/generated"
+  libs_dir: "models/libs"
+  task_file: "/tmp/model_build_task.json"
+  result_file: "/tmp/model_build_result.json"
+  signal_file: "/tmp/model_ready.signal"
+  timeout: 600
+
+# ---------- 日志 ----------
+logging:
+  level: "INFO"
+  file: "logs/hil.log"
