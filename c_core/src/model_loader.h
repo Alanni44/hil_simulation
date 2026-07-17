@@ -11,6 +11,9 @@ typedef struct {
     float pid_kp_pitch, pid_ki_pitch, pid_kd_pitch;
     float pid_kp_yaw, pid_ki_yaw, pid_kd_yaw;
     float target_alt;
+    int cmd_mode;
+    double cmd_x, cmd_y, cmd_z;
+    double cmd_speed, cmd_duration;
 } ModelLoader_U_t;
 
 // 模型输出结构体（必须与 .so 中一致）

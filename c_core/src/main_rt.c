@@ -30,14 +30,15 @@ void signal_handler(int sig) {
 
 static int parse_command(const char* json_str) {
     if (!json_str) return -1;
-    struct json_object *root, *params_obj;
+    struct json_object *root, *params_obj, *cmd_obj;
     root = json_tokener_parse(json_str);
     if (!root) return -1;
 
     const char* cmd = NULL;
-    struct json_object* cmd_obj = NULL;
-    json_object_object_get_ex(root, "command", &cmd_obj);
+    json_object_object_get_ex(root, "cmd", &cmd_obj);
     if (cmd_obj) cmd = json_object_get_string(cmd_obj);
+
+    ModelLoader_U_t* U = model_get_input();
 
     if (cmd && strcmp(cmd, "INIT") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
@@ -51,33 +52,64 @@ static int parse_command(const char* json_str) {
                 else if (strcmp(key, "initial_yaw") == 0) model_params.init_yaw = json_object_get_double(val);
             }
         }
-        if (!model_initialized) {
-            ModelLoader_U_t* U = model_get_input();
-            if (U) {
-                U->lat_init = model_params.init_lat;
-                U->lon_init = model_params.init_lon;
-                U->alt_init = model_params.init_alt;
-                U->roll_init = model_params.init_roll;
-                U->pitch_init = model_params.init_pitch;
-                U->yaw_init = model_params.init_yaw;
-            }
-            // 模型已在加载时初始化，参数已注入
+        if (!model_initialized && U) {
+            U->lat_init = model_params.init_lat;
+            U->lon_init = model_params.init_lon;
+            U->alt_init = model_params.init_alt;
+            U->roll_init = model_params.init_roll;
+            U->pitch_init = model_params.init_pitch;
+            U->yaw_init = model_params.init_yaw;
             model_initialized = 1;
             printf("[Main] Model initialized with params\n");
         }
+    } else if (cmd && strcmp(cmd, "takeoff") == 0) {
+        if (U) { U->cmd_mode = 1; }
+        printf("[Cmd] takeoff\n");
+    } else if (cmd && strcmp(cmd, "land") == 0) {
+        if (U) { U->cmd_mode = 2; }
+        printf("[Cmd] land\n");
+    } else if (cmd && strcmp(cmd, "hover") == 0) {
+        if (U) { U->cmd_mode = 3; }
+        printf("[Cmd] hover\n");
+    } else if (cmd && strcmp(cmd, "move_position") == 0) {
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (params_obj && U) {
+            json_object_object_foreach(params_obj, key, val) {
+                if (strcmp(key, "x") == 0) U->cmd_x = json_object_get_double(val);
+                else if (strcmp(key, "y") == 0) U->cmd_y = json_object_get_double(val);
+                else if (strcmp(key, "height") == 0) U->cmd_z = json_object_get_double(val);
+                else if (strcmp(key, "speed") == 0) U->cmd_speed = json_object_get_double(val);
+            }
+            U->cmd_mode = 4;
+            printf("[Cmd] move_position: (%.1f, %.1f, %.1f) spd=%.1f\n",
+                   U->cmd_x, U->cmd_y, U->cmd_z, U->cmd_speed);
+        }
+    } else if (cmd && strcmp(cmd, "move_velocity") == 0) {
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (params_obj && U) {
+            json_object_object_foreach(params_obj, key, val) {
+                if (strcmp(key, "vx") == 0) U->cmd_x = json_object_get_double(val);
+                else if (strcmp(key, "vy") == 0) U->cmd_y = json_object_get_double(val);
+                else if (strcmp(key, "vz") == 0) U->cmd_z = json_object_get_double(val);
+                else if (strcmp(key, "duration") == 0) U->cmd_duration = json_object_get_double(val);
+            }
+            U->cmd_mode = 5;
+            printf("[Cmd] move_velocity: (%.1f, %.1f, %.1f) dur=%.2f\n",
+                   U->cmd_x, U->cmd_y, U->cmd_z, U->cmd_duration);
+        }
+    } else if (cmd && strcmp(cmd, "get_state") == 0) {
+        // get_state is handled by state UDP stream; no model input change needed
+        printf("[Cmd] get_state (no-op on C side)\n");
     } else if (cmd && strcmp(cmd, "TUNE") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            ModelLoader_U_t* U = model_get_input();
-            if (U) {
-                json_object_object_foreach(params_obj, key, val) {
-                    double value = json_object_get_double(val);
-                    if (strcmp(key, "pid_kp_roll") == 0) U->pid_kp_roll = value;
-                    else if (strcmp(key, "pid_ki_roll") == 0) U->pid_ki_roll = value;
-                    else if (strcmp(key, "pid_kd_roll") == 0) U->pid_kd_roll = value;
-                    else if (strcmp(key, "target_alt") == 0) U->target_alt = value;
-                    printf("[Param] %s = %.4f (immediate)\n", key, value);
-                }
+        if (params_obj && U) {
+            json_object_object_foreach(params_obj, key, val) {
+                double value = json_object_get_double(val);
+                if (strcmp(key, "pid_kp_roll") == 0) U->pid_kp_roll = value;
+                else if (strcmp(key, "pid_ki_roll") == 0) U->pid_ki_roll = value;
+                else if (strcmp(key, "pid_kd_roll") == 0) U->pid_kd_roll = value;
+                else if (strcmp(key, "target_alt") == 0) U->target_alt = value;
+                printf("[Param] %s = %.4f (immediate)\n", key, value);
             }
         }
     }
