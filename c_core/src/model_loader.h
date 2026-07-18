@@ -23,6 +23,7 @@ typedef struct {
     float roll, pitch, yaw;
     float vel_x, vel_y, vel_z;
     float acc_x, acc_y, acc_z;
+    int airborne;
 } ModelLoader_Y_t;
 
 // ---------- API ----------

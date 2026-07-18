@@ -17,6 +17,8 @@ echo "Python services PID: $PYTHON_PID"
 cd ..
 echo "=== All started ==="
 echo "C: $C_PID, Python: $PYTHON_PID"
+echo "  Spring Boot -> TCP 8100 (commands)"
+echo "  UE4 <- TCP 8889 (JSON state)"
 echo "Press Ctrl+C to stop"
 
 trap "kill $C_PID $PYTHON_PID 2>/dev/null; exit" INT TERM

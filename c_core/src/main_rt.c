@@ -38,9 +38,8 @@ static int parse_command(const char* json_str) {
     json_object_object_get_ex(root, "cmd", &cmd_obj);
     if (cmd_obj) cmd = json_object_get_string(cmd_obj);
 
-    ModelLoader_U_t* U = model_get_input();
-
-    if (cmd && strcmp(cmd, "INIT") == 0) {
+    // init_sim: 模型可能尚未加载，参数先存到 model_params，等加载后注入
+    if (cmd && strcmp(cmd, "init_sim") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -52,6 +51,7 @@ static int parse_command(const char* json_str) {
                 else if (strcmp(key, "initial_yaw") == 0) model_params.init_yaw = json_object_get_double(val);
             }
         }
+        ModelLoader_U_t* U = model_get_input();
         if (!model_initialized && U) {
             U->lat_init = model_params.init_lat;
             U->lon_init = model_params.init_lon;
@@ -62,18 +62,44 @@ static int parse_command(const char* json_str) {
             model_initialized = 1;
             printf("[Main] Model initialized with params\n");
         }
-    } else if (cmd && strcmp(cmd, "takeoff") == 0) {
-        if (U) { U->cmd_mode = 1; }
-        printf("[Cmd] takeoff\n");
+        json_object_put(root);
+        return 0;
+    }
+
+    // get_state: 纯查询，不需要写模型输入
+    if (cmd && strcmp(cmd, "get_state") == 0) {
+        printf("[Cmd] get_state\n");
+        json_object_put(root);
+        return 0;
+    }
+
+    // 以下命令依赖模型已加载
+    ModelLoader_U_t* U = model_get_input();
+    if (!U) {
+        printf("[Cmd] Model not loaded, ignoring '%s'\n", cmd ? cmd : "null");
+        json_object_put(root);
+        return -1;
+    }
+
+    if (cmd && strcmp(cmd, "takeoff") == 0) {
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (params_obj) {
+            json_object_object_foreach(params_obj, key, val) {
+                if (strcmp(key, "height") == 0) U->cmd_z = json_object_get_double(val);
+            }
+        }
+        if (U->cmd_z <= 0.0) U->cmd_z = 50.0;
+        U->cmd_mode = 1;
+        printf("[Cmd] takeoff height=%.1f\n", U->cmd_z);
     } else if (cmd && strcmp(cmd, "land") == 0) {
-        if (U) { U->cmd_mode = 2; }
+        U->cmd_mode = 2;
         printf("[Cmd] land\n");
     } else if (cmd && strcmp(cmd, "hover") == 0) {
-        if (U) { U->cmd_mode = 3; }
+        U->cmd_mode = 3;
         printf("[Cmd] hover\n");
     } else if (cmd && strcmp(cmd, "move_position") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj && U) {
+        if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
                 if (strcmp(key, "x") == 0) U->cmd_x = json_object_get_double(val);
                 else if (strcmp(key, "y") == 0) U->cmd_y = json_object_get_double(val);
@@ -86,7 +112,7 @@ static int parse_command(const char* json_str) {
         }
     } else if (cmd && strcmp(cmd, "move_velocity") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj && U) {
+        if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
                 if (strcmp(key, "vx") == 0) U->cmd_x = json_object_get_double(val);
                 else if (strcmp(key, "vy") == 0) U->cmd_y = json_object_get_double(val);
@@ -97,12 +123,9 @@ static int parse_command(const char* json_str) {
             printf("[Cmd] move_velocity: (%.1f, %.1f, %.1f) dur=%.2f\n",
                    U->cmd_x, U->cmd_y, U->cmd_z, U->cmd_duration);
         }
-    } else if (cmd && strcmp(cmd, "get_state") == 0) {
-        // get_state is handled by state UDP stream; no model input change needed
-        printf("[Cmd] get_state (no-op on C side)\n");
-    } else if (cmd && strcmp(cmd, "TUNE") == 0) {
+    } else if (cmd && strcmp(cmd, "tune") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj && U) {
+        if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
                 double value = json_object_get_double(val);
                 if (strcmp(key, "pid_kp_roll") == 0) U->pid_kp_roll = value;
@@ -207,7 +230,7 @@ int main(int argc, char** argv) {
             current_state.motor_speed_1 = 4800.0f;
             current_state.motor_speed_2 = 5200.0f;
             current_state.motor_speed_3 = 4900.0f;
-            current_state.status_word = 0x07;
+            current_state.status_word = y.airborne ? 1 : 0;
             current_state.mission_id = 1;
             current_state.waypoint_index = 0;
             current_state.flight_phase = 2;

@@ -20,6 +20,7 @@ struct {
     float roll, pitch, yaw;
     float vel_x, vel_y, vel_z;
     float acc_x, acc_y, acc_z;
+    int airborne;
 } my_uav_model_Y;
 
 static double sim_time = 0.0;
@@ -43,11 +44,13 @@ void my_uav_model_step(void) {
 
     if (my_uav_model_U.cmd_mode == 1) {
         airborne = 1;
-        target_z = 50.0;
+        target_z = my_uav_model_U.cmd_z > 0.0 ? my_uav_model_U.cmd_z : 50.0;
+        my_uav_model_U.cmd_speed = 0.0;
         my_uav_model_U.cmd_mode = 0;
     } else if (my_uav_model_U.cmd_mode == 2) {
         airborne = 0;
         target_z = 0.0;
+        my_uav_model_U.cmd_speed = 0.0;
         my_uav_model_U.cmd_mode = 0;
     } else if (my_uav_model_U.cmd_mode == 3) {
         target_x = my_uav_model_Y.pos_x;
@@ -55,6 +58,7 @@ void my_uav_model_step(void) {
         target_z = my_uav_model_Y.pos_z;
         cmd_vx = cmd_vy = cmd_vz = 0.0;
         cmd_remain = 0.0;
+        my_uav_model_U.cmd_speed = 0.0;
         my_uav_model_U.cmd_mode = 0;
     } else if (my_uav_model_U.cmd_mode == 4) {
         target_x = my_uav_model_U.cmd_x;
@@ -103,6 +107,8 @@ void my_uav_model_step(void) {
     my_uav_model_Y.acc_x = 0.0f;
     my_uav_model_Y.acc_y = 0.0f;
     my_uav_model_Y.acc_z = 0.0f;
+
+    my_uav_model_Y.airborne = airborne;
 }
 
 void my_uav_model_terminate(void) {}

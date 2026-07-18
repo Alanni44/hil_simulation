@@ -3,8 +3,8 @@ import json
 import socket
 import threading
 import time
-from shared.flight_state import parse_flight_state
 from shared.logger import get_logger
+from shared import state_cache
 from config_loader import CONFIG
 
 logger = get_logger('ue4_tcp')
@@ -12,45 +12,21 @@ logger = get_logger('ue4_tcp')
 TCP_PORT = CONFIG['ue4_tcp']['port']
 SEND_INTERVAL = 1.0 / CONFIG['ue4_tcp']['send_hz']
 
-latest_raw = None
-raw_lock = threading.Lock()
 clients = []
 clients_lock = threading.Lock()
 server_running = True
-
-
-def update_state(data: bytes):
-    global latest_raw
-    with raw_lock:
-        latest_raw = data
-
-
-def make_state_json(data: bytes) -> dict:
-    s = parse_flight_state(data)
-    return {
-        "position": {"x": s['pos_x'], "y": s['pos_y'], "height": s['pos_z']},
-        "velocity": {"vx": s['vel_x'], "vy": s['vel_y'], "vz": s['vel_z']},
-        "status": "Flying"
-    }
 
 
 def broadcast_worker():
     logger.info(f"UE4 broadcast TCP {TCP_PORT}, {CONFIG['ue4_tcp']['send_hz']}Hz")
     while server_running:
         start = time.time()
-        with raw_lock:
-            raw = latest_raw
-        if raw is None:
+        s = state_cache.get_ue4_state()
+        if s is None:
             time.sleep(SEND_INTERVAL)
             continue
 
-        try:
-            state = make_state_json(raw)
-        except Exception:
-            time.sleep(SEND_INTERVAL)
-            continue
-
-        msg = (json.dumps(state) + '\n').encode('utf-8')
+        msg = (json.dumps(s) + '\n').encode('utf-8')
         with clients_lock:
             dead = []
             for c in clients:
@@ -83,12 +59,12 @@ def tcp_server_worker():
             client, addr = server.accept()
             with clients_lock:
                 clients.append(client)
-            logger.info(f"UE4 client connected: {addr}, count: {len(clients)}")
+            logger.info(f"UE4 client: {addr}, count={len(clients)}")
         except socket.timeout:
             continue
         except Exception as e:
             if server_running:
-                logger.error(f"TCP error: {e}")
+                logger.error(f"TCP accept error: {e}")
     server.close()
 
 
@@ -110,6 +86,3 @@ def stop_ue4_server():
             except Exception:
                 pass
         clients.clear()
-
-if __name__ == '__main__':
-    start_ue4_server()
