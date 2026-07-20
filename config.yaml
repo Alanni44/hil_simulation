@@ -6,11 +6,13 @@ local_udp:
   status_port: 9998
 
 spring_boot:
-  websocket_port: 8100
+  host: "192.168.100.138"
+  websocket_port: 8080
+  path: "/ws/hil"
 
 ue4_tcp:
-  port: 8889
-  send_hz: 10
+  host: "192.168.100.172"
+  port: 5000
 
 logging:
   level: "INFO"

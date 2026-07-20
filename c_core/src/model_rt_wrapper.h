@@ -1,14 +1,11 @@
-#ifndef MY_UAV_MODEL_H
-#define MY_UAV_MODEL_H
+#ifndef MODEL_RT_WRAPPER_H
+#define MODEL_RT_WRAPPER_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void my_uav_model_initialize(void);
-void my_uav_model_step(void);
-void my_uav_model_terminate(void);
-
+/* Model input struct — must match what Simulink ERT generates */
 typedef struct {
     double lat_init, lon_init, alt_init;
     float roll_init, pitch_init, yaw_init;
@@ -19,19 +16,18 @@ typedef struct {
     int cmd_mode;
     double cmd_x, cmd_y, cmd_z;
     double cmd_speed, cmd_duration;
-    /* --- tune params (实时调参) --- */
     float throttle;
     float pitch_cmd;
     float roll_cmd;
     float yaw_cmd;
-    int flight_mode;      /* 0=manual, 1=semi-auto, 2=full-auto */
-    int experiment_mode;   /* 0=none, 1=step, 2=sine, 3=gust */
-    /* --- init params (load_model 时设置) --- */
+    int flight_mode;
+    int experiment_mode;
     double init_x, init_y;
     float min_speed, max_speed;
     float min_height, max_height;
-} my_uav_model_U_t;
+} ModelU_t;
 
+/* Model output struct — must match what Simulink ERT generates */
 typedef struct {
     double pos_x, pos_y, pos_z;
     double lat, lon, alt;
@@ -39,10 +35,20 @@ typedef struct {
     float vel_x, vel_y, vel_z;
     float acc_x, acc_y, acc_z;
     int airborne;
-} my_uav_model_Y_t;
+} ModelY_t;
 
-extern my_uav_model_U_t my_uav_model_U;
-extern my_uav_model_Y_t my_uav_model_Y;
+/* ---- Static-link model API ---- */
+
+void model_initialize(void);
+void model_step(void);
+void model_terminate(void);
+ModelU_t* model_get_input(void);
+void model_get_output(ModelY_t* out);
+int model_is_loaded(void);
+
+/* Hot-reload via execv */
+void model_check_for_update(void);
+void model_apply_pending_update(int* argc_ptr, char** argv);
 
 #ifdef __cplusplus
 }

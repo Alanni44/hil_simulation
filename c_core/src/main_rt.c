@@ -6,26 +6,64 @@
 #include <sched.h>
 #include <time.h>
 #include <pthread.h>
+#include <sys/mman.h>
+#include <inttypes.h>
 #include <json-c/json.h>
 
 #include "flight_state.h"
-#include "model_loader.h"
+#include "model_rt_wrapper.h"
 #include "hal_stub.h"
 #include "local_udp.h"
 
 #define STEP_NS 1000000LL
 #define UDP_CMD_PORT 9997
 #define UDP_STATUS_PORT 9998
-#define SEND_INTERVAL 100
+#define SEND_INTERVAL 50   /* 20Hz = 1000/50 */
 
 static volatile int running = 1;
 static FlightState_t current_state;
 static ModelInput_t model_params;
 static int model_initialized = 0;
 
+/* ---- V2.0 waypoint queue ---- */
+static struct { double x, y, height, speed; } _wp_queue[MAX_WAYPOINTS];
+static int _wp_count = 0;
+static int _wp_current = 0;
+static int _wp_active = 0;
+static char _mission_id[256] = {0};
+
+/* ---- angular velocity calculation ---- */
+static float _prev_roll = 0.0f, _prev_pitch = 0.0f, _prev_yaw = 0.0f;
+
 void signal_handler(int sig) {
     printf("\n[Main] Received signal %d, exiting...\n", sig);
     running = 0;
+}
+
+/* ---- V2.0 flight_state derivation ---- */
+static uint8_t derive_flight_state(int airborne, double pos_z, int cmd_mode, int wp_active) {
+    if (cmd_mode == 1) return 1; /* taking_off */
+    if (cmd_mode == 2) return 4; /* landing */
+    if (cmd_mode == 3) return 3; /* hovering */
+    if (!airborne && pos_z < 0.5) return 5; /* landed */
+    if (!airborne && pos_z >= 0.5) return 0; /* ready (on ground) */
+    if (wp_active) return 2; /* flying (waypoint mode) */
+    if (airborne) return 2;  /* flying */
+    return 0; /* ready */
+}
+
+/* ---- V2.0 flight_state string ---- */
+static const char* flight_state_str(uint8_t fs) {
+    switch (fs) {
+        case 0: return "ready";
+        case 1: return "taking_off";
+        case 2: return "flying";
+        case 3: return "hovering";
+        case 4: return "landing";
+        case 5: return "landed";
+        case 6: return "fault";
+        default: return "ready";
+    }
 }
 
 static int parse_command(const char* json_str) {
@@ -38,7 +76,7 @@ static int parse_command(const char* json_str) {
     json_object_object_get_ex(root, "cmd", &cmd_obj);
     if (cmd_obj) cmd = json_object_get_string(cmd_obj);
 
-    // init_sim: 模型可能尚未加载，参数先存到 model_params，等加载后注入
+    /* ---- init_sim ---- */
     if (cmd && strcmp(cmd, "init_sim") == 0) {
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
@@ -49,9 +87,15 @@ static int parse_command(const char* json_str) {
                 else if (strcmp(key, "initial_roll") == 0) model_params.init_roll = json_object_get_double(val);
                 else if (strcmp(key, "initial_pitch") == 0) model_params.init_pitch = json_object_get_double(val);
                 else if (strcmp(key, "initial_yaw") == 0) model_params.init_yaw = json_object_get_double(val);
+                else if (strcmp(key, "init_x") == 0) model_params.init_x = json_object_get_double(val);
+                else if (strcmp(key, "init_y") == 0) model_params.init_y = json_object_get_double(val);
+                else if (strcmp(key, "min_speed") == 0) model_params.min_speed = (float)json_object_get_double(val);
+                else if (strcmp(key, "max_speed") == 0) model_params.max_speed = (float)json_object_get_double(val);
+                else if (strcmp(key, "min_height") == 0) model_params.min_height = (float)json_object_get_double(val);
+                else if (strcmp(key, "max_height") == 0) model_params.max_height = (float)json_object_get_double(val);
             }
         }
-        ModelLoader_U_t* U = model_get_input();
+        ModelU_t* U = model_get_input();
         if (!model_initialized && U) {
             U->lat_init = model_params.init_lat;
             U->lon_init = model_params.init_lon;
@@ -59,21 +103,101 @@ static int parse_command(const char* json_str) {
             U->roll_init = model_params.init_roll;
             U->pitch_init = model_params.init_pitch;
             U->yaw_init = model_params.init_yaw;
+            U->init_x = model_params.init_x;
+            U->init_y = model_params.init_y;
+            U->min_speed = model_params.min_speed;
+            U->max_speed = model_params.max_speed;
+            U->min_height = model_params.min_height;
+            U->max_height = model_params.max_height;
             model_initialized = 1;
-            printf("[Main] Model initialized with params\n");
+            printf("[Main] Model initialized (x=%.1f,y=%.1f, spd=%.1f-%.1f, h=%.1f-%.1f)\n",
+                   U->init_x, U->init_y, U->min_speed, U->max_speed, U->min_height, U->max_height);
         }
         json_object_put(root);
         return 0;
     }
 
-    // get_state: 纯查询，不需要写模型输入
-    if (cmd && strcmp(cmd, "get_state") == 0) {
-        printf("[Cmd] get_state\n");
+    /* ---- load_mission: 后端发航点 ---- */
+    if (cmd && strcmp(cmd, "load_mission") == 0) {
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (params_obj) {
+            struct json_object *wps_obj, *wp_obj;
+            json_object_object_get_ex(params_obj, "mission_id", &cmd_obj);
+            if (cmd_obj) {
+                strncpy(_mission_id, json_object_get_string(cmd_obj), sizeof(_mission_id) - 1);
+            }
+            json_object_object_get_ex(params_obj, "waypoints", &wps_obj);
+            int n = json_object_array_length(wps_obj);
+            _wp_count = (n < MAX_WAYPOINTS) ? n : MAX_WAYPOINTS;
+            for (int i = 0; i < _wp_count; i++) {
+                wp_obj = json_object_array_get_idx(wps_obj, i);
+                struct json_object *f;
+                json_object_object_get_ex(wp_obj, "lat", &f);
+                double lat = f ? json_object_get_double(f) : 39.9;
+                json_object_object_get_ex(wp_obj, "lon", &f);
+                double lon = f ? json_object_get_double(f) : 116.4;
+                json_object_object_get_ex(wp_obj, "height", &f);
+                double h = f ? json_object_get_double(f) : 50.0;
+                json_object_object_get_ex(wp_obj, "speed", &f);
+                double spd = f ? json_object_get_double(f) : 5.0;
+                /* 经纬度 → x/y（参考初始位置） */
+                _wp_queue[i].x = (lon - model_params.init_lon) / 0.00001;
+                _wp_queue[i].y = (lat - model_params.init_lat) / 0.00001;
+                _wp_queue[i].height = h;
+                _wp_queue[i].speed = spd;
+            }
+            _wp_current = 0;
+            _wp_active = 1;
+
+            /* 设定第一个航点为目标 */
+            ModelU_t* U = model_get_input();
+            if (U && _wp_count > 0) {
+                U->cmd_x = _wp_queue[0].x;
+                U->cmd_y = _wp_queue[0].y;
+                U->cmd_z = _wp_queue[0].height;
+                U->cmd_speed = _wp_queue[0].speed;
+                U->cmd_mode = 4;
+            }
+            printf("[Cmd] load_mission: %d waypoints, mission=%s\n", _wp_count, _mission_id);
+        }
         json_object_put(root);
         return 0;
     }
 
-    // 以下命令依赖模型已加载
+    /* ---- tune ---- */
+    if (cmd && strcmp(cmd, "tune") == 0) {
+        ModelU_t* U = model_get_input();
+        if (!U) { json_object_put(root); return -1; }
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (params_obj) {
+            json_object_object_foreach(params_obj, key, val) {
+                double value = json_object_get_double(val);
+                if (strcmp(key, "throttle") == 0) U->throttle = (float)value;
+                else if (strcmp(key, "pitch") == 0) U->pitch_cmd = (float)value;
+                else if (strcmp(key, "roll") == 0) U->roll_cmd = (float)value;
+                else if (strcmp(key, "yaw") == 0) U->yaw_cmd = (float)value;
+                else if (strcmp(key, "flight_mode") == 0) U->flight_mode = (int)value;
+                else if (strcmp(key, "experiment_mode") == 0) U->experiment_mode = (int)value;
+                else if (strcmp(key, "pid_kp_roll") == 0) U->pid_kp_roll = (float)value;
+                else if (strcmp(key, "pid_ki_roll") == 0) U->pid_ki_roll = (float)value;
+                else if (strcmp(key, "pid_kd_roll") == 0) U->pid_kd_roll = (float)value;
+                else if (strcmp(key, "pid_kp_pitch") == 0) U->pid_kp_pitch = (float)value;
+                else if (strcmp(key, "pid_ki_pitch") == 0) U->pid_ki_pitch = (float)value;
+                else if (strcmp(key, "pid_kd_pitch") == 0) U->pid_kd_pitch = (float)value;
+                else if (strcmp(key, "pid_kp_yaw") == 0) U->pid_kp_yaw = (float)value;
+                else if (strcmp(key, "pid_ki_yaw") == 0) U->pid_ki_yaw = (float)value;
+                else if (strcmp(key, "pid_kd_yaw") == 0) U->pid_kd_yaw = (float)value;
+                else if (strcmp(key, "target_alt") == 0) U->target_alt = (float)value;
+            }
+            printf("[Tune] throttle=%.1f pitch=%.1f roll=%.1f yaw=%.1f fm=%d em=%d\n",
+                   U->throttle, U->pitch_cmd, U->roll_cmd, U->yaw_cmd,
+                   U->flight_mode, U->experiment_mode);
+        }
+        json_object_put(root);
+        return 0;
+    }
+
+    /* ---- takeoff / land / hover / move_position / move_velocity ---- */
     ModelLoader_U_t* U = model_get_input();
     if (!U) {
         printf("[Cmd] Model not loaded, ignoring '%s'\n", cmd ? cmd : "null");
@@ -82,6 +206,7 @@ static int parse_command(const char* json_str) {
     }
 
     if (cmd && strcmp(cmd, "takeoff") == 0) {
+        _wp_active = 0;
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -92,12 +217,15 @@ static int parse_command(const char* json_str) {
         U->cmd_mode = 1;
         printf("[Cmd] takeoff height=%.1f\n", U->cmd_z);
     } else if (cmd && strcmp(cmd, "land") == 0) {
+        _wp_active = 0;
         U->cmd_mode = 2;
         printf("[Cmd] land\n");
     } else if (cmd && strcmp(cmd, "hover") == 0) {
+        _wp_active = 0;
         U->cmd_mode = 3;
         printf("[Cmd] hover\n");
     } else if (cmd && strcmp(cmd, "move_position") == 0) {
+        _wp_active = 0;
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -111,6 +239,7 @@ static int parse_command(const char* json_str) {
                    U->cmd_x, U->cmd_y, U->cmd_z, U->cmd_speed);
         }
     } else if (cmd && strcmp(cmd, "move_velocity") == 0) {
+        _wp_active = 0;
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -123,18 +252,8 @@ static int parse_command(const char* json_str) {
             printf("[Cmd] move_velocity: (%.1f, %.1f, %.1f) dur=%.2f\n",
                    U->cmd_x, U->cmd_y, U->cmd_z, U->cmd_duration);
         }
-    } else if (cmd && strcmp(cmd, "tune") == 0) {
-        json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                double value = json_object_get_double(val);
-                if (strcmp(key, "pid_kp_roll") == 0) U->pid_kp_roll = value;
-                else if (strcmp(key, "pid_ki_roll") == 0) U->pid_ki_roll = value;
-                else if (strcmp(key, "pid_kd_roll") == 0) U->pid_kd_roll = value;
-                else if (strcmp(key, "target_alt") == 0) U->target_alt = value;
-                printf("[Param] %s = %.4f (immediate)\n", key, value);
-            }
-        }
+    } else if (cmd && strcmp(cmd, "get_state") == 0) {
+        printf("[Cmd] get_state\n");
     }
     json_object_put(root);
     return 0;
@@ -167,10 +286,8 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // 加载默认模型
-    if (model_load("models/libs/libmodel_default.so") == 0) {
-        model_initialized = 1;
-    }
+    model_initialize();
+    model_initialized = 1;
 
     pthread_t cmd_thread_id;
     pthread_create(&cmd_thread_id, NULL, command_thread, NULL);
@@ -193,10 +310,8 @@ int main(int argc, char** argv) {
 
         step_count++;
 
-        // 每秒检查新模型
         if (step_count % 1000 == 0) {
-            model_check_for_update();
-            model_apply_pending_update();
+            model_apply_pending_update(&argc, argv);
             if (model_is_loaded()) {
                 model_initialized = 1;
             }
@@ -205,8 +320,31 @@ int main(int argc, char** argv) {
         if (model_is_loaded() && model_initialized) {
             model_step_call();
 
-            ModelLoader_Y_t y;
+            ModelY_t y;
             model_get_output(&y);
+
+            /* ---- waypoint queue: check if reached current, advance ---- */
+            if (_wp_active && _wp_count > 0 && _wp_current < _wp_count) {
+                double dx = y.pos_x - _wp_queue[_wp_current].x;
+                double dy = y.pos_y - _wp_queue[_wp_current].y;
+                double dz = y.pos_z - _wp_queue[_wp_current].height;
+                if ((dx*dx + dy*dy + dz*dz) < 1.0) { /* within 1m → reached */
+                    _wp_current++;
+                    ModelU_t* U = model_get_input();
+                    if (U && _wp_current < _wp_count) {
+                        U->cmd_x = _wp_queue[_wp_current].x;
+                        U->cmd_y = _wp_queue[_wp_current].y;
+                        U->cmd_z = _wp_queue[_wp_current].height;
+                        U->cmd_speed = _wp_queue[_wp_current].speed;
+                        U->cmd_mode = 4;
+                        printf("[Waypoint] %d/%d reached, next: (%.1f,%.1f,%.1f)\n",
+                               _wp_current, _wp_count, U->cmd_x, U->cmd_y, U->cmd_z);
+                    } else {
+                        _wp_active = 0;
+                        printf("[Waypoint] All %d waypoints completed\n", _wp_count);
+                    }
+                }
+            }
 
             current_state.version = 1;
             current_state.timestamp_us = step_count * 1000;
@@ -225,6 +363,26 @@ int main(int argc, char** argv) {
             current_state.acc_x = y.acc_x;
             current_state.acc_y = y.acc_y;
             current_state.acc_z = y.acc_z;
+
+            /* ---- angular velocity: diff of attitude / 100ms ---- */
+            if (step_count % SEND_INTERVAL == 0) {
+                float dt = SEND_INTERVAL * 0.001f;  /* 100ms */
+                if (dt > 0.0f) {
+                    current_state.ang_vel_p = (y.roll - _prev_roll) / dt;
+                    current_state.ang_vel_q = (y.pitch - _prev_pitch) / dt;
+                    current_state.ang_vel_r = (y.yaw - _prev_yaw) / dt;
+                }
+                _prev_roll = y.roll;
+                _prev_pitch = y.pitch;
+                _prev_yaw = y.yaw;
+
+                /* ---- V2.0 flight_state ---- */
+                ModelU_t* U = model_get_input();
+                int cmd_mode = U ? U->cmd_mode : 0;
+                current_state.flight_state = derive_flight_state(
+                    y.airborne, y.pos_z, cmd_mode, _wp_active);
+            }
+
             current_state.battery_voltage = 24.5f;
             current_state.motor_speed_0 = 5000.0f;
             current_state.motor_speed_1 = 4800.0f;
@@ -232,7 +390,7 @@ int main(int argc, char** argv) {
             current_state.motor_speed_3 = 4900.0f;
             current_state.status_word = y.airborne ? 1 : 0;
             current_state.mission_id = 1;
-            current_state.waypoint_index = 0;
+            current_state.waypoint_index = _wp_active ? _wp_current : 0;
             current_state.flight_phase = 2;
 
             if (step_count % SEND_INTERVAL == 0) {
@@ -243,14 +401,14 @@ int main(int argc, char** argv) {
         }
 
         if (step_count % 1000 == 0 && model_is_loaded()) {
-            printf("[Main] Step: %llu, Pos: (%.1f, %.1f, %.1f), Alt: %.1f\n",
+            printf("[Main] Step: %" PRIu64 ", Pos: (%.1f, %.1f, %.1f), Alt: %.1f, FS: %s\n",
                    step_count,
                    current_state.pos_x, current_state.pos_y, current_state.pos_z,
-                   current_state.alt);
+                   current_state.alt, flight_state_str(current_state.flight_state));
         }
     }
 
-    model_unload();
+    model_terminate();
     hal_system_deinit();
     udp_close();
     pthread_cancel(cmd_thread_id);

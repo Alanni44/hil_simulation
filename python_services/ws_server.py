@@ -1,233 +1,273 @@
+"""
+HIL WebSocket Server — V2.0 协议
+WebSocket 客户端连接后端，接收命令转发到 C Core
+TCP V2.0 由 bridge_tcp_client.py 独立处理
+支持的命令:
+  load_mission — 航点任务
+  init_sim     — 初始化仿真
+  tune         — 实时调参
+  simulation control — pause/resume/reset_scene/mission_end
+"""
 import asyncio
 import json
 import struct
-import hashlib
 import base64
+import os
 import socket
+import secrets
+import urllib.request
+import tempfile
+import subprocess
 from shared.logger import get_logger
 from shared import state_cache
 from config_loader import CONFIG
+import bridge_tcp_client as bridge
 
-logger = get_logger('ws_server')
+logger = get_logger('ws_v2')
 
-CMD_SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+CMD_HOST = '127.0.0.1'
 CMD_PORT = CONFIG['local_udp']['command_port']
+CMD_SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-_sim_status = 'unloaded'
+_ref_lat = 39.9
+_ref_lon = 116.4
+
 
 # ---------- WebSocket Framing ----------
-
 
 async def ws_send(writer, payload: str):
     data = payload.encode('utf-8')
     length = len(data)
     header = bytearray()
-    header.append(0x81)  # FIN + text
+    header.append(0x81)
     if length < 126:
-        header.append(length)
+        header.append(0x80 | length)
     elif length < 65536:
-        header.append(126)
+        header.append(0x80 | 126)
         header += struct.pack('>H', length)
     else:
-        header.append(127)
+        header.append(0x80 | 127)
         header += struct.pack('>Q', length)
-    writer.write(bytes(header) + data)
+    mask = secrets.token_bytes(4)
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
+    writer.write(bytes(header) + mask + masked)
     await writer.drain()
 
 
 async def ws_recv(reader) -> str:
     hdr = await asyncio.wait_for(reader.readexactly(2), timeout=30.0)
     opcode = hdr[0] & 0x0F
-    masked = hdr[1] & 0x80
     length = hdr[1] & 0x7F
-
     if length == 126:
         length = struct.unpack('>H', await reader.readexactly(2))[0]
     elif length == 127:
         length = struct.unpack('>Q', await reader.readexactly(8))[0]
-
-    mask_key = await reader.readexactly(4) if masked else None
     payload = await reader.readexactly(length)
-
-    if mask_key:
-        payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
-
-    if opcode == 0x09:  # ping
+    if opcode == 0x09:
         return '__PING__'
-    if opcode == 0x08:  # close
+    if opcode == 0x08:
         return '__CLOSE__'
     return payload.decode('utf-8')
 
 
-def respond(seq, cmd, code, msg, data=None):
-    frame = {'cmd': cmd, 'code': code, 'msg': msg, 'seq': seq}
-    if data:
-        frame['data'] = data
-    return json.dumps(frame)
+# ---------- C Core UDP ----------
+
+def _send_to_core(cmd_dict):
+    try:
+        payload = json.dumps(cmd_dict).encode('utf-8')
+        CMD_SOCK.sendto(payload, (CMD_HOST, CMD_PORT))
+        logger.info("UDP -> C Core: {}".format(cmd_dict.get('cmd', '?')))
+    except Exception as e:
+        logger.error("UDP send failed: {}".format(e))
+
+
+# ---------- MATLAB Builder ----------
+
+def build_model_from_slx(slx_path, model_name):
+    matlab_bin = None
+    for candidate in [
+        '/usr/local/MATLAB/R2018b/bin/matlab',
+        '/usr/local/bin/matlab',
+    ]:
+        if os.path.exists(candidate):
+            matlab_bin = candidate
+            break
+    if not matlab_bin:
+        return (False, 'MATLAB not found on this machine', None)
+
+    script_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'matlab_scripts')
+    build_script = os.path.join(script_dir, 'build_script.m')
+    if not os.path.exists(build_script):
+        return (False, 'build_script.m not found', None)
+
+    output_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'models', 'builds', model_name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    task_file = os.path.join(output_dir, 'build_task.json')
+    result_file = os.path.join(output_dir, 'build_result.json')
+
+    with open(task_file, 'w') as f:
+        json.dump({
+            'model_name': model_name,
+            'slx_path': slx_path,
+            'output_dir': output_dir,
+            'lib_name': 'lib' + model_name,
+        }, f)
+
+    try:
+        cmd = [
+            matlab_bin,
+            '-nodisplay', '-nosplash', '-nodesktop',
+            '-r',
+            "addpath('{}');build_script('{}','{}');exit;".format(
+                script_dir, task_file, result_file)
+        ]
+        logger.info("Running MATLAB...")
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        if proc.returncode != 0:
+            logger.error("MATLAB stderr: {}".format(proc.stderr[-500:] if proc.stderr else ''))
+    except subprocess.TimeoutExpired:
+        return (False, 'MATLAB build timed out (5 min)', None)
+    except Exception as e:
+        return (False, 'MATLAB execution failed: {}'.format(e), None)
+
+    if not os.path.exists(result_file):
+        return (False, 'MATLAB did not produce result file', None)
+
+    try:
+        with open(result_file, 'r') as f:
+            result = json.load(f)
+    except json.JSONDecodeError:
+        return (False, 'Invalid result JSON from MATLAB', None)
+
+    if result.get('code') != 0:
+        return (False, result.get('message', 'Build failed'), None)
+
+    exe_path = result.get('exe_path')
+    if not exe_path or not os.path.exists(exe_path):
+        return (False, 'Executable not found', None)
+
+    os.chmod(exe_path, 0o755)
+
+    with open('/tmp/model_ready.signal', 'w') as f:
+        json.dump({'exe_path': exe_path, 'model_name': model_name}, f)
+
+    logger.info("Model executable ready: {}".format(exe_path))
+    return (True, 'Build successful', exe_path)
 
 
 # ---------- Command Handlers ----------
 
+async def handle_load_mission(params, writer):
+    """后端发航点(lat,lon) → C Core(原样) + bridge(x/y)"""
+    mission_id = params.get('mission_id', 'mission_001')
+    waypoints = params.get('waypoints', [])
 
-async def handle_hello(req, seq, writer):
-    src = req.get('params', {}).get('source', 'unknown')
-    logger.info(f"hello from '{src}'")
-    await ws_send(writer, respond(seq, 'hello', 0, 'ok', {'source': 'model'}))
+    if not waypoints:
+        await ws_send(writer, json.dumps(
+            {'status': 'error', 'message': 'no waypoints'}))
+        return
 
+    # 发给 C Core 执行航点飞行（经纬度原样，C Core 内部转换）
+    _send_to_core({'cmd': 'load_mission', 'params': {
+        'mission_id': mission_id,
+        'waypoints': waypoints,
+    }})
 
-async def handle_ping(seq, writer):
-    await ws_send(writer, respond(seq, 'pong', 0, 'ok', {}))
+    # 给 bridge 发送 mission_plan（需转换为 x/y 坐标）
+    if bridge.is_connected():
+        xy_waypoints = []
+        for wp in waypoints:
+            lat = wp.get('lat', _ref_lat)
+            lon = wp.get('lon', _ref_lon)
+            xy_waypoints.append({
+                'x': (lon - _ref_lon) / 0.00001,
+                'y': (lat - _ref_lat) / 0.00001,
+                'height': wp.get('height', 50),
+                'speed': wp.get('speed', 5),
+            })
+        bridge.send_mission_plan(mission_id, xy_waypoints)
 
-
-async def handle_load_model(req, seq, writer):
-    global _sim_status
-    model_id = req.get('params', {}).get('model_id', '')
-    model_name = req.get('params', {}).get('model_name', '')
-    logger.info(f"load_model: id={model_id}, name={model_name}")
-    _sim_status = 'loaded'
-    await ws_send(writer, respond(seq, 'load_model', 0, 'success',
-                                   {'status': 'loaded'}))
-
-
-async def handle_start_sim(req, seq, writer):
-    global _sim_status
-    _sim_status = 'running'
-    logger.info("start_sim: simulation started")
-    await ws_send(writer, respond(seq, 'start_sim', 0, 'success',
-                                   {'status': 'running', 'sim_time': 0.0}))
-
-
-async def handle_stop_sim(seq, writer):
-    global _sim_status
-    _sim_status = 'stopped'
-    logger.info("stop_sim")
-    await ws_send(writer, respond(seq, 'stop_sim', 0, 'success',
-                                   {'status': 'stopped'}))
+    logger.info("load_mission: {} waypoints".format(len(waypoints)))
+    await ws_send(writer, json.dumps({'status': 'accepted'}))
 
 
-async def handle_pause_sim(seq, writer):
-    global _sim_status
-    _sim_status = 'paused'
-    logger.info("pause_sim")
-    await ws_send(writer, respond(seq, 'pause_sim', 0, 'success',
-                                   {'status': 'paused'}))
+async def handle_init_sim(params, writer):
+    global _ref_lat, _ref_lon
+    if 'initial_lat' in params:
+        _ref_lat = params['initial_lat']
+    if 'initial_lon' in params:
+        _ref_lon = params['initial_lon']
+    _send_to_core({'cmd': 'init_sim', 'params': params})
+    await ws_send(writer, json.dumps({'status': 'accepted'}))
 
 
-async def handle_resume_sim(seq, writer):
-    global _sim_status
-    _sim_status = 'running'
-    logger.info("resume_sim")
-    await ws_send(writer, respond(seq, 'resume_sim', 0, 'success',
-                                   {'status': 'running'}))
+async def handle_tune(params, writer):
+    _send_to_core({'cmd': 'tune', 'params': params})
+    await ws_send(writer, json.dumps({'status': 'accepted'}))
 
 
-async def handle_set_param(req, seq, writer):
-    key = req.get('params', {}).get('key', '')
-    value = req.get('params', {}).get('value', 0.0)
-    payload = json.dumps({'cmd': 'tune', 'params': {key: value}})
-    CMD_SOCK.sendto(payload.encode('utf-8'), ('127.0.0.1', CMD_PORT))
-    logger.info(f"set_param: {key}={value}")
-    await ws_send(writer, respond(seq, 'set_param', 0, 'success',
-                                   {'status': 'ok'}))
+async def handle_load_model(params, writer):
+    url = params.get('url', '')
+    model_name = params.get('model_name', '')
+    if not url or not model_name:
+        await ws_send(writer, json.dumps(
+            {'status': 'error', 'message': 'Missing url or model_name'}))
+        return
+
+    local_path = os.path.join(tempfile.gettempdir(), model_name + '.slx')
+    try:
+        urllib.request.urlretrieve(url, local_path)
+        logger.info("Downloaded {} ({} bytes)".format(
+            model_name, os.path.getsize(local_path)))
+    except Exception as e:
+        await ws_send(writer, json.dumps(
+            {'status': 'error', 'message': 'Download failed: {}'.format(e)}))
+        return
+
+    success, msg, exe_path = build_model_from_slx(local_path, model_name)
+    try:
+        os.remove(local_path)
+    except OSError:
+        pass
+
+    if success:
+        await ws_send(writer, json.dumps(
+            {'status': 'success', 'message': msg, 'exe_path': exe_path}))
+    else:
+        await ws_send(writer, json.dumps(
+            {'status': 'error', 'message': msg}))
 
 
-async def handle_get_param(req, seq, writer):
-    key = req.get('params', {}).get('key', '')
-    await ws_send(writer, respond(seq, 'get_param', 0, 'success',
-                                   {'key': key, 'value': 1.0}))
+async def handle_simulation_event(event, params, writer):
+    """暂停/恢复/重置/结束 → C Core + bridge simulation_event"""
+    _send_to_core({'cmd': 'simulation_event', 'params': {
+        'event': event,
+        'mission_id': params.get('mission_id', ''),
+    }})
+
+    if bridge.is_connected():
+        bridge.send_simulation_event(event, params.get('mission_id', ''))
+
+    await ws_send(writer, json.dumps({'status': 'accepted'}))
 
 
-async def handle_get_status(seq, writer):
-    await ws_send(writer, respond(seq, 'get_status', 0, 'success', {
-        'model_status': _sim_status,
-        'sim_time': state_cache.get_heartbeat()['sim_time'],
-        'fps': 1000,
-    }))
-
-
-async def handle_get_state(req, seq, writer):
+async def handle_get_state(writer):
     s = state_cache.get_state_dict()
     if not s:
-        await ws_send(writer, respond(seq, 'get_state', -2, 'no state'))
+        await ws_send(writer, json.dumps(
+            {'status': 'error', 'message': 'no state available'}))
         return
-    await ws_send(writer, respond(seq, 'get_state', 0, 'success', s))
+    await ws_send(writer, json.dumps(s))
 
 
-def _forward_control(cmd, params):
-    payload = json.dumps({'cmd': cmd, 'params': params})
-    CMD_SOCK.sendto(payload.encode('utf-8'), ('127.0.0.1', CMD_PORT))
+# ---------- Main Client ----------
 
-
-async def handle_control(cmd, req, seq, writer):
-    params = req.get('params', {})
-    _forward_control(cmd, params)
-    status_map = {
-        'takeoff': 'taking_off', 'land': 'landing',
-        'hover': 'hovering', 'move_position': 'executing',
-        'move_velocity': 'executing', 'goto_waypoint': 'executing',
-        'set_mode': 'ok',
-    }
-    await ws_send(writer, respond(seq, cmd, 0, 'success',
-                                   {'status': status_map.get(cmd, 'executing')}))
-
-
-# ---------- Push Workers ----------
-
-
-async def push_worker(connections: list):
-    """10Hz flight_data + 1Hz sim_heartbeat to all connected clients."""
-    counter = 0
-    while True:
-        await asyncio.sleep(0.1)
-        counter += 1
-
-        # flight_data @ 10Hz
-        fd = state_cache.get_flight_data()
-        if fd is not None and connections:
-            msg = json.dumps({'cmd': 'flight_data', 'data': fd, 'seq': 0})
-            dead = []
-            for w in connections:
-                try:
-                    await ws_send(w, msg)
-                except Exception:
-                    dead.append(w)
-            for d in dead:
-                connections.remove(d)
-
-        # sim_heartbeat @ 1Hz
-        if counter % 10 == 0 and connections:
-            hb = json.dumps(
-                {'cmd': 'sim_heartbeat', 'data': state_cache.get_heartbeat(),
-                 'seq': 0})
-            dead = []
-            for w in connections:
-                try:
-                    await ws_send(w, hb)
-                except Exception:
-                    dead.append(w)
-            for d in dead:
-                connections.remove(d)
-
-
-# ---------- Main ----------
-
-
-async def handle_client(reader, writer, connections):
-    addr = writer.get_extra_info('peername')
-    logger.info(f"WS connected: {addr}")
-
-    try:
-        ok = await asyncio.wait_for(ws_accept_inner(reader, writer), timeout=5.0)
-    except Exception:
-        writer.close()
-        return
-
-    if ok is None:
-        writer.close()
-        return
-
-    connections.append(writer)
-
+async def command_loop(reader, writer):
     while True:
         try:
             raw = await ws_recv(reader)
@@ -238,7 +278,7 @@ async def handle_client(reader, writer, connections):
 
         if raw == '__PING__':
             try:
-                await ws_send(writer, '')  # pong via opcode
+                await ws_send(writer, '')
             except Exception:
                 break
             continue
@@ -248,89 +288,90 @@ async def handle_client(reader, writer, connections):
         try:
             req = json.loads(raw)
         except json.JSONDecodeError:
-            await ws_send(writer, respond(0, '', -1, 'invalid json'))
+            await ws_send(writer, json.dumps(
+                {'status': 'error', 'message': 'invalid JSON'}))
             continue
 
         cmd = req.get('cmd', '')
-        seq = req.get('seq', 0)
-        addr_info = str(addr)
+        logger.info("WS recv: {}".format(cmd))
 
         try:
-            if cmd == 'hello':
-                await handle_hello(req, seq, writer)
-            elif cmd == 'ping':
-                await handle_ping(seq, writer)
+            # V2.0 命令
+            if cmd == 'load_mission':
+                await handle_load_mission(req.get('params', {}), writer)
+            elif cmd == 'init_sim':
+                await handle_init_sim(req.get('params', {}), writer)
+            elif cmd == 'tune':
+                await handle_tune(req.get('params', {}), writer)
             elif cmd == 'load_model':
-                await handle_load_model(req, seq, writer)
-            elif cmd == 'start_sim':
-                await handle_start_sim(req, seq, writer)
-            elif cmd == 'stop_sim':
-                await handle_stop_sim(seq, writer)
-            elif cmd == 'pause_sim':
-                await handle_pause_sim(seq, writer)
-            elif cmd == 'resume_sim':
-                await handle_resume_sim(seq, writer)
-            elif cmd == 'set_param':
-                await handle_set_param(req, seq, writer)
-            elif cmd == 'get_param':
-                await handle_get_param(req, seq, writer)
-            elif cmd == 'get_status':
-                await handle_get_status(seq, writer)
+                await handle_load_model(req.get('params', {}), writer)
+            elif cmd in ('pause', 'resume', 'reset_scene', 'mission_end'):
+                await handle_simulation_event(
+                    cmd, req.get('params', {}), writer)
             elif cmd == 'get_state':
-                await handle_get_state(req, seq, writer)
-            elif cmd in ('takeoff', 'land', 'hover', 'move_position',
-                         'move_velocity', 'goto_waypoint', 'set_mode'):
-                await handle_control(cmd, req, seq, writer)
+                await handle_get_state(writer)
             else:
-                await ws_send(writer, respond(seq, cmd, -1, f'unknown cmd: {cmd}'))
+                await ws_send(writer, json.dumps(
+                    {'status': 'error',
+                     'message': 'unknown cmd: {}'.format(cmd)}))
+
         except Exception as e:
-            logger.error(f"Handler error [{cmd}]: {e}")
+            logger.error("Handler error [{}]: {}".format(cmd, e))
             try:
-                await ws_send(writer, respond(seq, cmd, -2, str(e)))
+                await ws_send(writer, json.dumps(
+                    {'status': 'error', 'message': str(e)}))
             except Exception:
                 break
 
-    connections.remove(writer)
-    try:
-        writer.close()
-    except Exception:
-        pass
-    logger.info(f"WS disconnected: {addr}")
-
-
-async def ws_accept_inner(reader, writer):
-    data_str = (await asyncio.wait_for(reader.read(4096), timeout=5.0)).decode(
-        'utf-8', errors='replace')
-    key = None
-    for line in data_str.split('\r\n'):
-        if line.lower().startswith('sec-websocket-key:'):
-            key = line.split(':', 1)[1].strip()
-            break
-    if not key:
-        return None
-    accept = base64.b64encode(
-        hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode(
-            'ascii')).digest()).decode('ascii')
-    writer.write(
-        ('HTTP/1.1 101 Switching Protocols\r\n'
-         'Upgrade: websocket\r\n'
-         'Connection: Upgrade\r\n'
-         f'Sec-WebSocket-Accept: {accept}\r\n\r\n').encode('ascii'))
-    await writer.drain()
-    return accept
-
 
 def start_ws_server():
+    host = CONFIG['spring_boot'].get('host', '127.0.0.1')
     port = CONFIG['spring_boot']['websocket_port']
-    connections = []
-    logger.info(f"WebSocket server starting on ws://0.0.0.0:{port}/ws/hil")
+    path = CONFIG['spring_boot'].get('path', '/ws/hil')
+    logger.info("WebSocket V2.0 -> ws://{}:{}{}".format(host, port, path))
 
-    async def _run():
-        server = await asyncio.start_server(
-            lambda r, w: handle_client(r, w, connections), '0.0.0.0', port)
-        asyncio.create_task(push_worker(connections))
-        logger.info(f"WebSocket server listening on {port}")
-        async with server:
-            await server.serve_forever()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    asyncio.run(_run())
+    async def run_client():
+        while True:
+            try:
+                reader, writer = await asyncio.open_connection(host, port)
+
+                key = base64.b64encode(secrets.token_bytes(16)).decode('ascii')
+                writer.write(
+                    "GET {} HTTP/1.1\r\n"
+                    "Host: {}:{}\r\n"
+                    "Upgrade: websocket\r\n"
+                    "Connection: Upgrade\r\n"
+                    "Sec-WebSocket-Key: {}\r\n"
+                    "Sec-WebSocket-Version: 13\r\n"
+                    "\r\n"
+                    .format(path, host, port, key).encode('ascii'))
+                await writer.drain()
+
+                resp = (await asyncio.wait_for(
+                    reader.read(4096), timeout=5.0)).decode('utf-8')
+                if '101' not in resp:
+                    logger.error(
+                        "WebSocket handshake failed: {}".format(resp))
+                    writer.close()
+                    await asyncio.sleep(3)
+                    continue
+
+                logger.info("Connected to ws://{}:{}{}".format(
+                    host, port, path))
+
+                await command_loop(reader, writer)
+
+                writer.close()
+                logger.info("Disconnected, reconnecting in 3s...")
+            except (ConnectionRefusedError, OSError) as e:
+                logger.warning(
+                    "{}:{} unreachable: {}, retrying in 3s...".format(
+                        host, port, e))
+            except Exception as e:
+                logger.error("Connection error: {}".format(e))
+            await asyncio.sleep(3)
+
+    loop.run_until_complete(run_client())

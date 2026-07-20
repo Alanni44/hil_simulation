@@ -1,3 +1,7 @@
+/*
+ * DEPRECATED — replaced by model_rt_wrapper.c for standalone executable builds.
+ * Kept for reference; no longer compiled into the RT binary.
+ */
 #include "model_loader.h"
 #include <dlfcn.h>
 #include <stdio.h>
@@ -93,8 +97,8 @@ void model_check_for_update(void) {
     fseek(f, 0, SEEK_SET);
     char* content = malloc(size + 1);
     if (!content) { fclose(f); return; }
-    fread(content, 1, size, f);
-    content[size] = '\0';
+    size_t nr = fread(content, 1, size, f);
+    if (nr > 0) content[nr] = '\0'; else content[0] = '\0';
     fclose(f);
 
     struct json_object *root, *so_path_obj;
