@@ -22,9 +22,15 @@ import threading, time
 MISSION_ID = 'mission_001'
 CIRCLE_WAYPOINTS = [
     {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 28.8, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
+    {'x': 22.8, 'y': 28.8, 'height': 10.0, 'speed': 5.0},
     {'x': 15.0, 'y': 30.0, 'height': 10.0, 'speed': 5.0},
-    {'x': 0.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 7.2, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
+    {'x': 1.2, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 7.2, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
     {'x': 15.0, 'y': 0.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 22.8, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
+    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
 ]
 
 t1 = threading.Thread(target=start_udp_forwarder, daemon=True)
