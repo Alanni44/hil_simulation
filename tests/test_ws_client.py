@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Manual test tool: connects to a WebSocket server and sends commands.
-For debugging the Spring Boot <-> HIL protocol independently.
+V2.0 protocol demo client — connects to HIL WebSocket and sends V2.0 commands.
+For debugging the Spring Boot <-> HIL protocol.
 
 Usage:
     python3 tests/test_ws_client.py [host] [port]
@@ -10,13 +10,11 @@ Usage:
 import asyncio
 import json
 import struct
-import hashlib
 import base64
 import sys
 
 HOST = sys.argv[1] if len(sys.argv) > 1 else '192.168.100.138'
 PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 8080
-seq = 0
 
 
 async def ws_handshake(reader, writer):
@@ -71,9 +69,7 @@ async def ws_recv(reader):
 
 
 async def send_cmd(writer, cmd, params=None):
-    global seq
-    seq += 1
-    msg = {'cmd': cmd, 'seq': seq}
+    msg = {'cmd': cmd}
     if params is not None:
         msg['params'] = params
     print('\n>>> {}'.format(json.dumps(msg)))
@@ -89,43 +85,54 @@ async def main():
     print("WebSocket connected!")
 
     async def reader_task():
-        push_count = 0
         while True:
             try:
                 r = await ws_recv(reader)
                 j = json.loads(r)
-                cmd = j.get('cmd', '?')
-                if cmd in ('flight_data', 'sim_heartbeat'):
-                    push_count += 1
-                    if push_count <= 3:
-                        print('[push #{}] {}'.format(push_count, cmd))
-                    elif push_count == 4:
-                        print('[push] ...')
-                else:
-                    print('<<< {}'.format(json.dumps(j, indent=2)))
+                print('<<< {}'.format(json.dumps(j, indent=2)))
             except Exception:
                 break
 
     asyncio.ensure_future(reader_task())
     await asyncio.sleep(0.3)
 
-    print('\n===== Demo sequence =====')
-    await send_cmd(writer, 'load_model', {'model_id': 'DEMO-001', 'model_name': 'quadrotor'})
-    await asyncio.sleep(0.2)
-    await send_cmd(writer, 'start_sim', {})
-    await asyncio.sleep(0.5)
-    await send_cmd(writer, 'get_state')
-    await asyncio.sleep(0.2)
-    await send_cmd(writer, 'takeoff', {'height': 30.0})
-    await asyncio.sleep(1.0)
-    await send_cmd(writer, 'move_position', {'x': 50.0, 'y': 30.0, 'height': 40.0, 'speed': 5.0})
-    await asyncio.sleep(0.5)
-    await send_cmd(writer, 'hover')
-    await asyncio.sleep(0.5)
-    await send_cmd(writer, 'land')
-    await asyncio.sleep(1.0)
-    await send_cmd(writer, 'stop_sim', {})
+    print('\n===== V2.0 Demo sequence =====')
+    # init_sim
+    await send_cmd(writer, 'init_sim', {
+        'initial_lat': 39.90, 'initial_lon': 116.40,
+        'initial_alt': 50, 'initial_roll': 0, 'initial_pitch': 0, 'initial_yaw': 0,
+        'min_speed': 0, 'max_speed': 30, 'min_height': 10, 'max_height': 500,
+    })
     await asyncio.sleep(0.3)
+
+    # load_mission
+    await send_cmd(writer, 'load_mission', {
+        'mission_id': 'mission_001',
+        'waypoints': [
+            {'lat': 39.90, 'lon': 116.40, 'height': 30, 'speed': 5},
+            {'lat': 39.91, 'lon': 116.41, 'height': 40, 'speed': 5},
+            {'lat': 39.92, 'lon': 116.42, 'height': 30, 'speed': 3},
+        ]
+    })
+    await asyncio.sleep(0.5)
+
+    # tune
+    await send_cmd(writer, 'tune', {'throttle': 80, 'flight_mode': 0})
+    await asyncio.sleep(0.3)
+
+    # get_state
+    await send_cmd(writer, 'get_state')
+    await asyncio.sleep(0.3)
+
+    # lifecycle events
+    await send_cmd(writer, 'pause')
+    await asyncio.sleep(0.2)
+    await send_cmd(writer, 'resume')
+    await asyncio.sleep(0.2)
+
+    await send_cmd(writer, 'mission_end', {'mission_id': 'mission_001'})
+    await asyncio.sleep(0.3)
+
     print('\n===== Done =====')
     writer.close()
 
