@@ -125,7 +125,6 @@ function build_script(task_file, result_file)
                     'exe_path', exe_path, 'model_name', model_name, ...
                     'timestamp', datestr(now, 'yyyy-mm-dd HH:MM:SS'));
     write_result_json(result_file, result);
-    write_result_json(result_file, result);
     fprintf('[MATLAB] Build complete\n');
     bdclose(model_name);
 end

@@ -127,7 +127,8 @@ def build_model_from_slx(slx_path, model_name):
                 script_dir, task_file, result_file)
         ]
         logger.info("Running MATLAB...")
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              universal_newlines=True, timeout=300)
         if proc.returncode != 0:
             logger.error("MATLAB stderr: {}".format(proc.stderr[-500:] if proc.stderr else ''))
     except subprocess.TimeoutExpired:
