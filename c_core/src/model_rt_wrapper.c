@@ -20,7 +20,7 @@
 
 /* The bridge header is injected at compile time (or default to hand-written model) */
 #if !defined(MODEL_RT_BRIDGE_H)
-#define MODEL_RT_BRIDGE_H "../model/my_uav_model.h"
+#define MODEL_RT_BRIDGE_H "my_uav_model.h"
 #endif
 
 /* Bring in the generated type/function definitions.

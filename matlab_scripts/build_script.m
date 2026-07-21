@@ -90,7 +90,7 @@ function build_script(task_file, result_file)
         fprintf('[MATLAB] Bridge header: %s\n', bridge_h);
 
         % ---- 编译为独立可执行程序 ----
-        hil_root = fullfile(fileparts(fileparts(output_dir)));
+        hil_root = fullfile(fileparts(fileparts(fileparts(output_dir))));
         custom_src_dir = fullfile(hil_root, 'c_core', 'src');
         exe_dir = fullfile(fileparts(output_dir), 'executables');
         mkdir(exe_dir);

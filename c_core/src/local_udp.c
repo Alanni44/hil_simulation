@@ -14,6 +14,9 @@ int udp_init(int command_port, int status_port) {
     cmd_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (cmd_sock < 0) return -1;
 
+    struct timeval tv = {0, 100000};
+    setsockopt(cmd_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -50,8 +53,6 @@ int udp_recv_command(char* buffer, int buffer_size) {
     if (cmd_sock < 0) return -1;
     struct sockaddr_in from_addr;
     socklen_t from_len = sizeof(from_addr);
-    struct timeval tv = {0, 100000};
-    setsockopt(cmd_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     int n = recvfrom(cmd_sock, buffer, buffer_size - 1, 0,
                      (struct sockaddr*)&from_addr, &from_len);
     if (n > 0) { buffer[n] = '\0'; return n; }
