@@ -38,7 +38,6 @@ function build_script(task_file, result_file)
         set_param(model_name, 'SolverType', 'Fixed-step');
         set_param(model_name, 'Solver', 'FixedStepDiscrete');
         set_param(model_name, 'FixedStep', '0.001');
-        set_param(model_name, 'ParameterTuning', 'on');
         fprintf('[MATLAB] Configured\n');
     catch ME
         write_result(result_file, -1, sprintf('Config failed: %s', ME.message));
