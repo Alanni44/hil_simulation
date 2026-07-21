@@ -83,7 +83,6 @@ def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
         'data': {
             'mission_id': mission_id,
             'sim_time': _sim_time,
-            'position': {
                 'x': s['pos_x'],
                 'y': s['pos_y'],
                 'height': s['pos_z'],
