@@ -10,7 +10,7 @@ echo "[1/2] Compiling standalone RT executable..."
 mkdir -p models/executables
 gcc -O2 -Wall -pthread \
     -I./c_core/src -I./model \
-    -DMODEL_RT_BRIDGE_H='"my_uav_model.h"' \
+    -DMODEL_RT_BRIDGE_H=my_uav_model.h \
     -DMODEL_INIT_FN=my_uav_model_initialize \
     -DMODEL_STEP_FN=my_uav_model_step \
     -DMODEL_TERM_FN=my_uav_model_terminate \
