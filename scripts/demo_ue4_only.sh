@@ -16,13 +16,24 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath('main.py')))
 from udp_forwarder import start_udp_forwarder
 from bridge_tcp_client import start_bridge
+from bridge_tcp_client import send_mission_plan
 import threading, time
+
+MISSION_ID = 'mission_001'
+CIRCLE_WAYPOINTS = [
+    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 15.0, 'y': 30.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 0.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 15.0, 'y': 0.0, 'height': 10.0, 'speed': 5.0},
+]
 
 t1 = threading.Thread(target=start_udp_forwarder, daemon=True)
 t2 = threading.Thread(target=start_bridge, daemon=True)
 t1.start()
 t2.start()
-print('[Demo] UDP forwarder + Bridge started')
+time.sleep(2)  # 等 bridge hello → ack 完成
+send_mission_plan(MISSION_ID, CIRCLE_WAYPOINTS)
+print('[Demo] UDP forwarder + Bridge started, mission_plan queued')
 print('[Demo] Ctrl+C to stop')
 try:
     while True:
