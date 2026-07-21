@@ -198,7 +198,7 @@ static int parse_command(const char* json_str) {
     }
 
     /* ---- takeoff / land / hover / move_position / move_velocity ---- */
-    ModelLoader_U_t* U = model_get_input();
+    ModelU_t* U = model_get_input();
     if (!U) {
         printf("[Cmd] Model not loaded, ignoring '%s'\n", cmd ? cmd : "null");
         json_object_put(root);
@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
         }
 
         if (model_is_loaded() && model_initialized) {
-            model_step_call();
+            model_step();
 
             ModelY_t y;
             model_get_output(&y);
