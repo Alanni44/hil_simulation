@@ -45,8 +45,23 @@ def _next_seq():
         return _seq
 
 
+def _sanitize(obj):
+    """递归替换 NaN/Inf 为 0.0，确保 JSON 符合协议 §4"""
+    if isinstance(obj, float):
+        import math
+        if math.isnan(obj) or math.isinf(obj):
+            return 0.0
+        return obj
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    return obj
+
+
 def _frame_send(sock, data):
-    body = json.dumps(data).encode('utf-8')
+    clean = _sanitize(data)
+    body = json.dumps(clean).encode('utf-8')
     header = struct.pack('>I', len(body))
     with _send_lock:
         sock.sendall(header + body)
@@ -213,6 +228,9 @@ def _run():
                             resp.get('data', {}).get('code', '?'),
                             resp.get('data', {}).get('message', '?')))
                 _drain_queues(s)
+
+                # §14.2: 丢弃过时状态，只保留最新数据
+                pass
 
             s.close()
             with _sock_lock:
