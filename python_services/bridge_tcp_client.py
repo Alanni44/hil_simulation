@@ -33,6 +33,7 @@ _seq = 0
 _seq_lock = threading.Lock()
 
 _current_mission_id = 'mission_001'
+_mission_acked = threading.Event()  # mission_plan ACK received
 _mission_queue = []   # items: (mission_id, waypoints_list)
 _event_queue = []     # items: (event_name, mission_id)
 _queue_lock = threading.Lock()
@@ -162,6 +163,7 @@ def _run():
 
     while _running:
         _connected.clear()
+        _mission_acked.clear()
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
@@ -200,6 +202,8 @@ def _run():
 
             # ---- sender thread (50Hz) ----
             def vehicle_state_sender():
+                # 协议要求：必须等 mission_plan ACK 后才开始 vehicle_state
+                _mission_acked.wait(timeout=10.0)
                 while _connected.is_set():
                     vs = state_cache.get_vehicle_state_v2(_current_mission_id, 50)
                     if vs is not None:
@@ -223,6 +227,8 @@ def _run():
                     if rtype == 'ack':
                         ref = resp.get('data', {}).get('ref_type', '')
                         logger.info("ACK ref_type={}".format(ref))
+                        if ref == 'mission_plan':
+                            _mission_acked.set()
                     elif rtype == 'error':
                         logger.warning("ERROR: {} / {}".format(
                             resp.get('data', {}).get('code', '?'),
