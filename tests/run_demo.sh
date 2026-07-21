@@ -46,10 +46,9 @@ fi
 
 echo ""
 echo -e "${YELLOW}[2/3] Starting mock C-core...${NC}"
-python3 tests/mock_core.py &
+python3 tests/mock_core.py --csv /path/to/uav_circle_test_50hz_60s.csv &
 MOCK_PID=$!
-echo "  Mock C-core PID: $MOCK_PID"
-sleep 1
+echo "  Mock C-core PID: $MOCK_PID (CSV replay)"
 
 echo ""
 echo -e "${YELLOW}[3/3] Starting HIL Python services...${NC}"
