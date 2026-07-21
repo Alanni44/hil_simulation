@@ -32,6 +32,7 @@ _running = True
 _seq = 0
 _seq_lock = threading.Lock()
 
+_current_mission_id = 'mission_001'
 _mission_queue = []   # items: (mission_id, waypoints_list)
 _event_queue = []     # items: (event_name, mission_id)
 _queue_lock = threading.Lock()
@@ -102,6 +103,7 @@ def _drain_queues(sock):
         _event_queue.clear()
 
     for mission_id, waypoints in missions:
+        _current_mission_id = mission_id
         wps = []
         for i, wp in enumerate(waypoints):
             wps.append({
@@ -184,7 +186,7 @@ def _run():
             # ---- sender thread (20Hz) ----
             def vehicle_state_sender():
                 while _connected.is_set():
-                    vs = state_cache.get_vehicle_state_v2()
+                    vs = state_cache.get_vehicle_state_v2(_current_mission_id)
                     if vs is not None:
                         try:
                             vs['seq'] = _next_seq()

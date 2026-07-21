@@ -69,7 +69,7 @@ def get_state_dict():
     }
 
 
-def get_vehicle_state_v2():
+def get_vehicle_state_v2(mission_id='mission_001'):
     """V2.0 vehicle_state 消息完整体"""
     with _lock:
         s = _latest_raw
@@ -81,7 +81,7 @@ def get_vehicle_state_v2():
         'type': 'vehicle_state',
         'vehicle_id': 'Drone1',
         'data': {
-            'mission_id': 'mission_{:03d}'.format(s.get('mission_id', 1)),
+            'mission_id': mission_id,
             'sim_time': _sim_time,
             'position': {
                 'x': s['pos_x'],
