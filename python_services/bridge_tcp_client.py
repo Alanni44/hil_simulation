@@ -36,7 +36,6 @@ _seq = 0
 _seq_lock = threading.Lock()
 
 _current_mission_id = 'mission_001'
-_mission_ready = threading.Event()  # mission_plan ACK 后才 set
 _event_queue = []
 _queue_lock = threading.Lock()
 
@@ -110,11 +109,10 @@ def _frame_recv(sock, timeout=0.5):
 
 
 def send_mission_plan(mission_id, waypoints):
-    """非阻塞：设置 mission_id 并触发 mission_plan 发送"""
+    """非阻塞：外部可调用，不影响 bridge 内部默认 mission_plan"""
     global _current_mission_id
     _current_mission_id = mission_id
-    with _queue_lock:
-        _mission_queue.append((mission_id, list(waypoints)))
+    # 供外部测试用，内部默认已发送，这里不干预
 
 
 def send_simulation_event(event_name, mission_id=''):
@@ -126,7 +124,8 @@ def is_connected():
     return _connected.is_set()
 
 
-def _build_mission_plan(mission_id, waypoints):
+def _build_and_send_mission_plan(sock, mission_id, waypoints):
+    """发送 mission_plan 并等待 ACK，返回 True/False"""
     wps = []
     for i, wp in enumerate(waypoints):
         wps.append({
@@ -136,7 +135,7 @@ def _build_mission_plan(mission_id, waypoints):
             'height': wp.get('height', 0),
             'target_speed': wp.get('speed', 5),
         })
-    return {
+    msg = {
         'protocol_version': '2.0',
         'type': 'mission_plan',
         'seq': _next_seq(),
@@ -148,6 +147,27 @@ def _build_mission_plan(mission_id, waypoints):
         }
     }
 
+    _frame_send(sock, msg)
+    logger.info("mission_plan sent: {} waypoints".format(len(wps)))
+
+    deadline = time.time() + 10.0
+    while time.time() < deadline:
+        resp = _frame_recv(sock, timeout=0.3)
+        if not resp:
+            continue
+        if resp.get('type') == 'ack' \
+                and resp.get('data', {}).get('ref_type') == 'mission_plan':
+            logger.info("mission_plan acked")
+            return True
+        if resp.get('type') == 'error':
+            logger.warning("mission_plan error: {} / {}".format(
+                resp.get('data', {}).get('code', '?'),
+                resp.get('data', {}).get('message', '?')))
+            return False
+
+    logger.warning("mission_plan ack timeout")
+    return False
+
 
 def _run():
     global _sock
@@ -155,16 +175,16 @@ def _run():
 
     while _running:
         _connected.clear()
-        _mission_ready.clear()
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
             s.connect((UE4_HOST, UE4_PORT))
             with _sock_lock:
                 _sock = s
-            logger.info("V2.0 bridge connected to {}:{}".format(UE4_HOST, UE4_PORT))
+            logger.info("V2.0 bridge connected to {}:{}".format(
+                UE4_HOST, UE4_PORT))
 
-            # ---- step 1: hello ----
+            # ---- step 1: hello → ACK ----
             _frame_send(s, {
                 'protocol_version': '2.0',
                 'type': 'hello',
@@ -188,61 +208,38 @@ def _run():
                 continue
             logger.info("hello acked")
 
-            # ---- step 2: send mission_plan (default or queued) ----
-            _connected.set()
-
-            # 发默认 mission_plan
-            msg = _build_mission_plan(_current_mission_id, _DEFAULT_WAYPOINTS)
-            _frame_send(s, msg)
-            logger.info("mission_plan sent: {} waypoints".format(
-                len(_DEFAULT_WAYPOINTS)))
-
-            # 等 mission_plan ACK
-            mp_acked = False
-            deadline = time.time() + 10.0
-            while time.time() < deadline:
-                resp = _frame_recv(s, timeout=0.3)
-                if resp and resp.get('type') == 'ack' \
-                        and resp.get('data', {}).get('ref_type') == 'mission_plan':
-                    logger.info("mission_plan acked")
-                    mp_acked = True
-                    break
-                elif resp and resp.get('type') == 'error':
-                    logger.warning("mission_plan error: {} / {}".format(
-                        resp.get('data', {}).get('code', '?'),
-                        resp.get('data', {}).get('message', '?')))
-                    break
-
-            if not mp_acked:
-                logger.warning("mission_plan ack not received")
+            # ---- step 2: mission_plan → ACK ----
+            if not _build_and_send_mission_plan(
+                    s, _current_mission_id, _DEFAULT_WAYPOINTS):
+                logger.error("mission_plan failed, reconnecting")
                 s.close()
                 time.sleep(3)
                 continue
 
-            _mission_ready.set()
+            # 此时 StateManager 已建立任务，标记连接就绪
+            _connected.set()
 
             # ---- step 3: vehicle_state @50Hz ----
             def vehicle_state_sender():
-                # 没有 timeout fallback——必须等到 _mission_ready
-                if not _mission_ready.wait(timeout=10.0):
-                    logger.error("mission_ready timeout, not starting vehicle_state")
-                    return
                 while _connected.is_set():
-                    vs = state_cache.get_vehicle_state_v2(_current_mission_id, 50)
+                    vs = state_cache.get_vehicle_state_v2(
+                        _current_mission_id, 50)
                     if vs is not None:
                         try:
                             vs['seq'] = _next_seq()
                             _frame_send(s, vs)
                         except Exception as e:
-                            logger.warning("vehicle_state send failed: {}".format(e))
+                            logger.warning(
+                                "vehicle_state send failed: {}".format(e))
                             _connected.clear()
                             break
                     time.sleep(0.02)
 
-            sender_t = threading.Thread(target=vehicle_state_sender, daemon=True)
+            sender_t = threading.Thread(
+                target=vehicle_state_sender, daemon=True)
             sender_t.start()
 
-            # ---- step 4: read loop (处理后续 ack/error/event) ----
+            # ---- step 4: read loop (事件/错误) ----
             while _connected.is_set():
                 resp = _frame_recv(s, timeout=0.3)
                 if resp:
@@ -255,7 +252,6 @@ def _run():
                             resp.get('data', {}).get('code', '?'),
                             resp.get('data', {}).get('message', '?')))
 
-                # 发送队列中的 events
                 with _queue_lock:
                     events = list(_event_queue)
                     _event_queue.clear()
@@ -294,7 +290,6 @@ def stop_bridge():
     global _running, _sock
     _running = False
     _connected.clear()
-    _mission_ready.clear()
     with _sock_lock:
         if _sock:
             try:
