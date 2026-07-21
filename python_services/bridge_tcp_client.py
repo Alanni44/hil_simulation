@@ -6,9 +6,12 @@ V2.0 TCP Bridge Client — 严格按 Simulink-三维视景通信协议 V2.0
 消息类型:
   hello           → 握手
   mission_plan    → 发送航点规划
-  vehicle_state   → 20Hz 实时状态
+  vehicle_state   → 50Hz 实时状态
   simulation_event → 仿真生命周期
   ack / error     → 接收响应
+
+正确时序:
+  TCP连接 → hello → ACK → mission_plan → ACK → vehicle_state @50Hz
 """
 import json
 import socket
@@ -26,17 +29,30 @@ UE4_PORT = CONFIG['ue4_tcp']['port']
 
 _sock = None
 _sock_lock = threading.Lock()
-_send_lock = threading.Lock()  # protect socket from concurrent writes
+_send_lock = threading.Lock()
 _connected = threading.Event()
 _running = True
 _seq = 0
 _seq_lock = threading.Lock()
 
 _current_mission_id = 'mission_001'
-_mission_acked = threading.Event()  # mission_plan ACK received
-_mission_queue = []   # items: (mission_id, waypoints_list)
-_event_queue = []     # items: (event_name, mission_id)
+_mission_ready = threading.Event()  # mission_plan ACK 后才 set
+_event_queue = []
 _queue_lock = threading.Lock()
+
+# 默认圆形航线 (V2.0 测试用)
+_DEFAULT_WAYPOINTS = [
+    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 28.8, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
+    {'x': 22.8, 'y': 28.8, 'height': 10.0, 'speed': 5.0},
+    {'x': 15.0, 'y': 30.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 7.2, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
+    {'x': 1.2, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 7.2, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
+    {'x': 15.0, 'y': 0.0, 'height': 10.0, 'speed': 5.0},
+    {'x': 22.8, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
+    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
+]
 
 
 def _next_seq():
@@ -47,7 +63,6 @@ def _next_seq():
 
 
 def _sanitize(obj):
-    """递归替换 NaN/Inf 为 0.0，确保 JSON 符合协议 §4"""
     if isinstance(obj, float):
         import math
         if math.isnan(obj) or math.isinf(obj):
@@ -95,13 +110,14 @@ def _frame_recv(sock, timeout=0.5):
 
 
 def send_mission_plan(mission_id, waypoints):
-    """非阻塞：队列发送 mission_plan"""
+    """非阻塞：设置 mission_id 并触发 mission_plan 发送"""
+    global _current_mission_id
+    _current_mission_id = mission_id
     with _queue_lock:
         _mission_queue.append((mission_id, list(waypoints)))
 
 
 def send_simulation_event(event_name, mission_id=''):
-    """非阻塞：队列发送 simulation_event"""
     with _queue_lock:
         _event_queue.append((event_name, mission_id))
 
@@ -110,51 +126,27 @@ def is_connected():
     return _connected.is_set()
 
 
-def _drain_queues(sock):
-    """发送队列中的 mission_plan 和 simulation_event"""
-    with _queue_lock:
-        missions = list(_mission_queue)
-        events = list(_event_queue)
-        _mission_queue.clear()
-        _event_queue.clear()
-
-    for mission_id, waypoints in missions:
-        _current_mission_id = mission_id
-        wps = []
-        for i, wp in enumerate(waypoints):
-            wps.append({
-                'id': 'P{}'.format(i + 1),
-                'x': wp.get('x', 0),
-                'y': wp.get('y', 0),
-                'height': wp.get('height', 0),
-                'target_speed': wp.get('speed', 5),
-            })
-        msg = {
-            'protocol_version': '2.0',
-            'type': 'mission_plan',
-            'seq': _next_seq(),
-            'vehicle_id': 'Drone1',
-            'data': {
-                'mission_id': mission_id,
-                'replace_previous': True,
-                'waypoints': wps,
-            }
+def _build_mission_plan(mission_id, waypoints):
+    wps = []
+    for i, wp in enumerate(waypoints):
+        wps.append({
+            'id': 'P{}'.format(i + 1),
+            'x': wp.get('x', 0),
+            'y': wp.get('y', 0),
+            'height': wp.get('height', 0),
+            'target_speed': wp.get('speed', 5),
+        })
+    return {
+        'protocol_version': '2.0',
+        'type': 'mission_plan',
+        'seq': _next_seq(),
+        'vehicle_id': 'Drone1',
+        'data': {
+            'mission_id': mission_id,
+            'replace_previous': True,
+            'waypoints': wps,
         }
-        _frame_send(sock, msg)
-        logger.info("mission_plan sent: {} waypoints".format(len(wps)))
-
-    for event_name, mission_id in events:
-        msg = {
-            'protocol_version': '2.0',
-            'type': 'simulation_event',
-            'seq': _next_seq(),
-            'vehicle_id': 'Drone1',
-            'data': {'event': event_name},
-        }
-        if mission_id:
-            msg['data']['mission_id'] = mission_id
-        _frame_send(sock, msg)
-        logger.info("simulation_event: {}".format(event_name))
+    }
 
 
 def _run():
@@ -163,7 +155,7 @@ def _run():
 
     while _running:
         _connected.clear()
-        _mission_acked.clear()
+        _mission_ready.clear()
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
@@ -172,7 +164,7 @@ def _run():
                 _sock = s
             logger.info("V2.0 bridge connected to {}:{}".format(UE4_HOST, UE4_PORT))
 
-            # ---- hello ----
+            # ---- step 1: hello ----
             _frame_send(s, {
                 'protocol_version': '2.0',
                 'type': 'hello',
@@ -188,22 +180,53 @@ def _run():
             logger.info("hello sent")
 
             ack = _frame_recv(s, timeout=5.0)
-            if ack and ack.get('type') == 'ack' and\
-               ack.get('data', {}).get('accepted'):
-                logger.info("hello acked, bridge ready")
-            else:
+            if not (ack and ack.get('type') == 'ack'
+                    and ack.get('data', {}).get('accepted')):
                 logger.warning("hello ack failed, got: {}".format(ack))
                 s.close()
                 time.sleep(3)
                 continue
+            logger.info("hello acked")
 
+            # ---- step 2: send mission_plan (default or queued) ----
             _connected.set()
-            _drain_queues(s)
 
-            # ---- sender thread (50Hz) ----
+            # 发默认 mission_plan
+            msg = _build_mission_plan(_current_mission_id, _DEFAULT_WAYPOINTS)
+            _frame_send(s, msg)
+            logger.info("mission_plan sent: {} waypoints".format(
+                len(_DEFAULT_WAYPOINTS)))
+
+            # 等 mission_plan ACK
+            mp_acked = False
+            deadline = time.time() + 10.0
+            while time.time() < deadline:
+                resp = _frame_recv(s, timeout=0.3)
+                if resp and resp.get('type') == 'ack' \
+                        and resp.get('data', {}).get('ref_type') == 'mission_plan':
+                    logger.info("mission_plan acked")
+                    mp_acked = True
+                    break
+                elif resp and resp.get('type') == 'error':
+                    logger.warning("mission_plan error: {} / {}".format(
+                        resp.get('data', {}).get('code', '?'),
+                        resp.get('data', {}).get('message', '?')))
+                    break
+
+            if not mp_acked:
+                logger.warning("mission_plan ack not received")
+                s.close()
+                time.sleep(3)
+                continue
+
+            _mission_ready.set()
+
+            # ---- step 3: vehicle_state @50Hz ----
             def vehicle_state_sender():
-                # 协议要求：必须等 mission_plan ACK 后才开始 vehicle_state
-                _mission_acked.wait(timeout=10.0)
+                # 没有 timeout fallback——必须等到 _mission_ready
+                if not _mission_ready.wait(timeout=10.0):
+                    logger.error("mission_ready timeout, not starting vehicle_state")
+                    return
                 while _connected.is_set():
                     vs = state_cache.get_vehicle_state_v2(_current_mission_id, 50)
                     if vs is not None:
@@ -214,12 +237,12 @@ def _run():
                             logger.warning("vehicle_state send failed: {}".format(e))
                             _connected.clear()
                             break
-                    time.sleep(0.02)  # 50Hz
+                    time.sleep(0.02)
 
             sender_t = threading.Thread(target=vehicle_state_sender, daemon=True)
             sender_t.start()
 
-            # ---- read loop ----
+            # ---- step 4: read loop (处理后续 ack/error/event) ----
             while _connected.is_set():
                 resp = _frame_recv(s, timeout=0.3)
                 if resp:
@@ -227,16 +250,27 @@ def _run():
                     if rtype == 'ack':
                         ref = resp.get('data', {}).get('ref_type', '')
                         logger.info("ACK ref_type={}".format(ref))
-                        if ref == 'mission_plan':
-                            _mission_acked.set()
                     elif rtype == 'error':
                         logger.warning("ERROR: {} / {}".format(
                             resp.get('data', {}).get('code', '?'),
                             resp.get('data', {}).get('message', '?')))
-                _drain_queues(s)
 
-                # §14.2: 丢弃过时状态，只保留最新数据
-                pass
+                # 发送队列中的 events
+                with _queue_lock:
+                    events = list(_event_queue)
+                    _event_queue.clear()
+                for event_name, mission_id in events:
+                    msg = {
+                        'protocol_version': '2.0',
+                        'type': 'simulation_event',
+                        'seq': _next_seq(),
+                        'vehicle_id': 'Drone1',
+                        'data': {'event': event_name},
+                    }
+                    if mission_id:
+                        msg['data']['mission_id'] = mission_id
+                    _frame_send(s, msg)
+                    logger.info("simulation_event: {}".format(event_name))
 
             s.close()
             with _sock_lock:
@@ -260,6 +294,7 @@ def stop_bridge():
     global _running, _sock
     _running = False
     _connected.clear()
+    _mission_ready.clear()
     with _sock_lock:
         if _sock:
             try:
