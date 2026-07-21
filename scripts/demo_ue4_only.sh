@@ -20,6 +20,7 @@ from bridge_tcp_client import send_mission_plan
 import threading, time
 
 MISSION_ID = 'mission_001'
+_LAST_SENT_MISSION = ['mission_001']  # mutable to persist across loop iterations
 CIRCLE_WAYPOINTS = [
     {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
     {'x': 28.8, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
