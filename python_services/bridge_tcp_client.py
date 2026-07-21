@@ -149,6 +149,8 @@ def _run():
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
             s.connect((UE4_HOST, UE4_PORT))
+            with _sock_lock:
+                _sock = s
             logger.info("V2.0 bridge connected to {}:{}".format(UE4_HOST, UE4_PORT))
 
             # ---- hello ----
@@ -211,6 +213,8 @@ def _run():
                 _drain_queues(s)
 
             s.close()
+            with _sock_lock:
+                _sock = None
             logger.info("V2.0 bridge disconnected")
         except (ConnectionRefusedError, OSError) as e:
             logger.warning("Bridge connect failed: {}".format(e))

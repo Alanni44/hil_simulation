@@ -13,7 +13,7 @@ import math
 import json
 import time
 
-FMT = "=I" "Q" "ddd" "ddd" "fff" "fff" "fff" "f" "ffff" "I" "I" "I" "B" "3x"
+FMT = "=I" "Q" "ddd" "ddd" "fff" "fff" "fff" "fff" "f" "ffff" "I" "I" "I" "B" "B" "2x"
 SIZE = struct.calcsize(FMT)
 
 status_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -108,11 +108,13 @@ while True:
         0.0,                                  # yaw
         5.0, 2.0,                             # vel_x, vel_y
         (alt_target - alt_current) * 3.0 if alt_current < alt_target else 0.0,  # vel_z
-        0.0, 0.0, 0.0,                        # acc
-        24.5,                                  # battery
-        5000.0, 4800.0, 5200.0, 4900.0,      # motors
-        status_word,                           # status_word
-        1, 0, 2                                 # mission_id, wp, phase
+        0.0, 0.0, 0.0,                        # acc_x, acc_y, acc_z
+        0.0, 0.0, 0.0,                         # ang_vel_p, ang_vel_q, ang_vel_r
+        24.5,                                   # battery
+        5000.0, 4800.0, 5200.0, 4900.0,       # motors
+        status_word,                            # status_word
+        1, 0,                                   # mission_id, waypoint_index
+        2, 2                                    # flight_phase, flight_state
     )
     status_sock.sendto(data, ('127.0.0.1', 9998))
     time.sleep(0.001)
