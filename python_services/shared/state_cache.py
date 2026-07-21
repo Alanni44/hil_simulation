@@ -69,7 +69,7 @@ def get_state_dict():
     }
 
 
-def get_vehicle_state_v2(mission_id='mission_001'):
+def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
     """V2.0 vehicle_state 消息完整体"""
     with _lock:
         s = _latest_raw

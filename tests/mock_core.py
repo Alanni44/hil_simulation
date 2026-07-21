@@ -27,7 +27,7 @@ cmd_sock.bind(('127.0.0.1', 9997))
 cmd_sock.settimeout(0.001)
 
 
-def replay_csv(path, rate_hz=20):
+def replay_csv(path, rate_hz=50):
     """读取 CSV 并以指定频率发送 FlightState"""
     rows = []
     with open(path, 'r') as f:

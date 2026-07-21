@@ -18,7 +18,7 @@
 #define STEP_NS 1000000LL
 #define UDP_CMD_PORT 9997
 #define UDP_STATUS_PORT 9998
-#define SEND_INTERVAL 50   /* 20Hz = 1000/50 */
+#define SEND_INTERVAL 20   /* 50Hz = 1000/20 */
 
 static volatile int running = 1;
 static FlightState_t current_state;

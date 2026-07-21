@@ -178,7 +178,7 @@ def _run():
                 'vehicle_id': 'Drone1',
                 'data': {
                     'role': 'simulink_state_source',
-                    'state_rate_hz': 20,
+                    'state_rate_hz': 50,
                     'coordinate_convention': 'x_forward_y_right_height_up',
                     'angle_unit': 'rad',
                 }
@@ -198,10 +198,10 @@ def _run():
             _connected.set()
             _drain_queues(s)
 
-            # ---- sender thread (20Hz) ----
+            # ---- sender thread (50Hz) ----
             def vehicle_state_sender():
                 while _connected.is_set():
-                    vs = state_cache.get_vehicle_state_v2(_current_mission_id)
+                    vs = state_cache.get_vehicle_state_v2(_current_mission_id, 50)
                     if vs is not None:
                         try:
                             vs['seq'] = _next_seq()
@@ -210,7 +210,7 @@ def _run():
                             logger.warning("vehicle_state send failed: {}".format(e))
                             _connected.clear()
                             break
-                    time.sleep(0.05)
+                    time.sleep(0.02)  # 50Hz
 
             sender_t = threading.Thread(target=vehicle_state_sender, daemon=True)
             sender_t.start()
