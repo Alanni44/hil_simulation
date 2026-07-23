@@ -159,14 +159,23 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     % ---- 0: Delete Real-Time Pacer blocks ----
     % These reference realtime_pacer_lib which is not installed on HIL machines.
     % Delete them before ERT build to avoid library-not-found errors.
-    pacer_blocks = find_system(new_name, 'ReferenceBlock', '(?i).*pac.*');
-    for b = 1:length(pacer_blocks)
+    % R2018b find_system does not support regex – use BlockType and name substring.
+    pacer_candidates = find_system(new_name, 'SearchDepth', 1, 'BlockType', 'SubSystem');
+    for b = 1:length(pacer_candidates)
+        blk_name = get_param(pacer_candidates{b}, 'Name');
+        ref_block = '';
         try
-            delete_block(pacer_blocks{b});
-            fprintf('  [delete] Real-Time Pacer: %s\n', pacer_blocks{b});
-        catch ME
-            result.warnings{end+1} = sprintf('Cannot delete pacer block "%s": %s', ...
-                pacer_blocks{b}, ME.message);
+            ref_block = get_param(pacer_candidates{b}, 'ReferenceBlock');
+        catch
+        end
+        if contains(lower(blk_name), 'pac') || contains(lower(ref_block), 'pac')
+            try
+                delete_block(pacer_candidates{b});
+                fprintf('  [delete] Real-Time Pacer: %s\n', pacer_candidates{b});
+            catch ME
+                result.warnings{end+1} = sprintf('Cannot delete pacer block "%s": %s', ...
+                    pacer_candidates{b}, ME.message);
+            end
         end
     end
 

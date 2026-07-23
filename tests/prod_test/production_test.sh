@@ -232,8 +232,8 @@ JSONEOF
         PROD_MODE="GCC_FALLBACK"
         mkdir -p "$ROOT/models/executables"
 
-        # Write a stub model_config.h so main_rt.c compiles
-        cat > /tmp/model_config_stub.h << 'STUBEOF'
+        # Write model_config.h to the c_core/src directory so #include "model_config.h" resolves
+        cat > "$ROOT/c_core/src/model_config.h" << 'STUBEOF'
 #ifndef MODEL_CONFIG_H
 #define MODEL_CONFIG_H
 #define MODEL_NAME "gcc_fallback"
@@ -354,7 +354,6 @@ STUBEOF
 
         gcc -O2 -Wall -pthread \
             -I"$ROOT/c_core/src" -I"$ROOT/model" \
-            -include /tmp/model_config_stub.h \
             -DMODEL_RT_BRIDGE_H=my_uav_model.h \
             -DSKIP_STATIC_ASSERT \
             "$ROOT/model/my_uav_model.c" \
