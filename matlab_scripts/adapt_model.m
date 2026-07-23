@@ -43,12 +43,6 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     input_aliases('cmd_mode') = {'cmd_mode','mode','flight_mode'};
     input_aliases('cmd_speed') = {'cmd_speed','speed','target_speed','V_des'};
 
-    % Quad_sim specific constants (KEYS ARE Cell Arrays in R2018b)
-    input_aliases('cmd_Z_des')  = {'Z_des'};
-    input_aliases('cmd_X_des')  = {'X_des'};
-    input_aliases('cmd_Y_des')  = {'Y_des'};
-    input_aliases('cmd_Psi_des') = {'Psi_des'};
-
     output_aliases = containers.Map();
     output_aliases('pos_x') = {'pos_x','X','x','x_global','x_body'};
     output_aliases('pos_y') = {'pos_y','Y','y','y_global','y_body'};

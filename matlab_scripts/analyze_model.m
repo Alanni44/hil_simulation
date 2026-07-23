@@ -30,12 +30,36 @@ function analyze_model(slx_path, output_json_path)
     info.slx_path = slx_path;
 
     % ---- Solver config ----
-    info.solver = get_param(model_name, 'Solver');
-    info.solver_type = get_param(model_name, 'SolverType');
-    info.fixed_step = get_param(model_name, 'FixedStep');
-    info.system_target = get_param(model_name, 'SystemTargetFile');
-    info.stop_time = get_param(model_name, 'StopTime');
-    info.target_lang = get_param(model_name, 'TargetLang');
+    try
+        info.solver = get_param(model_name, 'Solver');
+    catch
+        info.solver = '';
+    end
+    try
+        info.solver_type = get_param(model_name, 'SolverType');
+    catch
+        info.solver_type = '';
+    end
+    try
+        info.fixed_step = get_param(model_name, 'FixedStep');
+    catch
+        info.fixed_step = '';
+    end
+    try
+        info.system_target = get_param(model_name, 'SystemTargetFile');
+    catch
+        info.system_target = '';
+    end
+    try
+        info.stop_time = get_param(model_name, 'StopTime');
+    catch
+        info.stop_time = '';
+    end
+    try
+        info.target_lang = get_param(model_name, 'TargetLang');
+    catch
+        info.target_lang = '';
+    end
 
     % ---- Root-level Inports ----
     inports = find_system(model_name, 'SearchDepth', 1, 'BlockType', 'Inport');
