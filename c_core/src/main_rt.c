@@ -31,8 +31,9 @@
 
 static volatile int running = 1;
 static FlightState_t current_state;
-static ModelInput_t model_params;
+static ModelInput_t model_params = { .init_lat = 39.9, .init_lon = 116.4, .init_alt = 100.0 };
 static int model_initialized = 0;
+static int _cmd_mode_snapshot = 0;
 
 /* ---- V2.0 waypoint queue ---- */
 static struct { double x, y, height, speed; } _wp_queue[MAX_WAYPOINTS];
@@ -143,7 +144,7 @@ static int parse_command(const char* json_str) {
             }
         }
         ModelU_t* U = model_get_input();
-        if (!model_initialized && U) {
+        if (U) {
             MODEL_U_SET(U, lat_init, model_params.init_lat);
             MODEL_U_SET(U, lon_init, model_params.init_lon);
             MODEL_U_SET(U, alt_init, model_params.init_alt);
@@ -316,7 +317,6 @@ int main(int argc, char** argv) {
     }
 
     model_initialize();
-    model_initialized = 1;
 
     pthread_t cmd_thread_id;
     pthread_create(&cmd_thread_id, NULL, command_thread, NULL);
@@ -347,6 +347,12 @@ int main(int argc, char** argv) {
         }
 
         if (model_is_loaded() && model_initialized) {
+            /* ---- V2.0 cmd_mode snapshot (before model consumes it) ---- */
+#if HAS_U_cmd_mode
+            { ModelU_t* U = model_get_input();
+              if (U) _cmd_mode_snapshot = U->MODEL_U_cmd_mode; }
+#endif
+
             model_step();
 
             ModelY_t y;
@@ -414,13 +420,8 @@ int main(int argc, char** argv) {
                 _prev_yaw = current_state.yaw;
 
                 /* ---- V2.0 flight_state ---- */
-                ModelU_t* U = model_get_input();
-                int cmd_mode = 0;
-#if HAS_U_cmd_mode
-                if (U) cmd_mode = U->MODEL_U_cmd_mode;
-#endif
                 current_state.flight_state = derive_flight_state(
-                    current_state.status_word, current_state.pos_z, cmd_mode, _wp_active);
+                    current_state.status_word, current_state.pos_z, _cmd_mode_snapshot, _wp_active);
             }
 
             current_state.battery_voltage = 24.5f;

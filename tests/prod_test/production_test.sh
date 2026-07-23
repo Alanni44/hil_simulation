@@ -365,7 +365,7 @@ STUBEOF
             "$ROOT/c_core/src/model_rt_wrapper.c" \
             "$ROOT/c_core/src/local_udp.c" \
             "$ROOT/c_core/src/hal_stub.c" \
-            -lm -ljson-c -lpthread \
+            -lm -lrt -ljson-c -lpthread \
             -o "$EXE_PATH" 2>&1
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}  GCC build OK → $EXE_PATH${NC}"

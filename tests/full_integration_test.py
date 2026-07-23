@@ -68,7 +68,7 @@ _FIELDS = ['version', 'timestamp_us',
            'pos_x', 'pos_y', 'pos_z', 'lat', 'lon', 'alt',
            'roll', 'pitch', 'yaw', 'vel_x', 'vel_y', 'vel_z',
            'acc_x', 'acc_y', 'acc_z', 'ang_vel_p', 'ang_vel_q', 'ang_vel_r',
-           'battery', 'motor0', 'motor1', 'motor2', 'motor3',
+           'battery_voltage', 'motor_speed_0', 'motor_speed_1', 'motor_speed_2', 'motor_speed_3',
            'status_word', 'mission_id', 'waypoint_index',
            'flight_phase', 'flight_state']
 

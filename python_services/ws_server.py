@@ -35,6 +35,23 @@ _ref_lon = 116.4
 
 # ---------- WebSocket Framing ----------
 
+async def ws_pong(writer, data: bytes):
+    """Send a WebSocket Pong frame (opcode 0xA) — no mask from server."""
+    length = len(data)
+    header = bytearray()
+    header.append(0x8A)  # FIN + Pong opcode
+    if length < 126:
+        header.append(length)
+    elif length < 65536:
+        header.append(126)
+        header += struct.pack('>H', length)
+    else:
+        header.append(127)
+        header += struct.pack('>Q', length)
+    writer.write(bytes(header) + data)
+    await writer.drain()
+
+
 async def ws_send(writer, payload: str):
     data = payload.encode('utf-8')
     length = len(data)
@@ -279,7 +296,7 @@ async def command_loop(reader, writer):
 
         if raw == '__PING__':
             try:
-                await ws_send(writer, '')
+                await ws_pong(writer, b'')
             except Exception:
                 break
             continue
