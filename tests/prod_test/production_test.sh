@@ -67,13 +67,13 @@ echo ""
 
 # ---- Config ----
 # Auto-detect desktop path (Chinese or English)
-if [ -d "$HOME/Desktop" ]; then
-    USER_DESKTOP="$HOME/Desktop"
-elif [ -d "$HOME/桌面" ]; then
-    USER_DESKTOP="$HOME/桌面"
-else
-    USER_DESKTOP="$HOME"
-fi
+USER_DESKTOP="$HOME"
+for candidate in "$HOME/Desktop" "$HOME/桌面"; do
+    if [ -d "$candidate" ]; then
+        USER_DESKTOP="$candidate"
+        break
+    fi
+done
 
 SLX_PATH="${SLX_PATH:-$USER_DESKTOP/Quad-Simulink-Simulation-master/Quad-Simulink-Simulation-master/Quad_sim.slx}"
 MODEL_NAME="${MODEL_NAME:-Quad_sim}"
