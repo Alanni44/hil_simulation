@@ -94,12 +94,12 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     std_inputs = keys(input_aliases);
     std_outputs = keys(output_aliases);
     for i = 1:length(std_inputs)
-        if strcmp(input_mapping(std_inputs{i}), 'NOT_FOUND')
+        if strcmp(input_mapping.(std_inputs{i}), 'NOT_FOUND')
             missing_inputs{end+1} = std_inputs{i};
         end
     end
     for i = 1:length(std_outputs)
-        if strcmp(output_mapping(std_outputs{i}), 'NOT_FOUND')
+        if strcmp(output_mapping.(std_outputs{i}), 'NOT_FOUND')
             missing_outputs{end+1} = std_outputs{i};
         end
     end
@@ -166,6 +166,13 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
         standard_std_keys = std_keys_cell(:)';  % ensure row cell array
     else
         standard_std_keys = {};
+    end
+    % Separate output standard keys for the sink loop below
+    std_out_keys_cell = keys(output_aliases);
+    if ~isempty(std_out_keys_cell)
+        standard_std_out_keys = std_out_keys_cell(:)';
+    else
+        standard_std_out_keys = {};
     end
     inport_counter = length(info.root_inports) + 1;
     all_tunable = struct();  % track every tunable param
@@ -273,11 +280,11 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
 
         % Find which standard key this sink maps to
         mapped_key = '';
-        for i = 1:length(standard_std_keys)
-            candidates = output_aliases(standard_std_keys{i});
+        for i = 1:length(standard_std_out_keys)
+            candidates = output_aliases(standard_std_out_keys{i});
             for c = 1:length(candidates)
                 if strcmpi(strtrim(snk_name), strtrim(candidates{c}))
-                    mapped_key = standard_std_keys{i};
+                    mapped_key = standard_std_out_keys{i};
                     break;
                 end
             end
