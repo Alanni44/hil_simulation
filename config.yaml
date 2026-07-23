@@ -11,7 +11,7 @@ spring_boot:
   path: "/ws/hil"
 
 ue4_tcp:
-  host: "192.168.100.172"
+  host: "127.0.0.1"
   port: 5000
 
 logging:

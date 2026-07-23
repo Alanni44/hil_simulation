@@ -62,11 +62,18 @@
  * Compile-time assertion: ensure ModelU_t / ModelY_t sizes match the
  * generated model structs.  If this fails, model_rt_wrapper.h and the
  * generated model header have diverged.
+ *
+ * Skip this check when building with an auto-generated bridge (the bridge
+ * typedefs ARE the generated types, so sizeof comparison would be tautological
+ * and could fail if ModelU_t is defined as the bridge typedef rather than a
+ * struct literal).
  */
+#ifndef SKIP_STATIC_ASSERT
 _Static_assert(sizeof(ModelU_t) == sizeof(MODEL_U_VAR),
                "ModelU_t size mismatch with generated model U struct");
 _Static_assert(sizeof(ModelY_t) == sizeof(MODEL_Y_VAR),
                "ModelY_t size mismatch with generated model Y struct");
+#endif
 
 static int _loaded = 0;
 

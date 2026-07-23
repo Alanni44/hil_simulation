@@ -26,12 +26,14 @@ typedef struct {
 typedef struct {
     uint32_t version;
     uint64_t timestamp_us;
+    /* ---- core fields (always present, read by Python) ---- */
     double pos_x, pos_y, pos_z;
     double lat, lon, alt;
     float roll, pitch, yaw;
     float vel_x, vel_y, vel_z;
     float acc_x, acc_y, acc_z;
     float ang_vel_p, ang_vel_q, ang_vel_r;
+    /* ---- telemetry fields (optional, filled with defaults if missing) ---- */
     float battery_voltage;
     float motor_speed_0, motor_speed_1, motor_speed_2, motor_speed_3;
     uint32_t status_word;

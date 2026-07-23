@@ -256,17 +256,38 @@ def _run():
                     events = list(_event_queue)
                     _event_queue.clear()
                 for event_name, mission_id in events:
+                    ev_seq = _next_seq()
                     msg = {
                         'protocol_version': '2.0',
                         'type': 'simulation_event',
-                        'seq': _next_seq(),
+                        'seq': ev_seq,
                         'vehicle_id': 'Drone1',
                         'data': {'event': event_name},
                     }
                     if mission_id:
                         msg['data']['mission_id'] = mission_id
                     _frame_send(s, msg)
-                    logger.info("simulation_event: {}".format(event_name))
+                    logger.info("simulation_event sent: {}".format(event_name))
+
+                    deadline = time.time() + 5.0
+                    acked = False
+                    while time.time() < deadline:
+                        resp = _frame_recv(s, timeout=0.3)
+                        if not resp:
+                            continue
+                        if resp.get('type') == 'ack' \
+                                and resp.get('data', {}).get('ref_type') == 'simulation_event' \
+                                and resp.get('data', {}).get('ref_seq') == ev_seq:
+                            logger.info("simulation_event acked: {}".format(event_name))
+                            acked = True
+                            break
+                        if resp.get('type') == 'error':
+                            logger.warning("simulation_event error: {} / {}".format(
+                                resp.get('data', {}).get('code', '?'),
+                                resp.get('data', {}).get('message', '?')))
+                            break
+                    if not acked:
+                        logger.warning("simulation_event ack timeout: {}".format(event_name))
 
             s.close()
             with _sock_lock:

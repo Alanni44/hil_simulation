@@ -5,7 +5,17 @@
 extern "C" {
 #endif
 
-/* Model input struct — must match what Simulink ERT generates */
+/*
+ * When MODEL_RT_BRIDGE_H is defined (by build_script.m at compile time),
+ * the bridge header provides ModelU_t and ModelY_t typedefs automatically
+ * (pointing to the generated model's actual struct types).
+ *
+ * The manual definitions below serve as a FALLBACK for development only.
+ * They are #ifndef-guarded so the generated types always win.
+ */
+
+#ifndef MODEL_U_T_DEFINED
+/* Fallback ModelU_t — only used when building without auto-generated bridge */
 typedef struct {
     double lat_init, lon_init, alt_init;
     float roll_init, pitch_init, yaw_init;
@@ -16,18 +26,16 @@ typedef struct {
     int cmd_mode;
     double cmd_x, cmd_y, cmd_z;
     double cmd_speed, cmd_duration;
-    float throttle;
-    float pitch_cmd;
-    float roll_cmd;
-    float yaw_cmd;
-    int flight_mode;
-    int experiment_mode;
+    float throttle, pitch_cmd, roll_cmd, yaw_cmd;
+    int flight_mode, experiment_mode;
     double init_x, init_y;
-    float min_speed, max_speed;
-    float min_height, max_height;
+    float min_speed, max_speed, min_height, max_height;
 } ModelU_t;
+#define MODEL_U_T_DEFINED 1
+#endif
 
-/* Model output struct — must match what Simulink ERT generates */
+#ifndef MODEL_Y_T_DEFINED
+/* Fallback ModelY_t — only used when building without auto-generated bridge */
 typedef struct {
     double pos_x, pos_y, pos_z;
     double lat, lon, alt;
@@ -36,6 +44,8 @@ typedef struct {
     float acc_x, acc_y, acc_z;
     int airborne;
 } ModelY_t;
+#define MODEL_Y_T_DEFINED 1
+#endif
 
 /* ---- Static-link model API ---- */
 

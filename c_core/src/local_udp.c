@@ -1,5 +1,6 @@
 #include "local_udp.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -8,7 +9,9 @@
 
 static int cmd_sock = -1;
 static int status_sock = -1;
+static int monitor_sock = -1;
 static struct sockaddr_in status_addr;
+static struct sockaddr_in monitor_addr;
 
 int udp_init(int command_port, int status_port) {
     cmd_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -40,6 +43,19 @@ int udp_init(int command_port, int status_port) {
     status_addr.sin_port = htons(status_port);
     status_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     printf("[UDP] Status socket ready to send to 127.0.0.1:%d\n", status_port);
+
+    /* Monitor socket → UDP 9999 for test scripts */
+    monitor_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (monitor_sock < 0) {
+        perror("[UDP] monitor socket");
+    } else {
+        memset(&monitor_addr, 0, sizeof(monitor_addr));
+        monitor_addr.sin_family = AF_INET;
+        monitor_addr.sin_port = htons(UDP_MONITOR_PORT);
+        monitor_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        printf("[UDP] Monitor socket ready to send to 127.0.0.1:%d\n", UDP_MONITOR_PORT);
+    }
+
     return 0;
 }
 
@@ -47,6 +63,12 @@ void udp_send_status(const FlightState_t* state) {
     if (status_sock < 0) return;
     sendto(status_sock, state, sizeof(FlightState_t), 0,
            (struct sockaddr*)&status_addr, sizeof(status_addr));
+}
+
+void udp_send_monitor(const FlightState_t* state) {
+    if (monitor_sock < 0) return;
+    sendto(monitor_sock, state, sizeof(FlightState_t), 0,
+           (struct sockaddr*)&monitor_addr, sizeof(monitor_addr));
 }
 
 int udp_recv_command(char* buffer, int buffer_size) {
@@ -62,4 +84,5 @@ int udp_recv_command(char* buffer, int buffer_size) {
 void udp_close(void) {
     if (cmd_sock >= 0) { close(cmd_sock); cmd_sock = -1; }
     if (status_sock >= 0) { close(status_sock); status_sock = -1; }
+    if (monitor_sock >= 0) { close(monitor_sock); monitor_sock = -1; }
 }
