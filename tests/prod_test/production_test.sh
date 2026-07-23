@@ -355,7 +355,8 @@ STUBEOF
         gcc -O2 -Wall -pthread \
             -I"$ROOT/c_core/src" -I"$ROOT/model" \
             -include /tmp/model_config_stub.h \
-            -DMODEL_RT_BRIDGE_H='"my_uav_model.h"' \
+            -DMODEL_RT_BRIDGE_H=my_uav_model.h \
+            -DSKIP_STATIC_ASSERT \
             "$ROOT/model/my_uav_model.c" \
             "$ROOT/model/my_uav_model_data.c" \
             "$ROOT/model/rt_nonfinite.c" \

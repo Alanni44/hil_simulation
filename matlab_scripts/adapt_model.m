@@ -156,6 +156,20 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     load_system(output_slx_path);
     [~, new_name, ~] = fileparts(output_slx_path);
 
+    % ---- 0: Delete Real-Time Pacer blocks ----
+    % These reference realtime_pacer_lib which is not installed on HIL machines.
+    % Delete them before ERT build to avoid library-not-found errors.
+    pacer_blocks = find_system(new_name, 'ReferenceBlock', '(?i).*pac.*');
+    for b = 1:length(pacer_blocks)
+        try
+            delete_block(pacer_blocks{b});
+            fprintf('  [delete] Real-Time Pacer: %s\n', pacer_blocks{b});
+        catch ME
+            result.warnings{end+1} = sprintf('Cannot delete pacer block "%s": %s', ...
+                pacer_blocks{b}, ME.message);
+        end
+    end
+
     % ---- 2a: Convert ALL root Constant/Step blocks to Inports ----
     % ALL constants become Inports so they are tunable at runtime via UDP JSON.
     % Blocks with a standard alias (e.g. X_des -> cmd_x) get the standard name;
