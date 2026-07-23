@@ -36,6 +36,7 @@ _seq = 0
 _seq_lock = threading.Lock()
 
 _current_mission_id = 'mission_001'
+_pending_waypoints = None
 _event_queue = []
 _queue_lock = threading.Lock()
 
@@ -109,10 +110,11 @@ def _frame_recv(sock, timeout=0.5):
 
 
 def send_mission_plan(mission_id, waypoints):
-    """非阻塞：外部可调用，不影响 bridge 内部默认 mission_plan"""
-    global _current_mission_id
+    """非阻塞：存储航点供 bridge 下一次连接时发送"""
+    global _current_mission_id, _pending_waypoints
     _current_mission_id = mission_id
-    # 供外部测试用，内部默认已发送，这里不干预
+    if waypoints:
+        _pending_waypoints = list(waypoints)
 
 
 def send_simulation_event(event_name, mission_id=''):
@@ -209,8 +211,8 @@ def _run():
             logger.info("hello acked")
 
             # ---- step 2: mission_plan → ACK ----
-            if not _build_and_send_mission_plan(
-                    s, _current_mission_id, _DEFAULT_WAYPOINTS):
+            wps = _pending_waypoints if _pending_waypoints else _DEFAULT_WAYPOINTS
+            if not _build_and_send_mission_plan(s, _current_mission_id, wps):
                 logger.error("mission_plan failed, reconnecting")
                 s.close()
                 time.sleep(3)

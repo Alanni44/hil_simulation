@@ -447,7 +447,7 @@ int main(int argc, char** argv) {
             current_state.motor_speed_2 = 5200.0f;
             current_state.motor_speed_3 = 4900.0f;
             current_state.mission_id = 1;
-            current_state.waypoint_index = _wp_active ? _wp_current : 0;
+            current_state.waypoint_index = _wp_active ? _wp_current : (_wp_count > 0 ? _wp_count : 0);
             current_state.flight_phase = 2;
 
             if (step_count % SEND_INTERVAL == 0) {
