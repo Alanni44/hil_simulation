@@ -66,13 +66,23 @@ echo "============================================================"
 echo ""
 
 # ---- Config ----
-SLX_PATH="${SLX_PATH:-$HOME/Desktop/Quad-Simulink-Simulation-master/Quad-Simulink-Simulation-master/Quad_sim.slx}"
+# Auto-detect desktop path (Chinese or English)
+if [ -d "$HOME/Desktop" ]; then
+    USER_DESKTOP="$HOME/Desktop"
+elif [ -d "$HOME/桌面" ]; then
+    USER_DESKTOP="$HOME/桌面"
+else
+    USER_DESKTOP="$HOME"
+fi
+
+SLX_PATH="${SLX_PATH:-$USER_DESKTOP/Quad-Simulink-Simulation-master/Quad-Simulink-Simulation-master/Quad_sim.slx}"
 MODEL_NAME="${MODEL_NAME:-Quad_sim}"
 EXE_PATH="$ROOT/models/executables/${MODEL_NAME}_rt"
 MATLAB_BIN="$(find_matlab 2>/dev/null || echo '')"
 
 # ---- Preflight ----
 echo -e "${CYAN}[preflight] Checking required paths...${NC}"
+echo "  Desktop: $USER_DESKTOP"
 MISSING=0
 
 # Check SLX
