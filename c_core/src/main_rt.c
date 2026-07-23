@@ -34,6 +34,7 @@ static FlightState_t current_state;
 static ModelInput_t model_params = { .init_lat = 39.9, .init_lon = 116.4, .init_alt = 100.0 };
 static int model_initialized = 0;
 static int _cmd_mode_snapshot = 0;
+static int _last_cmd_mode_written = 0;  /* non-zero only on the step cmd was set */
 
 /* ---- V2.0 waypoint queue ---- */
 static struct { double x, y, height, speed; } _wp_queue[MAX_WAYPOINTS];
@@ -90,15 +91,33 @@ void signal_handler(int sig) {
 }
 
 /* ---- V2.0 flight_state derivation ---- */
-static uint8_t derive_flight_state(int airborne, double pos_z, int cmd_mode, int wp_active) {
-    if (cmd_mode == 1) return 1; /* taking_off */
-    if (cmd_mode == 2) return 4; /* landing */
-    if (cmd_mode == 3) return 3; /* hovering */
-    if (!airborne && pos_z < 0.5) return 5; /* landed */
-    if (!airborne && pos_z >= 0.5) return 0; /* ready (on ground) */
-    if (wp_active) return 2; /* flying (waypoint mode) */
-    if (airborne) return 2;  /* flying */
-    return 0; /* ready */
+static uint8_t _fs = 0;  /* persistent, updated each SEND_INTERVAL */
+static uint8_t derive_flight_state(int airborne, double pos_z, int wp_active) {
+    /* Transition from taking_off once airborne */
+    if (_fs == 1 && airborne && pos_z >= 0.5) _fs = 3; /* -> hovering */
+    /* Transition from landing once on ground */
+    if (_fs == 4 && !airborne && pos_z < 0.5) _fs = 5; /* -> landed */
+    /* Transition from hovering to landed if not airborne */
+    if (_fs == 3 && !airborne && pos_z < 0.5) _fs = 5;
+    /* landed -> ready transitions are handled by takeoff command */
+
+    /* Check for new commands written this step (set via write trigger marker) */
+    if (_last_cmd_mode_written) {
+        int m = _last_cmd_mode_written;
+        _last_cmd_mode_written = 0;
+        if (m == 1) { _fs = 1; return _fs; }   /* taking_off */
+        if (m == 2) { _fs = 4; return _fs; }   /* landing */
+        if (m == 3) { _fs = 3; return _fs; }   /* hovering */
+    }
+
+    /* Steady-state derivation */
+    if (!airborne && pos_z < 0.5) { _fs = 5; return _fs; } /* landed */
+    if (!airborne && pos_z >= 0.5) { _fs = 0; return _fs; } /* ready */
+    if (wp_active) { _fs = 2; return _fs; } /* flying (waypoint mode) */
+    if (airborne && _fs != 2) { _fs = 3; return _fs; } /* hovering */
+    if (airborne) { _fs = 2; return _fs; }  /* flying */
+    _fs = 0;
+    return _fs; /* ready */
 }
 
 static const char* flight_state_str(uint8_t fs) {
@@ -245,14 +264,17 @@ static int parse_command(const char* json_str) {
             }
         }
         MODEL_U_SET(U, cmd_mode, 1);
+        _last_cmd_mode_written = 1;
         printf("[Cmd] takeoff\n");
     } else if (cmd && strcmp(cmd, "land") == 0) {
         _wp_active = 0;
         MODEL_U_SET(U, cmd_mode, 2);
+        _last_cmd_mode_written = 2;
         printf("[Cmd] land\n");
     } else if (cmd && strcmp(cmd, "hover") == 0) {
         _wp_active = 0;
         MODEL_U_SET(U, cmd_mode, 3);
+        _last_cmd_mode_written = 3;
         printf("[Cmd] hover\n");
     } else if (cmd && strcmp(cmd, "move_position") == 0) {
         _wp_active = 0;
@@ -348,12 +370,6 @@ int main(int argc, char** argv) {
         }
 
         if (model_is_loaded() && model_initialized) {
-            /* ---- V2.0 cmd_mode snapshot (before model consumes it) ---- */
-#if HAS_U_cmd_mode
-            { ModelU_t* U = model_get_input();
-              if (U) _cmd_mode_snapshot = U->MODEL_U_cmd_mode; }
-#endif
-
             model_step();
 
             ModelY_t y;
@@ -422,7 +438,7 @@ int main(int argc, char** argv) {
 
                 /* ---- V2.0 flight_state ---- */
                 current_state.flight_state = derive_flight_state(
-                    current_state.status_word, current_state.pos_z, _cmd_mode_snapshot, _wp_active);
+                    current_state.status_word, current_state.pos_z, _wp_active);
             }
 
             current_state.battery_voltage = 24.5f;
