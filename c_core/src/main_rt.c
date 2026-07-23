@@ -157,6 +157,7 @@ static int parse_command(const char* json_str) {
             MODEL_U_SET(U, max_speed, model_params.max_speed);
             MODEL_U_SET(U, min_height, model_params.min_height);
             MODEL_U_SET(U, max_height, model_params.max_height);
+            MODEL_U_SET(U, flight_mode, 1);  /* default semi-auto so takeoff works */
             model_initialized = 1;
             printf("[Main] Model initialized\n");
         }
