@@ -197,7 +197,7 @@ JSONEOF
 
         "$MATLAB_BIN" -nodisplay -nosplash -nodesktop -r \
             "addpath('$ROOT/matlab_scripts'); build_script('/tmp/hil_build_task.json', '/tmp/hil_build_result.json'); exit;" \
-            2>&1 | tail -40
+            2>&1
 
         if [ -f /tmp/hil_build_result.json ]; then
             RESULT=$(python3 -c "import json; print(json.load(open('/tmp/hil_build_result.json')).get('code', -1))" 2>/dev/null || echo "-1")
