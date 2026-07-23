@@ -85,24 +85,23 @@ echo -e "${CYAN}[preflight] Checking required paths...${NC}"
 echo "  Desktop: $USER_DESKTOP"
 MISSING=0
 
-# Check SLX
+# Check SLX (required for production mode)
 if [ -f "$SLX_PATH" ]; then
     echo "  [OK]  SLX: $SLX_PATH"
 else
     echo "  [MISS] SLX: $SLX_PATH"
+    echo "         Production mode REQUIRES a .slx file."
+    echo "         Set SLX_PATH=/path/to/your/model.slx"
     MISSING=1
 fi
 
-# Check MATLAB
+# Check MATLAB (required for production ERT build)
 if [ -n "$MATLAB_BIN" ]; then
     echo "  [OK]  MATLAB: $MATLAB_BIN"
 else
-    echo "  [MISS] MATLAB: not found in any of:"
-    echo "           /usr/local/MATLAB/R2018b/bin/matlab"
-    echo "           /usr/local/bin/matlab"
-    echo "           /opt/matlab/R2018b/bin/matlab"
-    echo "           \$HOME/MATLAB/R2018b/bin/matlab"
-    echo "           \$PATH"
+    echo "  [MISS] MATLAB: not found"
+    echo "           searched: /usr/local/MATLAB/R2018b, /usr/local/bin, /opt/matlab, $HOME/MATLAB, PATH"
+    echo "         Production mode REQUIRES MATLAB R2018b for ERT code generation."
     MISSING=1
 fi
 
@@ -139,21 +138,22 @@ fi
 
 # Mode prediction
 echo ""
-if [ "$MISSING" -eq 0 ] && [ -f "$SLX_PATH" ] && [ -n "$MATLAB_BIN" ]; then
-    echo -e "  ${GREEN}Predict: MATLAB_ERT (full production)${NC}"
-elif [ "$MISSING" -eq 0 ]; then
-    echo -e "  ${YELLOW}Predict: GCC_FALLBACK (C core without ERT)${NC}"
-else
-    echo -e "  ${RED}Predict: FAIL — missing dependencies (see [MISS] above)${NC}"
+if [ "$MISSING" -gt 0 ]; then
+    echo -e "  ${RED}Production mode requirements NOT met (see [MISS] above)${NC}"
     echo ""
-    echo "  Fix missing items before running this script."
+    echo "  Production mode REQUIRES:"
+    echo "    - MATLAB R2018b (for analyze_model → adapt_model → ERT code generation)"
+    echo "    - A valid .slx file (e.g. Quad_sim.slx)"
+    echo "    - gcc, libjson-c-dev, pyyaml"
     echo ""
-    echo "  Quick install:"
-    echo "    sudo apt install -y build-essential libjson-c-dev"
-    echo "    pip3 install pyyaml"
+    echo "  Fix missing items, then re-run:"
+    echo "    SLX_PATH=/path/to/model.slx bash tests/prod_test/production_test.sh"
     echo ""
     exit 1
 fi
+
+echo -e "  ${GREEN}All production requirements met — MATLAB_ERT mode${NC}"
+echo -e "  Pipeline: analyze_model.m → adapt_model.m → build_script.m → ERT → GCC"
 echo ""
 
 echo -e "${CYAN}[preflight] Environment check${NC}"
