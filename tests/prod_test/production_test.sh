@@ -75,7 +75,7 @@ for candidate in "$HOME/Desktop" "$HOME/桌面"; do
     fi
 done
 
-SLX_PATH="${SLX_PATH:-$USER_DESKTOP/Quad-Simulink-Simulation-master/Quad-Simulink-Simulation-master/Quad_sim.slx}"
+SLX_PATH="${SLX_PATH:-$USER_DESKTOP/Quad_sim.slx}"
 MODEL_NAME="${MODEL_NAME:-Quad_sim}"
 EXE_PATH="$ROOT/models/executables/${MODEL_NAME}_rt"
 MATLAB_BIN="$(find_matlab 2>/dev/null || echo '')"
