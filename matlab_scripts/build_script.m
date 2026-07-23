@@ -85,8 +85,11 @@ function build_script(task_file, result_file)
     fclose(fid);
     field_mapping = jsondecode(mapping_raw);
 
-    % Save a copy of field_mapping for the C build step
-    copyfile(field_mapping_json, fullfile(output_dir, 'field_mapping.json'));
+    % Save a copy of field_mapping for the C build step (if not already there)
+    dest_mapping = fullfile(output_dir, 'field_mapping.json');
+    if ~strcmp(field_mapping_json, dest_mapping)
+        copyfile(field_mapping_json, dest_mapping);
+    end
 
     % Determine which SLX to build
     if adapt_result.adapted

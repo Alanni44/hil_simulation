@@ -305,6 +305,20 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
                 outport_name = mapped_key;
             end
             safe_name = matlab.lang.makeValidName(outport_name);
+
+            % Avoid name collision: if a block with this name already exists, suffix it
+            original_safe_name = safe_name;
+            suffix_idx = 1;
+            while true
+                try
+                    get_param([new_name '/' safe_name], 'BlockType');
+                    % Block exists — try next suffix
+                    safe_name = [original_safe_name '_' num2str(suffix_idx)];
+                    suffix_idx = suffix_idx + 1;
+                catch
+                    break;  % Block doesn't exist, name is good
+                end
+            end
             outport_path = [new_name '/' safe_name];
 
             add_block('simulink/Sinks/Out1', outport_path);
