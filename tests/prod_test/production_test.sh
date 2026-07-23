@@ -68,7 +68,7 @@ echo ""
 # ---- Config ----
 # Auto-detect desktop path (Chinese or English)
 USER_DESKTOP="$HOME"
-for candidate in "$HOME/Desktop" "$HOME/桌面"; do
+for candidate in "/home/user/桌面" "$HOME/Desktop" "$HOME/桌面"; do
     if [ -d "$candidate" ]; then
         USER_DESKTOP="$candidate"
         break
