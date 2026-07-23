@@ -117,7 +117,12 @@ function build_script(task_file, result_file)
         set_param(build_model, 'TargetLang', 'C');
         set_param(build_model, 'GenerateComments', 'on');
         set_param(build_model, 'GenerateReport', 'on');
-        set_param(build_model, 'GenerateCodeOnly', 'on');
+        % GenCodeOnly is the R2018b name; GenerateCodeOnly appeared in R2019a
+        try
+            set_param(build_model, 'GenerateCodeOnly', 'on');
+        catch
+            set_param(build_model, 'GenCodeOnly', 'on');
+        end
         set_param(build_model, 'SolverType', 'Fixed-step');
         set_param(build_model, 'Solver', 'FixedStepDiscrete');
         set_param(build_model, 'FixedStep', '0.001');

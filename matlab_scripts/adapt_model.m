@@ -351,6 +351,7 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     result.field_mapping.model_name = new_name;
     result.field_mapping.adapted = true;
     result.field_mapping.source_slx = slx_path;
+    result.adapted = true;
     % Include tunable params (ALL converted constants, not just standard-named)
     if exist('all_tunable', 'var')
         result.field_mapping.tunable_params = all_tunable;
