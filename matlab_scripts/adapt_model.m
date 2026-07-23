@@ -43,6 +43,12 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     input_aliases('cmd_mode') = {'cmd_mode','mode','flight_mode'};
     input_aliases('cmd_speed') = {'cmd_speed','speed','target_speed','V_des'};
 
+    % Quad_sim specific constants (KEYS ARE Cell Arrays in R2018b)
+    input_aliases('cmd_Z_des')  = {'Z_des'};
+    input_aliases('cmd_X_des')  = {'X_des'};
+    input_aliases('cmd_Y_des')  = {'Y_des'};
+    input_aliases('cmd_Psi_des') = {'Psi_des'};
+
     output_aliases = containers.Map();
     output_aliases('pos_x') = {'pos_x','X','x','x_global','x_body'};
     output_aliases('pos_y') = {'pos_y','Y','y','y_global','y_body'};
@@ -105,7 +111,11 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     end
 
     % ---- Level 1: model already has matching ports → no SLX modification ----
-    if isempty(missing_inputs) && isempty(missing_outputs) && ~info.needs_adaptation
+    has_standard_ports = ~isempty(missing_inputs) || ~isempty(missing_outputs);
+    % Quad_sim has no Inports/Outports at all AND is continuous → always needs Level 2
+    needs_level2 = info.needs_adaptation || has_standard_ports;
+
+    if ~needs_level2
         fprintf('[adapt_model] Model has complete standard interface, no adaptation needed\n');
         copyfile(slx_path, output_slx_path);
         result.field_mapping.inputs = input_mapping;
@@ -157,8 +167,12 @@ function result = adapt_model(slx_path, interface_json_path, output_slx_path)
     % Blocks with a standard alias (e.g. X_des -> cmd_x) get the standard name;
     % blocks without (e.g. m, g, Kdx/m) keep their original name as Inport.
     source_blocks = [info.root_constants, info.root_steps];
-    standard_std_keys = keys(input_aliases);
-    standard_std_keys = standard_std_keys(:)';  % ensure row cell array
+    std_keys_cell = keys(input_aliases);
+    if ~isempty(std_keys_cell)
+        standard_std_keys = std_keys_cell(:)';  % ensure row cell array
+    else
+        standard_std_keys = {};
+    end
     inport_counter = length(info.root_inports) + 1;
     all_tunable = struct();  % track every tunable param
 
