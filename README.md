@@ -80,14 +80,6 @@ chmod +x scripts/start_all.sh scripts/stop_all.sh
 ./scripts/stop_all.sh     # 停止所有服务
 ```
 
-### 2. 生产启动
-
-```bash
-chmod +x scripts/start_all.sh scripts/stop_all.sh
-./scripts/start_all.sh    # 编译 RT 可执行文件 + 启动所有服务
-./scripts/stop_all.sh     # 停止所有服务
-```
-
 ### 3. 手动运行各组件
 
 ```bash

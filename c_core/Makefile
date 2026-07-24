@@ -21,7 +21,7 @@ dirs:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): $(SRCS) $(MODEL_SRCS)
-	$(CC) $(CFLAGS) -DMODEL_RT_BRIDGE_H='"my_uav_model.h"' \
+	$(CC) $(CFLAGS) -DMODEL_RT_BRIDGE_H=my_uav_model.h -DSKIP_STATIC_ASSERT \
 	      -DMODEL_INIT_FN=my_uav_model_initialize \
 	      -DMODEL_STEP_FN=my_uav_model_step \
 	      -DMODEL_TERM_FN=my_uav_model_terminate \
