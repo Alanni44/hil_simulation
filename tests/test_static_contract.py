@@ -52,6 +52,16 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('/tmp/hil_test_result.json', source)
         self.assertIn('ERT failure:', source)
 
+    def test_test_model_uses_signal_products_for_pid_gains(self):
+        source = read('matlab_scripts/generate_test_model.m')
+        self.assertNotIn("'simulink/Math Operations/Gain'", source)
+        self.assertIn("'simulink/Math Operations/Product'", source)
+        for connection in (
+                "'kpxy/1','P_X/2'", "'kixy/1','Ig_X/2'",
+                "'kdxy/1','Dg_X/2'", "'kpz/1','P_Z/2'",
+                "'kiz/1','Ig_Z/2'", "'kdz/1','Dg_Z/2'"):
+            self.assertIn(connection, source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 

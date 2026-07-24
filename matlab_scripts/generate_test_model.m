@@ -81,26 +81,27 @@ function generate_test_model(output_dir)
     add_block('simulink/Math Operations/Add', [sys '/err_Y'], 'Inputs','+-');
     add_block('simulink/Math Operations/Add', [sys '/err_Z'], 'Inputs','+-');
 
-    % ---- P Gain ----
-    add_block('simulink/Math Operations/Gain', [sys '/P_X'],  'Gain','kpxy');
-    add_block('simulink/Math Operations/Gain', [sys '/P_Y'],  'Gain','kpxy');
-    add_block('simulink/Math Operations/Gain', [sys '/P_Z'],  'Gain','kpz');
+    % ---- P signal multipliers ----
+    % PID coefficients are subsystem Inport signals, not workspace values.
+    add_block('simulink/Math Operations/Product', [sys '/P_X'],  'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/P_Y'],  'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/P_Z'],  'Inputs','**');
 
-    % ---- I: err*kixy/kiz -> discrete-time integrator ----
-    add_block('simulink/Math Operations/Gain', [sys '/Ig_X'], 'Gain','kixy');
-    add_block('simulink/Math Operations/Gain', [sys '/Ig_Y'], 'Gain','kixy');
-    add_block('simulink/Math Operations/Gain', [sys '/Ig_Z'], 'Gain','kiz');
+    % ---- I: error times coefficient -> discrete-time integrator ----
+    add_block('simulink/Math Operations/Product', [sys '/Ig_X'], 'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/Ig_Y'], 'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/Ig_Z'], 'Inputs','**');
     add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_X'], 'gainval','0.001');
     add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Y'], 'gainval','0.001');
     add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Z'], 'gainval','0.001');
 
-    % ---- D: discrete derivative * kdxy/kdz ----
+    % ---- D: discrete derivative times coefficient ----
     add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_X']);
     add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_Y']);
     add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_Z']);
-    add_block('simulink/Math Operations/Gain', [sys '/Dg_X'], 'Gain','kdxy');
-    add_block('simulink/Math Operations/Gain', [sys '/Dg_Y'], 'Gain','kdxy');
-    add_block('simulink/Math Operations/Gain', [sys '/Dg_Z'], 'Gain','kdz');
+    add_block('simulink/Math Operations/Product', [sys '/Dg_X'], 'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/Dg_Y'], 'Inputs','**');
+    add_block('simulink/Math Operations/Product', [sys '/Dg_Z'], 'Inputs','**');
 
     % ---- PID Sum ----
     add_block('simulink/Math Operations/Add', [sys '/PID_X'], 'Inputs','+++');
@@ -141,24 +142,30 @@ function generate_test_model(output_dir)
     add_line(sys,'cmd_z/1','err_Z/1'); add_line(sys,'FB_Z/1','err_Z/2');
 
     % X chain
-    add_line(sys,'err_X/1','P_X/1'); add_line(sys,'err_X/1','Ig_X/1'); add_line(sys,'err_X/1','Deriv_X/1');
+    add_line(sys,'err_X/1','P_X/1'); add_line(sys,'kpxy/1','P_X/2');
+    add_line(sys,'err_X/1','Ig_X/1'); add_line(sys,'kixy/1','Ig_X/2'); add_line(sys,'err_X/1','Deriv_X/1');
     add_line(sys,'Ig_X/1','I_X/1'); add_line(sys,'Deriv_X/1','Dg_X/1');
+    add_line(sys,'kdxy/1','Dg_X/2');
     add_line(sys,'P_X/1','PID_X/1'); add_line(sys,'I_X/1','PID_X/2'); add_line(sys,'Dg_X/1','PID_X/3');
     add_line(sys,'PID_X/1','Sat_X/1'); add_line(sys,'Sat_X/1','Pos_X/1');
     add_line(sys,'Pos_X/1','FB_X/1');
     add_line(sys,'Pos_X/1','pos_x/1'); add_line(sys,'Sat_X/1','vel_x/1');
 
     % Y chain
-    add_line(sys,'err_Y/1','P_Y/1'); add_line(sys,'err_Y/1','Ig_Y/1'); add_line(sys,'err_Y/1','Deriv_Y/1');
+    add_line(sys,'err_Y/1','P_Y/1'); add_line(sys,'kpxy/1','P_Y/2');
+    add_line(sys,'err_Y/1','Ig_Y/1'); add_line(sys,'kixy/1','Ig_Y/2'); add_line(sys,'err_Y/1','Deriv_Y/1');
     add_line(sys,'Ig_Y/1','I_Y/1'); add_line(sys,'Deriv_Y/1','Dg_Y/1');
+    add_line(sys,'kdxy/1','Dg_Y/2');
     add_line(sys,'P_Y/1','PID_Y/1'); add_line(sys,'I_Y/1','PID_Y/2'); add_line(sys,'Dg_Y/1','PID_Y/3');
     add_line(sys,'PID_Y/1','Sat_Y/1'); add_line(sys,'Sat_Y/1','Pos_Y/1');
     add_line(sys,'Pos_Y/1','FB_Y/1');
     add_line(sys,'Pos_Y/1','pos_y/1'); add_line(sys,'Sat_Y/1','vel_y/1');
 
     % Z chain
-    add_line(sys,'err_Z/1','P_Z/1'); add_line(sys,'err_Z/1','Ig_Z/1'); add_line(sys,'err_Z/1','Deriv_Z/1');
+    add_line(sys,'err_Z/1','P_Z/1'); add_line(sys,'kpz/1','P_Z/2');
+    add_line(sys,'err_Z/1','Ig_Z/1'); add_line(sys,'kiz/1','Ig_Z/2'); add_line(sys,'err_Z/1','Deriv_Z/1');
     add_line(sys,'Ig_Z/1','I_Z/1'); add_line(sys,'Deriv_Z/1','Dg_Z/1');
+    add_line(sys,'kdz/1','Dg_Z/2');
     add_line(sys,'P_Z/1','PID_Z/1'); add_line(sys,'I_Z/1','PID_Z/2'); add_line(sys,'Dg_Z/1','PID_Z/3');
     add_line(sys,'PID_Z/1','Sat_Z/1'); add_line(sys,'Sat_Z/1','Pos_Z/1');
     add_line(sys,'Pos_Z/1','FB_Z/1');
