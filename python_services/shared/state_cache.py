@@ -25,15 +25,16 @@ def update(data: bytes):
         s = parse_flight_state(data)
     except Exception:
         return
-    _sim_time = s['timestamp_us'] / 1_000_000.0
-    _frame = s.get('mission_id', 0)
     with _lock:
         _latest_raw = s
+        _sim_time = s['timestamp_us'] / 1_000_000.0
+        _frame = s.get('mission_id', 0)
 
 
 def get_flight_data():
     with _lock:
         s = _latest_raw
+        frame = _frame
     if not s:
         return None
     return {
@@ -41,15 +42,16 @@ def get_flight_data():
         'attitude': {'yaw': s['yaw'], 'pitch': s['pitch'], 'roll': s['roll']},
         'velocity': {'vx': s['vel_x'], 'vy': s['vel_y'], 'vz': s['vel_z']},
         'timestamp': _utcnow_iso(),
-        'frame': _frame,
+        'frame': frame,
     }
 
 
 def get_heartbeat():
     with _lock:
         s = _latest_raw
+        sim_time = _sim_time
     return {
-        'sim_time': _sim_time,
+        'sim_time': sim_time,
         'rt_factor': 0.98,
         'task_cpu': 5,
         'status': 'running' if (s and (s['status_word'] & 1)) else 'idle',
@@ -73,6 +75,7 @@ def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
     """V2.0 vehicle_state 消息完整体"""
     with _lock:
         s = _latest_raw
+        sim_time = _sim_time
     if not s:
         return None
     fs_code = s.get('flight_state', 0)
@@ -82,7 +85,7 @@ def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
         'vehicle_id': 'Drone1',
         'data': {
             'mission_id': mission_id,
-            'sim_time': _sim_time,
+            'sim_time': sim_time,
             'position': {
                 'x': s['pos_x'],
                 'y': s['pos_y'],

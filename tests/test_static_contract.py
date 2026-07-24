@@ -131,6 +131,14 @@ class ModelContractStaticTests(unittest.TestCase):
         source = read('scripts/integration_test.sh')
         self.assertIn('local params="${2:-{}}"', source)
 
+    def test_state_cache_updates_frame_metadata_under_its_lock(self):
+        source = read('python_services/shared/state_cache.py')
+        update = source[source.index('def update('):source.index('\ndef get_flight_data')]
+        lock_body = update[update.index('with _lock:'):]
+        self.assertIn('_latest_raw = s', lock_body)
+        self.assertIn("_sim_time = s['timestamp_us'] / 1_000_000.0", lock_body)
+        self.assertIn("_frame = s.get('mission_id', 0)", lock_body)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 
