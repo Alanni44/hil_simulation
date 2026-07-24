@@ -2,11 +2,10 @@
  * model_rt_wrapper.c
  *
  * Static-link replacement for model_loader.c.
- * The Simulink-generated model symbols are resolved via MODEL_RT_BRIDGE_H,
+ * The Simulink-generated model symbols are resolved via MODEL_RT_BRIDGE_HEADER,
  * which is a header written by build_script.m and injected at compile time.
  *
- * Compile with:  -include path/to/model_rt_bridge.h
- * or:            -DMODEL_RT_BRIDGE_H='"path/to/model_rt_bridge.h"'
+ * Compile with:  -DMODEL_RT_BRIDGE_HEADER='"path/to/model_rt_bridge.h"'
  *
  * Hot-reload: reads /tmp/model_ready.signal, then calls execv() to
  * replace this process with the freshly built executable.
@@ -18,9 +17,9 @@
 #include <json-c/json.h>
 #include <sys/stat.h>
 
-/* The bridge header is injected at compile time (or default to hand-written model) */
-#if !defined(MODEL_RT_BRIDGE_H)
-#define MODEL_RT_BRIDGE_H "my_uav_model.h"
+/* The bridge header is injected at compile time (or defaults to development ABI). */
+#if !defined(MODEL_RT_BRIDGE_HEADER)
+#define MODEL_RT_BRIDGE_HEADER "my_uav_model.h"
 #endif
 
 /* Bring in the generated type/function definitions.
@@ -28,7 +27,7 @@
    for development it points directly at my_uav_model.h. */
 #define STRINGIFY_(x) #x
 #define STRINGIFY(x) STRINGIFY_(x)
-#include STRINGIFY(MODEL_RT_BRIDGE_H)
+#include STRINGIFY(MODEL_RT_BRIDGE_HEADER)
 
 #include "model_rt_wrapper.h"
 

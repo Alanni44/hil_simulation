@@ -5,8 +5,17 @@
 extern "C" {
 #endif
 
+/* The build script provides the generated ERT ABI through this header.
+ * Include it before declaring development fallbacks so every translation
+ * unit sees the exact same ModelU_t and ModelY_t definitions. */
+#if defined(MODEL_RT_BRIDGE_HEADER)
+#define MODEL_RT_STRINGIFY_(x) #x
+#define MODEL_RT_STRINGIFY(x) MODEL_RT_STRINGIFY_(x)
+#include MODEL_RT_STRINGIFY(MODEL_RT_BRIDGE_HEADER)
+#endif
+
 /*
- * When MODEL_RT_BRIDGE_H is defined (by build_script.m at compile time),
+ * When MODEL_RT_BRIDGE_HEADER is defined (by build_script.m at compile time),
  * the bridge header provides ModelU_t and ModelY_t typedefs automatically
  * (pointing to the generated model's actual struct types).
  *

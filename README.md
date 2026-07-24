@@ -65,7 +65,7 @@ Python Bridge 为 TCP Server (192.168.100.172:5000)，Simulink / HIL 为 TCP Cli
 ```bash
 sudo apt update
 sudo apt install -y build-essential libjson-c-dev python3 python3-pip
-pip3 install pyyaml
+pip3 install -r requirements.txt
 ```
 
 ### 2. 配置网络
@@ -76,8 +76,8 @@ pip3 install pyyaml
 
 ```bash
 chmod +x scripts/start_all.sh scripts/stop_all.sh
-./scripts/start_all.sh    # 编译 RT 可执行文件 + 启动所有服务
-./scripts/stop_all.sh     # 停止所有服务
+SLX_PATH=/absolute/path/to/model.slx ./scripts/start_all.sh
+./scripts/stop_all.sh
 ```
 
 ### 3. 手动运行各组件
@@ -86,6 +86,19 @@ chmod +x scripts/start_all.sh scripts/stop_all.sh
 # 仅启动 Python 服务
 cd python_services && python3 main.py
 ```
+
+## Target validation prerequisites
+
+`ert.tlc` requires an Embedded Coder license in addition to MATLAB and
+Simulink. Install GCC 7.x, `libjson-c-dev`, and the pinned Python
+dependencies on Ubuntu 18.04 before running:
+
+```bash
+./scripts/integration_test.sh
+```
+
+Windows development validates source structure only; it does not prove the
+MATLAB ERT build or real-time runtime path.
 
 ## 开发约束
 

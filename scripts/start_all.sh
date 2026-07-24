@@ -6,8 +6,8 @@ cd "$ROOT"
 echo "=== HIL System (MATLAB ERT Pipeline) ==="
 
 # ---- Config ----
-SLX_PATH="${SLX_PATH:-$HOME/桌面/Quad-Simulink-Simulation-master/Quad-Simulink-Simulation-master/Quad_sim.slx}"
 MODEL_NAME="${MODEL_NAME:-Quad_sim}"
+SLX_PATH="${SLX_PATH:-}"
 MATLAB_BIN="/usr/local/MATLAB/R2018b/bin/matlab"
 EXE_PATH="$ROOT/models/executables/${MODEL_NAME}_rt"
 
@@ -21,9 +21,13 @@ if [ -z "$MATLAB_BIN" ]; then
 fi
 
 # ---- Check SLX ----
+if [ -z "$SLX_PATH" ]; then
+    echo "ERROR: SLX_PATH is required"
+    echo "Set SLX_PATH=/path/to/model.slx"
+    exit 1
+fi
 if [ ! -f "$SLX_PATH" ]; then
     echo "ERROR: SLX not found: $SLX_PATH"
-    echo "Set SLX_PATH=/path/to/model.slx"
     exit 1
 fi
 
