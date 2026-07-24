@@ -2,6 +2,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Local Git worktrees used for isolated development.
+.worktrees/
+
 logs/
 *.log
 
