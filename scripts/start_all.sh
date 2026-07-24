@@ -70,6 +70,16 @@ echo "MATLAB ERT build OK"
 # ---------- 2. Start services ----------
 echo "[2/2] Starting services..."
 
+RT_PID=''
+PY_PID=''
+cleanup() {
+    [ -n "$RT_PID" ] && kill "$RT_PID" 2>/dev/null || true
+    [ -n "$PY_PID" ] && kill "$PY_PID" 2>/dev/null || true
+    wait 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'cleanup; exit 0' INT TERM
+
 sudo "$EXE_PATH" &
 RT_PID=$!
 echo "C core PID: $RT_PID"
@@ -82,6 +92,12 @@ PY_PID=$!
 echo "Python PID: $PY_PID"
 cd ..
 
+sleep 1
+if ! kill -0 "$RT_PID" 2>/dev/null || ! kill -0 "$PY_PID" 2>/dev/null; then
+    echo "ERROR: one or more services exited during startup"
+    exit 1
+fi
+
 echo ""
 echo "=== All started ==="
 echo "  C core:  $EXE_PATH (PID $RT_PID)"
@@ -89,5 +105,14 @@ echo "  Python:  PID $PY_PID"
 echo "  Ctrl+C to stop"
 echo ""
 
-trap "kill $RT_PID $PY_PID 2>/dev/null; exit" INT TERM
-wait
+while :; do
+    if ! kill -0 "$RT_PID" 2>/dev/null; then
+        echo "ERROR: C core exited unexpectedly"
+        exit 1
+    fi
+    if ! kill -0 "$PY_PID" 2>/dev/null; then
+        echo "ERROR: Python service exited unexpectedly"
+        exit 1
+    fi
+    sleep 1
+done

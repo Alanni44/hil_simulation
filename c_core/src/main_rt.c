@@ -151,6 +151,19 @@ static void publish_pending_input(void) {
     pending_command.input_generation++;
 }
 
+static int json_get_finite_number(struct json_object* object, const char* key,
+                                  double* value) {
+    struct json_object* field = NULL;
+    enum json_type type;
+
+    if (!object || !key || !value ||
+        !json_object_object_get_ex(object, key, &field)) return -1;
+    type = json_object_get_type(field);
+    if (type != json_type_int && type != json_type_double) return -1;
+    *value = json_object_get_double(field);
+    return isfinite(*value) ? 0 : -1;
+}
+
 static void apply_active_waypoint(ModelU_t* model_input) {
     if (!model_input || !_wp_active || _wp_current >= _wp_count) return;
     MODEL_U_SET(model_input, cmd_x, _wp_queue[_wp_current].x);
@@ -255,13 +268,27 @@ static const char* flight_state_str(uint8_t fs) {
 
 static int parse_command(const char* json_str) {
     if (!json_str) return -1;
-    struct json_object *root, *params_obj, *cmd_obj;
+    struct json_object *root, *params_obj = NULL, *cmd_obj = NULL;
     root = json_tokener_parse(json_str);
-    if (!root) return -1;
+    if (!root || json_object_get_type(root) != json_type_object) {
+        if (root) json_object_put(root);
+        fprintf(stderr, "[Cmd] rejected malformed command\n");
+        return -1;
+    }
 
     const char* cmd = NULL;
-    json_object_object_get_ex(root, "cmd", &cmd_obj);
-    if (cmd_obj) cmd = json_object_get_string(cmd_obj);
+    if (!json_object_object_get_ex(root, "cmd", &cmd_obj) ||
+            json_object_get_type(cmd_obj) != json_type_string) {
+        fprintf(stderr, "[Cmd] rejected command without a string cmd field\n");
+        json_object_put(root);
+        return -1;
+    }
+    cmd = json_object_get_string(cmd_obj);
+    if (!cmd || cmd[0] == '\0') {
+        fprintf(stderr, "[Cmd] rejected empty command\n");
+        json_object_put(root);
+        return -1;
+    }
 
     /* ---- init_sim ---- */
     if (cmd && strcmp(cmd, "init_sim") == 0) {
@@ -306,49 +333,99 @@ static int parse_command(const char* json_str) {
 
     /* ---- load_mission ---- */
     if (cmd && strcmp(cmd, "load_mission") == 0) {
-        json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            struct json_object *wps_obj, *wp_obj;
-            json_object_object_get_ex(params_obj, "mission_id", &cmd_obj);
-            if (cmd_obj) {
-                strncpy(pending_command.mission_id, json_object_get_string(cmd_obj),
-                        sizeof(pending_command.mission_id) - 1);
-                pending_command.mission_id[sizeof(pending_command.mission_id) - 1] = '\0';
-            }
-            json_object_object_get_ex(params_obj, "waypoints", &wps_obj);
-            int n = json_object_array_length(wps_obj);
-            pending_command.waypoint_count = (n < MAX_WAYPOINTS) ? n : MAX_WAYPOINTS;
-            for (int i = 0; i < pending_command.waypoint_count; i++) {
-                wp_obj = json_object_array_get_idx(wps_obj, i);
-                struct json_object *f;
-                json_object_object_get_ex(wp_obj, "lat", &f);
-                double lat = f ? json_object_get_double(f) : 39.9;
-                json_object_object_get_ex(wp_obj, "lon", &f);
-                double lon = f ? json_object_get_double(f) : 116.4;
-                json_object_object_get_ex(wp_obj, "height", &f);
-                double h = f ? json_object_get_double(f) : 50.0;
-                json_object_object_get_ex(wp_obj, "speed", &f);
-                double spd = f ? json_object_get_double(f) : 5.0;
-                pending_command.waypoints[i].x = (lon - model_params.init_lon) / 0.00001;
-                pending_command.waypoints[i].y = (lat - model_params.init_lat) / 0.00001;
-                pending_command.waypoints[i].height = h;
-                pending_command.waypoints[i].speed = spd;
-            }
-            pending_command.waypoint_active = pending_command.waypoint_count > 0;
-            pending_command.plan_generation++;
+        struct json_object *wps_obj = NULL;
+        struct json_object *wp_obj = NULL;
+        Waypoint_t candidate_waypoints[MAX_WAYPOINTS];
+        char candidate_mission_id[sizeof(pending_command.mission_id)] = {0};
+        int n;
 
-            ModelU_t* U = command_input();
-            if (U && pending_command.waypoint_count > 0) {
-                MODEL_U_SET(U, cmd_x, pending_command.waypoints[0].x);
-                MODEL_U_SET(U, cmd_y, pending_command.waypoints[0].y);
-                MODEL_U_SET(U, cmd_z, pending_command.waypoints[0].height);
-                MODEL_U_SET(U, cmd_speed, pending_command.waypoints[0].speed);
-                MODEL_U_SET(U, cmd_mode, 4);
-                publish_pending_input();
-            }
-            printf("[Cmd] load_mission: %d waypoints, mission=%s\n",
-                   pending_command.waypoint_count, pending_command.mission_id);
+        json_object_object_get_ex(root, "params", &params_obj);
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object) {
+            fprintf(stderr, "[Cmd] rejected load_mission: params must be an object\n");
+            json_object_put(root);
+            return -1;
         }
+        if (!params_obj || !json_object_object_get_ex(params_obj, "waypoints", &wps_obj) ||
+                json_object_get_type(wps_obj) != json_type_array) {
+            fprintf(stderr, "[Cmd] rejected load_mission: params.waypoints must be an array\n");
+            json_object_put(root);
+            return -1;
+        }
+
+        n = json_object_array_length(wps_obj);
+        if (n < 1 || n > MAX_WAYPOINTS) {
+            fprintf(stderr, "[Cmd] rejected load_mission: waypoint count must be 1..%d\n",
+                    MAX_WAYPOINTS);
+            json_object_put(root);
+            return -1;
+        }
+
+        cmd_obj = NULL;
+        json_object_object_get_ex(params_obj, "mission_id", &cmd_obj);
+        if (cmd_obj) {
+            const char* mission_id;
+            if (json_object_get_type(cmd_obj) != json_type_string) {
+                fprintf(stderr, "[Cmd] rejected load_mission: mission_id must be a string\n");
+                json_object_put(root);
+                return -1;
+            }
+            mission_id = json_object_get_string(cmd_obj);
+            if (strlen(mission_id) >= sizeof(candidate_mission_id)) {
+                fprintf(stderr, "[Cmd] rejected load_mission: mission_id is too long\n");
+                json_object_put(root);
+                return -1;
+            }
+            strncpy(candidate_mission_id, mission_id, sizeof(candidate_mission_id) - 1);
+        }
+
+        for (int i = 0; i < n; i++) {
+            double lat;
+            double lon;
+            double height;
+            double speed;
+
+            wp_obj = json_object_array_get_idx(wps_obj, i);
+            if (!wp_obj || json_object_get_type(wp_obj) != json_type_object ||
+                json_get_finite_number(wp_obj, "lat", &lat) != 0 ||
+                json_get_finite_number(wp_obj, "lon", &lon) != 0 ||
+                json_get_finite_number(wp_obj, "height", &height) != 0 ||
+                json_get_finite_number(wp_obj, "speed", &speed) != 0 ||
+                lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0 ||
+                height < 0.0 || speed <= 0.0) {
+                fprintf(stderr, "[Cmd] rejected load_mission: invalid waypoint %d\n", i);
+                json_object_put(root);
+                return -1;
+            }
+            candidate_waypoints[i].x = (lon - model_params.init_lon) / 0.00001;
+            candidate_waypoints[i].y = (lat - model_params.init_lat) / 0.00001;
+            candidate_waypoints[i].height = height;
+            candidate_waypoints[i].speed = speed;
+        }
+
+        {
+            ModelU_t* U = command_input();
+            if (!U) {
+                fprintf(stderr, "[Cmd] rejected load_mission: model input unavailable\n");
+                json_object_put(root);
+                return -1;
+            }
+            memcpy(pending_command.waypoints, candidate_waypoints,
+                   (size_t)n * sizeof(candidate_waypoints[0]));
+            pending_command.waypoint_count = n;
+            pending_command.waypoint_active = 1;
+            strncpy(pending_command.mission_id, candidate_mission_id,
+                    sizeof(pending_command.mission_id) - 1);
+            pending_command.mission_id[sizeof(pending_command.mission_id) - 1] = '\0';
+            pending_command.plan_generation++;
+            MODEL_U_SET(U, cmd_x, pending_command.waypoints[0].x);
+            MODEL_U_SET(U, cmd_y, pending_command.waypoints[0].y);
+            MODEL_U_SET(U, cmd_z, pending_command.waypoints[0].height);
+            MODEL_U_SET(U, cmd_speed, pending_command.waypoints[0].speed);
+            MODEL_U_SET(U, cmd_mode, 4);
+            publish_pending_input();
+        }
+        printf("[Cmd] load_mission: %d waypoints, mission=%s\n", n,
+               pending_command.mission_id);
         json_object_put(root);
         return 0;
     }

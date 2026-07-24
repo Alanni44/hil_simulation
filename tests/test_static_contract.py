@@ -1,4 +1,5 @@
 import pathlib
+import re
 import unittest
 
 
@@ -111,6 +112,24 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('PendingCommandState_t pending_command', source)
         self.assertIn('adopt_pending_command_state()', source)
         self.assertNotIn('static int _cmd_mode_snapshot', source)
+
+    def test_core_validates_waypoint_array_before_access(self):
+        source = read('c_core/src/main_rt.c')
+        guard = ('!params_obj || !json_object_object_get_ex(params_obj, "waypoints", &wps_obj) '
+                 '|| json_object_get_type(wps_obj) != json_type_array')
+        normalized = re.sub(r'\s+', ' ', source)
+        self.assertIn(guard, normalized)
+        self.assertLess(normalized.index(guard), normalized.index('json_object_array_length(wps_obj)'))
+
+    def test_start_script_confirms_core_and_python_survive_startup(self):
+        source = read('scripts/start_all.sh')
+        self.assertIn('sudo "$EXE_PATH"', source)
+        self.assertIn('kill -0 "$RT_PID"', source)
+        self.assertIn('kill -0 "$PY_PID"', source)
+
+    def test_integration_sender_uses_an_empty_object_for_omitted_params(self):
+        source = read('scripts/integration_test.sh')
+        self.assertIn('local params="${2:-{}}"', source)
 
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))

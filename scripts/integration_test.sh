@@ -69,7 +69,11 @@ fi
 # ---- Phase 2: UDP tests ----
 echo ""; echo -e "${C}=== Phase 2: Test ===${N}"
 
-send() { python3 -c "import json,socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.sendto(json.dumps({'cmd':'$1','params':$2}).encode(),('127.0.0.1',9997))"; }
+send() {
+    local cmd="$1"
+    local params="${2:-{}}"
+    python3 -c "import json,socket,sys; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.sendto(json.dumps({'cmd':sys.argv[1],'params':json.loads(sys.argv[2])}).encode(),('127.0.0.1',9997))" "$cmd" "$params"
+}
 
 poll() { python3 -c "
 import struct,socket
