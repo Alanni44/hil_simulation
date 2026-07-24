@@ -5,7 +5,7 @@
  * The Simulink-generated model symbols are resolved via MODEL_RT_BRIDGE_HEADER,
  * which is a header written by build_script.m and injected at compile time.
  *
- * Compile with:  -DMODEL_RT_BRIDGE_HEADER='"path/to/model_rt_bridge.h"'
+ * Compile with:  -DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h
  *
  * Hot-reload: reads /tmp/model_ready.signal, then calls execv() to
  * replace this process with the freshly built executable.
@@ -19,7 +19,7 @@
 
 /* The bridge header is injected at compile time (or defaults to development ABI). */
 #if !defined(MODEL_RT_BRIDGE_HEADER)
-#define MODEL_RT_BRIDGE_HEADER "my_uav_model.h"
+#define MODEL_RT_BRIDGE_HEADER my_uav_model.h
 #endif
 
 /* Bring in the generated type/function definitions.

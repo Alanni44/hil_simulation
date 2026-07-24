@@ -72,6 +72,18 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('cd(build_work_dir);', source)
         self.assertIn('onCleanup(@() cd(original_dir))', source)
 
+    def test_bridge_header_macro_is_an_unquoted_include_token(self):
+        source = read('matlab_scripts/build_script.m')
+        wrapper = read('c_core/src/model_rt_wrapper.c')
+        self.assertIn("bridge_header_name = 'model_rt_bridge.h';", source)
+        self.assertIn("-DMODEL_RT_BRIDGE_HEADER=%s", source)
+        self.assertIn('#define MODEL_RT_BRIDGE_HEADER my_uav_model.h', wrapper)
+
+    def test_generated_header_parser_strips_c_comments_before_fields(self):
+        source = read('matlab_scripts/build_script.m')
+        self.assertIn("inner = regexprep(inner, '/\\*[\\s\\S]*?\\*/', '');", source)
+        self.assertIn("inner = regexprep(inner, '//[^\\r\\n]*', '');", source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 
