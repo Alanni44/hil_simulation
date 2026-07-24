@@ -32,16 +32,41 @@
 
 static volatile int running = 1;
 static FlightState_t current_state;
-static ModelU_t pending_input;
+
+typedef struct {
+    double x;
+    double y;
+    double height;
+    double speed;
+} Waypoint_t;
+
+/* The command thread is the sole writer.  The real-time thread copies this
+ * whole object under pending_input_seq, then owns the active mission state. */
+typedef struct {
+    ModelU_t input;
+    uint32_t input_generation;
+    Waypoint_t waypoints[MAX_WAYPOINTS];
+    int waypoint_count;
+    int waypoint_active;
+    char mission_id[256];
+    uint32_t plan_generation;
+    int command_mode;
+    uint32_t command_generation;
+    int initialize_requested;
+} PendingCommandState_t;
+
+static PendingCommandState_t pending_command;
 static volatile uint32_t pending_input_seq = 0;
 static volatile int pending_input_ready = 0;
 static ModelInput_t model_params = { .init_lat = 39.9, .init_lon = 116.4, .init_alt = 100.0 };
 static int model_initialized = 0;
-static int _cmd_mode_snapshot = 0;
 static int _last_cmd_mode_written = 0;  /* non-zero only on the step cmd was set */
+static uint32_t _adopted_input_generation = 0;
+static uint32_t _adopted_plan_generation = 0;
+static uint32_t _adopted_command_generation = 0;
 
 /* ---- V2.0 waypoint queue ---- */
-static struct { double x, y, height, speed; } _wp_queue[MAX_WAYPOINTS];
+static Waypoint_t _wp_queue[MAX_WAYPOINTS];
 static int _wp_count = 0;
 static int _wp_current = 0;
 static int _wp_active = 0;
@@ -54,7 +79,7 @@ static float _prev_roll = 0.0f, _prev_pitch = 0.0f, _prev_yaw = 0.0f;
 #define MODEL_U_SET(u_ptr, name, value) MODEL_WRITE_##name((u_ptr), (value))
 
 static ModelU_t* command_input(void) {
-    return pending_input_ready ? &pending_input : NULL;
+    return pending_input_ready ? &pending_command.input : NULL;
 }
 
 static void begin_pending_input_update(void) {
@@ -67,8 +92,8 @@ static void end_pending_input_update(void) {
     __sync_fetch_and_add(&pending_input_seq, 1);  /* even: stable snapshot */
 }
 
-static void apply_pending_input(void) {
-    ModelU_t candidate;
+static void adopt_pending_command_state(void) {
+    PendingCommandState_t candidate;
     uint32_t begin_seq;
     uint32_t end_seq;
     ModelU_t* model_input;
@@ -78,13 +103,52 @@ static void apply_pending_input(void) {
         begin_seq = pending_input_seq;
         if (begin_seq & 1U) continue;
         __sync_synchronize();
-        memcpy(&candidate, &pending_input, sizeof(candidate));
+        memcpy(&candidate, &pending_command, sizeof(candidate));
         __sync_synchronize();
         end_seq = pending_input_seq;
     } while (begin_seq != end_seq || (end_seq & 1U));
 
-    model_input = model_get_input();
-    if (model_input) *model_input = candidate;
+    if (candidate.input_generation != _adopted_input_generation) {
+        model_input = model_get_input();
+        if (model_input) *model_input = candidate.input;
+        _adopted_input_generation = candidate.input_generation;
+    }
+
+    if (candidate.plan_generation != _adopted_plan_generation) {
+        _wp_count = candidate.waypoint_count;
+        if (_wp_count < 0) _wp_count = 0;
+        if (_wp_count > MAX_WAYPOINTS) _wp_count = MAX_WAYPOINTS;
+        if (_wp_count > 0)
+            memcpy(_wp_queue, candidate.waypoints, (size_t)_wp_count * sizeof(_wp_queue[0]));
+        _wp_current = 0;
+        _wp_active = candidate.waypoint_active && _wp_count > 0;
+        strncpy(_mission_id, candidate.mission_id, sizeof(_mission_id) - 1);
+        _mission_id[sizeof(_mission_id) - 1] = '\0';
+        _adopted_plan_generation = candidate.plan_generation;
+    }
+
+    if (candidate.command_generation != _adopted_command_generation) {
+        _last_cmd_mode_written = candidate.command_mode;
+        _adopted_command_generation = candidate.command_generation;
+    }
+
+    if (candidate.initialize_requested) model_initialized = 1;
+}
+
+static void cancel_pending_mission(void) {
+    pending_command.waypoint_count = 0;
+    pending_command.waypoint_active = 0;
+    pending_command.mission_id[0] = '\0';
+    pending_command.plan_generation++;
+}
+
+static void publish_command_mode(int mode) {
+    pending_command.command_mode = mode;
+    pending_command.command_generation++;
+}
+
+static void publish_pending_input(void) {
+    pending_command.input_generation++;
 }
 
 static void apply_active_waypoint(ModelU_t* model_input) {
@@ -232,7 +296,8 @@ static int parse_command(const char* json_str) {
             MODEL_U_SET(U, max_speed, model_params.max_speed);
             MODEL_U_SET(U, min_height, model_params.min_height);
             MODEL_U_SET(U, max_height, model_params.max_height);
-            model_initialized = 1;
+            pending_command.initialize_requested = 1;
+            publish_pending_input();
             printf("[Main] Model initialized\n");
         }
         json_object_put(root);
@@ -246,12 +311,14 @@ static int parse_command(const char* json_str) {
             struct json_object *wps_obj, *wp_obj;
             json_object_object_get_ex(params_obj, "mission_id", &cmd_obj);
             if (cmd_obj) {
-                strncpy(_mission_id, json_object_get_string(cmd_obj), sizeof(_mission_id) - 1);
+                strncpy(pending_command.mission_id, json_object_get_string(cmd_obj),
+                        sizeof(pending_command.mission_id) - 1);
+                pending_command.mission_id[sizeof(pending_command.mission_id) - 1] = '\0';
             }
             json_object_object_get_ex(params_obj, "waypoints", &wps_obj);
             int n = json_object_array_length(wps_obj);
-            _wp_count = (n < MAX_WAYPOINTS) ? n : MAX_WAYPOINTS;
-            for (int i = 0; i < _wp_count; i++) {
+            pending_command.waypoint_count = (n < MAX_WAYPOINTS) ? n : MAX_WAYPOINTS;
+            for (int i = 0; i < pending_command.waypoint_count; i++) {
                 wp_obj = json_object_array_get_idx(wps_obj, i);
                 struct json_object *f;
                 json_object_object_get_ex(wp_obj, "lat", &f);
@@ -262,23 +329,25 @@ static int parse_command(const char* json_str) {
                 double h = f ? json_object_get_double(f) : 50.0;
                 json_object_object_get_ex(wp_obj, "speed", &f);
                 double spd = f ? json_object_get_double(f) : 5.0;
-                _wp_queue[i].x = (lon - model_params.init_lon) / 0.00001;
-                _wp_queue[i].y = (lat - model_params.init_lat) / 0.00001;
-                _wp_queue[i].height = h;
-                _wp_queue[i].speed = spd;
+                pending_command.waypoints[i].x = (lon - model_params.init_lon) / 0.00001;
+                pending_command.waypoints[i].y = (lat - model_params.init_lat) / 0.00001;
+                pending_command.waypoints[i].height = h;
+                pending_command.waypoints[i].speed = spd;
             }
-            _wp_current = 0;
-            _wp_active = 1;
+            pending_command.waypoint_active = pending_command.waypoint_count > 0;
+            pending_command.plan_generation++;
 
             ModelU_t* U = command_input();
-            if (U && _wp_count > 0) {
-                MODEL_U_SET(U, cmd_x, _wp_queue[0].x);
-                MODEL_U_SET(U, cmd_y, _wp_queue[0].y);
-                MODEL_U_SET(U, cmd_z, _wp_queue[0].height);
-                MODEL_U_SET(U, cmd_speed, _wp_queue[0].speed);
+            if (U && pending_command.waypoint_count > 0) {
+                MODEL_U_SET(U, cmd_x, pending_command.waypoints[0].x);
+                MODEL_U_SET(U, cmd_y, pending_command.waypoints[0].y);
+                MODEL_U_SET(U, cmd_z, pending_command.waypoints[0].height);
+                MODEL_U_SET(U, cmd_speed, pending_command.waypoints[0].speed);
                 MODEL_U_SET(U, cmd_mode, 4);
+                publish_pending_input();
             }
-            printf("[Cmd] load_mission: %d waypoints, mission=%s\n", _wp_count, _mission_id);
+            printf("[Cmd] load_mission: %d waypoints, mission=%s\n",
+                   pending_command.waypoint_count, pending_command.mission_id);
         }
         json_object_put(root);
         return 0;
@@ -293,10 +362,10 @@ static int parse_command(const char* json_str) {
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
                 double value = json_object_get_double(val);
-                model_u_set_by_name(U, key, value);
-                applied++;
+                if (model_u_set_by_name(U, key, value) == 0) applied++;
             }
         }
+        if (applied > 0) publish_pending_input();
         printf("[Tune] %d param(s) applied\n", applied);
         json_object_put(root);
         return 0;
@@ -311,7 +380,7 @@ static int parse_command(const char* json_str) {
     }
 
     if (cmd && strcmp(cmd, "takeoff") == 0) {
-        _wp_active = 0;
+        cancel_pending_mission();
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -319,20 +388,23 @@ static int parse_command(const char* json_str) {
             }
         }
         MODEL_U_SET(U, cmd_mode, 1);
-        _last_cmd_mode_written = 1;
+        publish_command_mode(1);
+        publish_pending_input();
         printf("[Cmd] takeoff\n");
     } else if (cmd && strcmp(cmd, "land") == 0) {
-        _wp_active = 0;
+        cancel_pending_mission();
         MODEL_U_SET(U, cmd_mode, 2);
-        _last_cmd_mode_written = 2;
+        publish_command_mode(2);
+        publish_pending_input();
         printf("[Cmd] land\n");
     } else if (cmd && strcmp(cmd, "hover") == 0) {
-        _wp_active = 0;
+        cancel_pending_mission();
         MODEL_U_SET(U, cmd_mode, 3);
-        _last_cmd_mode_written = 3;
+        publish_command_mode(3);
+        publish_pending_input();
         printf("[Cmd] hover\n");
     } else if (cmd && strcmp(cmd, "move_position") == 0) {
-        _wp_active = 0;
+        cancel_pending_mission();
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -342,10 +414,11 @@ static int parse_command(const char* json_str) {
                 else if (strcmp(key, "speed") == 0) MODEL_U_SET(U, cmd_speed, json_object_get_double(val));
             }
             MODEL_U_SET(U, cmd_mode, 4);
+            publish_pending_input();
             printf("[Cmd] move_position\n");
         }
     } else if (cmd && strcmp(cmd, "move_velocity") == 0) {
-        _wp_active = 0;
+        cancel_pending_mission();
         json_object_object_get_ex(root, "params", &params_obj);
         if (params_obj) {
             json_object_object_foreach(params_obj, key, val) {
@@ -355,6 +428,7 @@ static int parse_command(const char* json_str) {
                 else if (strcmp(key, "duration") == 0) MODEL_U_SET(U, cmd_duration, json_object_get_double(val));
             }
             MODEL_U_SET(U, cmd_mode, 5);
+            publish_pending_input();
             printf("[Cmd] move_velocity\n");
         }
     } else if (cmd && strcmp(cmd, "get_state") == 0) {
@@ -402,7 +476,8 @@ int main(int argc, char** argv) {
     {
         ModelU_t* initial_input = model_get_input();
         if (initial_input) {
-            pending_input = *initial_input;
+            memset(&pending_command, 0, sizeof(pending_command));
+            pending_command.input = *initial_input;
             __sync_synchronize();
             pending_input_ready = 1;
         }
@@ -436,8 +511,11 @@ int main(int argc, char** argv) {
             }
         }
 
+        if (model_is_loaded()) {
+            adopt_pending_command_state();
+        }
+
         if (model_is_loaded() && model_initialized) {
-            apply_pending_input();
             apply_active_waypoint(model_get_input());
             model_step();
 

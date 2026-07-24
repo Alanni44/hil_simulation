@@ -27,8 +27,21 @@ class ModelContractStaticTests(unittest.TestCase):
     def test_core_applies_command_input_with_a_lock_free_snapshot(self):
         source = read('c_core/src/main_rt.c')
         self.assertIn('pending_input_seq', source)
-        self.assertIn('apply_pending_input()', source)
+        self.assertIn('adopt_pending_command_state()', source)
         self.assertNotIn('pthread_mutex_lock(&model_input_lock)', source)
+
+    def test_command_parser_does_not_mutate_active_mission_state(self):
+        source = read('c_core/src/main_rt.c')
+        parser = source[source.index('static int parse_command'):source.index('void* command_thread')]
+        self.assertNotIn('_wp_active', parser)
+        self.assertNotIn('_wp_queue', parser)
+        self.assertNotIn('_last_cmd_mode_written', parser)
+
+    def test_core_only_applies_model_input_when_snapshot_changes(self):
+        source = read('c_core/src/main_rt.c')
+        self.assertIn('uint32_t input_generation;', source)
+        self.assertIn('_adopted_input_generation', source)
+        self.assertIn('candidate.input_generation != _adopted_input_generation', source)
 
     def test_integration_test_uses_valid_flight_state_indexes(self):
         source = read('scripts/integration_test.sh')
@@ -92,6 +105,12 @@ class ModelContractStaticTests(unittest.TestCase):
     def test_integration_executable_matches_build_output(self):
         source = read('scripts/integration_test.sh')
         self.assertIn('EXE="$ROOT/executables/hil_test_model_rt"', source)
+
+    def test_core_publishes_mission_metadata_with_the_input_snapshot(self):
+        source = read('c_core/src/main_rt.c')
+        self.assertIn('PendingCommandState_t pending_command', source)
+        self.assertIn('adopt_pending_command_state()', source)
+        self.assertNotIn('static int _cmd_mode_snapshot', source)
 
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
