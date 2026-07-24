@@ -151,17 +151,52 @@ static void publish_pending_input(void) {
     pending_command.input_generation++;
 }
 
-static int json_get_finite_number(struct json_object* object, const char* key,
-                                  double* value) {
-    struct json_object* field = NULL;
+static int json_value_as_finite_number(struct json_object* field, double* value) {
     enum json_type type;
 
-    if (!object || !key || !value ||
-        !json_object_object_get_ex(object, key, &field)) return -1;
+    if (!field || !value) return -1;
     type = json_object_get_type(field);
     if (type != json_type_int && type != json_type_double) return -1;
     *value = json_object_get_double(field);
     return isfinite(*value) ? 0 : -1;
+}
+
+static int json_get_finite_number(struct json_object* object, const char* key,
+                                  double* value) {
+    struct json_object* field = NULL;
+
+    if (!object || !key || !json_object_object_get_ex(object, key, &field)) return -1;
+    return json_value_as_finite_number(field, value);
+}
+
+static int json_get_optional_finite_number(struct json_object* object, const char* key,
+                                           double* value) {
+    struct json_object* field = NULL;
+
+    if (!object || !key || !value) return -1;
+    if (!json_object_object_get_ex(object, key, &field)) return 0;
+    return json_value_as_finite_number(field, value) == 0 ? 1 : -1;
+}
+
+static int set_model_initial_parameter(ModelInput_t* params, const char* key,
+                                       struct json_object* value) {
+    double number;
+
+    if (!params || !key || json_value_as_finite_number(value, &number) != 0) return -1;
+    if (strcmp(key, "initial_lat") == 0) params->init_lat = number;
+    else if (strcmp(key, "initial_lon") == 0) params->init_lon = number;
+    else if (strcmp(key, "initial_alt") == 0) params->init_alt = number;
+    else if (strcmp(key, "initial_roll") == 0) params->init_roll = (float)number;
+    else if (strcmp(key, "initial_pitch") == 0) params->init_pitch = (float)number;
+    else if (strcmp(key, "initial_yaw") == 0) params->init_yaw = (float)number;
+    else if (strcmp(key, "init_x") == 0) params->init_x = number;
+    else if (strcmp(key, "init_y") == 0) params->init_y = number;
+    else if (strcmp(key, "min_speed") == 0) params->min_speed = (float)number;
+    else if (strcmp(key, "max_speed") == 0) params->max_speed = (float)number;
+    else if (strcmp(key, "min_height") == 0) params->min_height = (float)number;
+    else if (strcmp(key, "max_height") == 0) params->max_height = (float)number;
+    else return -1;
+    return 0;
 }
 
 static void apply_active_waypoint(ModelU_t* model_input) {
@@ -292,41 +327,56 @@ static int parse_command(const char* json_str) {
 
     /* ---- init_sim ---- */
     if (cmd && strcmp(cmd, "init_sim") == 0) {
+        ModelInput_t candidate_params = model_params;
+        ModelU_t* U;
+
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                if (strcmp(key, "initial_lat") == 0) model_params.init_lat = json_object_get_double(val);
-                else if (strcmp(key, "initial_lon") == 0) model_params.init_lon = json_object_get_double(val);
-                else if (strcmp(key, "initial_alt") == 0) model_params.init_alt = json_object_get_double(val);
-                else if (strcmp(key, "initial_roll") == 0) model_params.init_roll = json_object_get_double(val);
-                else if (strcmp(key, "initial_pitch") == 0) model_params.init_pitch = json_object_get_double(val);
-                else if (strcmp(key, "initial_yaw") == 0) model_params.init_yaw = json_object_get_double(val);
-                else if (strcmp(key, "init_x") == 0) model_params.init_x = json_object_get_double(val);
-                else if (strcmp(key, "init_y") == 0) model_params.init_y = json_object_get_double(val);
-                else if (strcmp(key, "min_speed") == 0) model_params.min_speed = (float)json_object_get_double(val);
-                else if (strcmp(key, "max_speed") == 0) model_params.max_speed = (float)json_object_get_double(val);
-                else if (strcmp(key, "min_height") == 0) model_params.min_height = (float)json_object_get_double(val);
-                else if (strcmp(key, "max_height") == 0) model_params.max_height = (float)json_object_get_double(val);
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object) {
+            fprintf(stderr, "[Cmd] rejected init_sim: params must be an object\n");
+            json_object_put(root);
+            return -1;
+        }
+        json_object_object_foreach(params_obj, key, val) {
+            if (set_model_initial_parameter(&candidate_params, key, val) != 0) {
+                fprintf(stderr, "[Cmd] rejected init_sim: invalid parameter %s\n", key);
+                json_object_put(root);
+                return -1;
             }
         }
-        ModelU_t* U = command_input();
-        if (U) {
-            MODEL_U_SET(U, lat_init, model_params.init_lat);
-            MODEL_U_SET(U, lon_init, model_params.init_lon);
-            MODEL_U_SET(U, alt_init, model_params.init_alt);
-            MODEL_U_SET(U, roll_init, model_params.init_roll);
-            MODEL_U_SET(U, pitch_init, model_params.init_pitch);
-            MODEL_U_SET(U, yaw_init, model_params.init_yaw);
-            MODEL_U_SET(U, init_x, model_params.init_x);
-            MODEL_U_SET(U, init_y, model_params.init_y);
-            MODEL_U_SET(U, min_speed, model_params.min_speed);
-            MODEL_U_SET(U, max_speed, model_params.max_speed);
-            MODEL_U_SET(U, min_height, model_params.min_height);
-            MODEL_U_SET(U, max_height, model_params.max_height);
-            pending_command.initialize_requested = 1;
-            publish_pending_input();
-            printf("[Main] Model initialized\n");
+
+        if (candidate_params.init_lat < -90.0 || candidate_params.init_lat > 90.0 ||
+            candidate_params.init_lon < -180.0 || candidate_params.init_lon > 180.0 ||
+            candidate_params.init_alt < 0.0 || candidate_params.min_speed < 0.0f ||
+            candidate_params.max_speed < candidate_params.min_speed ||
+            candidate_params.min_height < 0.0f ||
+            candidate_params.max_height < candidate_params.min_height) {
+            fprintf(stderr, "[Cmd] rejected init_sim: invalid parameter range\n");
+            json_object_put(root);
+            return -1;
         }
+
+        U = command_input();
+        if (!U) {
+            fprintf(stderr, "[Cmd] rejected init_sim: model input unavailable\n");
+            json_object_put(root);
+            return -1;
+        }
+        model_params = candidate_params;
+        MODEL_U_SET(U, lat_init, model_params.init_lat);
+        MODEL_U_SET(U, lon_init, model_params.init_lon);
+        MODEL_U_SET(U, alt_init, model_params.init_alt);
+        MODEL_U_SET(U, roll_init, model_params.init_roll);
+        MODEL_U_SET(U, pitch_init, model_params.init_pitch);
+        MODEL_U_SET(U, yaw_init, model_params.init_yaw);
+        MODEL_U_SET(U, init_x, model_params.init_x);
+        MODEL_U_SET(U, init_y, model_params.init_y);
+        MODEL_U_SET(U, min_speed, model_params.min_speed);
+        MODEL_U_SET(U, max_speed, model_params.max_speed);
+        MODEL_U_SET(U, min_height, model_params.min_height);
+        MODEL_U_SET(U, max_height, model_params.max_height);
+        pending_command.initialize_requested = 1;
+        publish_pending_input();
+        printf("[Main] Model initialized\n");
         json_object_put(root);
         return 0;
     }
@@ -433,16 +483,34 @@ static int parse_command(const char* json_str) {
     /* ---- tune: generic dispatch via offset table ---- */
     if (cmd && strcmp(cmd, "tune") == 0) {
         ModelU_t* U = command_input();
+        ModelU_t candidate;
+        int applied = 0;
+
         if (!U) { json_object_put(root); return -1; }
         json_object_object_get_ex(root, "params", &params_obj);
-        int applied = 0;
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                double value = json_object_get_double(val);
-                if (model_u_set_by_name(U, key, value) == 0) applied++;
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object) {
+            fprintf(stderr, "[Cmd] rejected tune: params must be an object\n");
+            json_object_put(root);
+            return -1;
+        }
+        candidate = *U;
+        json_object_object_foreach(params_obj, key, val) {
+            double value;
+            applied++;
+            if (json_value_as_finite_number(val, &value) != 0 ||
+                    model_u_set_by_name(&candidate, key, value) != 0) {
+                fprintf(stderr, "[Cmd] rejected tune: invalid parameter %s\n", key);
+                json_object_put(root);
+                return -1;
             }
         }
-        if (applied > 0) publish_pending_input();
+        if (applied == 0) {
+            fprintf(stderr, "[Cmd] rejected tune: no parameters supplied\n");
+            json_object_put(root);
+            return -1;
+        }
+        *U = candidate;
+        publish_pending_input();
         printf("[Tune] %d param(s) applied\n", applied);
         json_object_put(root);
         return 0;
@@ -457,13 +525,16 @@ static int parse_command(const char* json_str) {
     }
 
     if (cmd && strcmp(cmd, "takeoff") == 0) {
-        cancel_pending_mission();
+        double height;
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                if (strcmp(key, "height") == 0) MODEL_U_SET(U, cmd_z, json_object_get_double(val));
-            }
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object ||
+                json_get_finite_number(params_obj, "height", &height) != 0 || height < 0.0) {
+            fprintf(stderr, "[Cmd] rejected takeoff: a non-negative height is required\n");
+            json_object_put(root);
+            return -1;
         }
+        cancel_pending_mission();
+        MODEL_U_SET(U, cmd_z, height);
         MODEL_U_SET(U, cmd_mode, 1);
         publish_command_mode(1);
         publish_pending_input();
@@ -481,35 +552,61 @@ static int parse_command(const char* json_str) {
         publish_pending_input();
         printf("[Cmd] hover\n");
     } else if (cmd && strcmp(cmd, "move_position") == 0) {
-        cancel_pending_mission();
+        double x;
+        double y;
+        double height;
+        double speed;
+        int has_speed;
+
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                if (strcmp(key, "x") == 0) MODEL_U_SET(U, cmd_x, json_object_get_double(val));
-                else if (strcmp(key, "y") == 0) MODEL_U_SET(U, cmd_y, json_object_get_double(val));
-                else if (strcmp(key, "height") == 0) MODEL_U_SET(U, cmd_z, json_object_get_double(val));
-                else if (strcmp(key, "speed") == 0) MODEL_U_SET(U, cmd_speed, json_object_get_double(val));
-            }
-            MODEL_U_SET(U, cmd_mode, 4);
-            publish_pending_input();
-            printf("[Cmd] move_position\n");
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object ||
+            json_get_finite_number(params_obj, "x", &x) != 0 ||
+            json_get_finite_number(params_obj, "y", &y) != 0 ||
+            json_get_finite_number(params_obj, "height", &height) != 0 || height < 0.0 ||
+            (has_speed = json_get_optional_finite_number(params_obj, "speed", &speed)) < 0 ||
+            (has_speed > 0 && speed <= 0.0)) {
+            fprintf(stderr, "[Cmd] rejected move_position: invalid parameters\n");
+            json_object_put(root);
+            return -1;
         }
+        cancel_pending_mission();
+        MODEL_U_SET(U, cmd_x, x);
+        MODEL_U_SET(U, cmd_y, y);
+        MODEL_U_SET(U, cmd_z, height);
+        if (has_speed > 0) MODEL_U_SET(U, cmd_speed, speed);
+        MODEL_U_SET(U, cmd_mode, 4);
+        publish_pending_input();
+        printf("[Cmd] move_position\n");
     } else if (cmd && strcmp(cmd, "move_velocity") == 0) {
-        cancel_pending_mission();
+        double vx;
+        double vy;
+        double vz;
+        double duration;
+
         json_object_object_get_ex(root, "params", &params_obj);
-        if (params_obj) {
-            json_object_object_foreach(params_obj, key, val) {
-                if (strcmp(key, "vx") == 0) MODEL_U_SET(U, cmd_x, json_object_get_double(val));
-                else if (strcmp(key, "vy") == 0) MODEL_U_SET(U, cmd_y, json_object_get_double(val));
-                else if (strcmp(key, "vz") == 0) MODEL_U_SET(U, cmd_z, json_object_get_double(val));
-                else if (strcmp(key, "duration") == 0) MODEL_U_SET(U, cmd_duration, json_object_get_double(val));
-            }
-            MODEL_U_SET(U, cmd_mode, 5);
-            publish_pending_input();
-            printf("[Cmd] move_velocity\n");
+        if (!params_obj || json_object_get_type(params_obj) != json_type_object ||
+            json_get_finite_number(params_obj, "vx", &vx) != 0 ||
+            json_get_finite_number(params_obj, "vy", &vy) != 0 ||
+            json_get_finite_number(params_obj, "vz", &vz) != 0 ||
+            json_get_finite_number(params_obj, "duration", &duration) != 0 || duration <= 0.0) {
+            fprintf(stderr, "[Cmd] rejected move_velocity: invalid parameters\n");
+            json_object_put(root);
+            return -1;
         }
+        cancel_pending_mission();
+        MODEL_U_SET(U, cmd_x, vx);
+        MODEL_U_SET(U, cmd_y, vy);
+        MODEL_U_SET(U, cmd_z, vz);
+        MODEL_U_SET(U, cmd_duration, duration);
+        MODEL_U_SET(U, cmd_mode, 5);
+        publish_pending_input();
+        printf("[Cmd] move_velocity\n");
     } else if (cmd && strcmp(cmd, "get_state") == 0) {
         printf("[Cmd] get_state\n");
+    } else {
+        fprintf(stderr, "[Cmd] rejected unknown command: %s\n", cmd);
+        json_object_put(root);
+        return -1;
     }
     json_object_put(root);
     return 0;

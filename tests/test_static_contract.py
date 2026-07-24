@@ -121,6 +121,13 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn(guard, normalized)
         self.assertLess(normalized.index(guard), normalized.index('json_object_array_length(wps_obj)'))
 
+    def test_core_routes_command_numbers_through_finite_type_checks(self):
+        source = read('c_core/src/main_rt.c')
+        parser = source[source.index('static int parse_command'):source.index('void* command_thread')]
+        self.assertNotIn('json_object_get_double', parser)
+        self.assertIn('json_value_as_finite_number', source)
+        self.assertIn('rejected unknown command', parser)
+
     def test_start_script_confirms_core_and_python_survive_startup(self):
         source = read('scripts/start_all.sh')
         self.assertIn('sudo "$EXE_PATH"', source)
@@ -138,6 +145,14 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('_latest_raw = s', lock_body)
         self.assertIn("_sim_time = s['timestamp_us'] / 1_000_000.0", lock_body)
         self.assertIn("_frame = s.get('mission_id', 0)", lock_body)
+
+    def test_readme_documents_target_pipeline_acceptance(self):
+        source = read('README.md')
+        self.assertIn('sudo apt install -y build-essential libjson-c-dev python3 python3-pip', source)
+        self.assertIn('python3 -m pip install -r requirements.txt', source)
+        self.assertIn('bash scripts/integration_test.sh', source)
+        self.assertIn('ModelU_t fields (6)', source)
+        self.assertIn('ModelY_t fields (10)', source)
 
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))

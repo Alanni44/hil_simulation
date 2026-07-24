@@ -90,15 +90,23 @@ cd python_services && python3 main.py
 ## Target validation prerequisites
 
 `ert.tlc` requires an Embedded Coder license in addition to MATLAB and
-Simulink. Install GCC 7.x, `libjson-c-dev`, and the pinned Python
-dependencies on Ubuntu 18.04 before running:
+Simulink. On the Ubuntu 18.04 target, use GCC 7.x and run the complete
+acceptance sequence from a clean checkout:
 
 ```bash
-./scripts/integration_test.sh
+sudo apt update
+sudo apt install -y build-essential libjson-c-dev python3 python3-pip
+python3 -m pip install -r requirements.txt
+bash scripts/integration_test.sh
 ```
 
+The ERT phase must complete and report `ModelU_t fields (6)` and
+`ModelY_t fields (10)` for the supplied integration model. The integration
+summary must report zero failed tests; it also verifies that the executable
+and all three services remain alive.
+
 Windows development validates source structure only; it does not prove the
-MATLAB ERT build or real-time runtime path.
+MATLAB R2018b ERT build, GCC 7.x link, or real-time runtime path.
 
 ## 开发约束
 
