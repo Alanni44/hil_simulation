@@ -30,7 +30,6 @@ hil_simulation/
   matlab_scripts/     MATLAB 代码生成脚本 (R2018b 兼容)
   model/              Simulink 生成的 C 模型代码
   scripts/            启动/停止脚本
-  tests/              测试工具 (mock_core、UE4 模拟器)
   config.yaml         配置文件
 ```
 
@@ -73,26 +72,7 @@ pip3 install pyyaml
 
 编辑 `config.yaml`，确认 UE4 Bridge 地址与实际环境一致。
 
-### 3. Demo 测试 — 圆形航线
-
-UE4 组先启动 Python Bridge Server（监听 TCP 5000），或使用本地模拟器：
-
-```bash
-# 终端 1: 模拟 UE4 Bridge Server
-python3 tests/test_ue4_client.py
-```
-
-然后启动 Demo：
-
-```bash
-# 终端 2: 一键启动
-chmod +x scripts/demo_circle.sh
-./scripts/demo_circle.sh
-```
-
-流程: mock_core (CSV 50Hz UDP) → Python 服务 → TCP Bridge → UE4
-
-### 4. 生产启动
+### 2. 生产启动
 
 ```bash
 chmod +x scripts/start_all.sh scripts/stop_all.sh
@@ -100,12 +80,17 @@ chmod +x scripts/start_all.sh scripts/stop_all.sh
 ./scripts/stop_all.sh     # 停止所有服务
 ```
 
-### 5. 手动运行各组件
+### 2. 生产启动
 
 ```bash
-# 模拟 C 核心 (CSV 轨迹回放)
-python3 tests/mock_core.py --csv tests/uav_circle_test_50hz_60s.csv
+chmod +x scripts/start_all.sh scripts/stop_all.sh
+./scripts/start_all.sh    # 编译 RT 可执行文件 + 启动所有服务
+./scripts/stop_all.sh     # 停止所有服务
+```
 
+### 3. 手动运行各组件
+
+```bash
 # 仅启动 Python 服务
 cd python_services && python3 main.py
 ```
