@@ -36,9 +36,9 @@ check_file "generate_test_model" "$SLX"
 [ -f "$SLX" ] || { echo "ABORT: SLX not created"; exit 1; }
 
 cat > /tmp/hil_test_task.json << 'JSONEOF'
-{"model_name":"hil_test_model","slx_path":"BUILD_DIR_PLACEHOLDER","output_dir":"BUILD_DIR_PLACEHOLDER","lib_name":"libhil_test_model"}
+{"model_name":"hil_test_model","slx_path":"SLX_PATH_PLACEHOLDER","output_dir":"BUILD_DIR_PLACEHOLDER","lib_name":"libhil_test_model"}
 JSONEOF
-sed -i "s|BUILD_DIR_PLACEHOLDER|$BUILD_DIR|g" /tmp/hil_test_task.json
+sed -i "s|SLX_PATH_PLACEHOLDER|$SLX|g; s|BUILD_DIR_PLACEHOLDER|$BUILD_DIR|g" /tmp/hil_test_task.json
 
 # ---- Phase 0b: ERT build ----
 echo ""; echo -e "${C}=== Phase 0b: ERT Build (MATLAB + GCC, ~2-3 min) ===${N}"

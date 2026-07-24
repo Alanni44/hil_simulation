@@ -37,6 +37,11 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertNotIn('v[33]', source)
         self.assertIn('v[2],v[3],v[4],v[27],v[29],v[28]', source)
 
+    def test_integration_task_uses_the_slx_file_not_build_directory(self):
+        source = read('scripts/integration_test.sh')
+        self.assertIn('"slx_path":"SLX_PATH_PLACEHOLDER"', source)
+        self.assertIn('s|SLX_PATH_PLACEHOLDER|$SLX|g', source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 
