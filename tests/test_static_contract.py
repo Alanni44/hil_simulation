@@ -42,6 +42,16 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('"slx_path":"SLX_PATH_PLACEHOLDER"', source)
         self.assertIn('s|SLX_PATH_PLACEHOLDER|$SLX|g', source)
 
+    def test_adapter_accepts_jsondecoded_port_struct_arrays(self):
+        source = read('matlab_scripts/adapt_model.m')
+        self.assertIn('if iscell(ports)', source)
+        self.assertIn('ports(index)', source)
+
+    def test_integration_test_reports_matlab_build_error_details(self):
+        source = read('scripts/integration_test.sh')
+        self.assertIn('/tmp/hil_test_result.json', source)
+        self.assertIn('ERT failure:', source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 

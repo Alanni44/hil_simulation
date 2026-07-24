@@ -117,10 +117,11 @@ function mapping = map_ports(ports, aliases)
         mapping.(key) = 'NOT_FOUND';
         candidates = aliases(key);
         for p = 1:length(ports)
-            port_name = strtrim(ports{p}.name);
+            port = get_port(ports, p);
+            port_name = strtrim(port.name);
             for c = 1:length(candidates)
                 if strcmpi(port_name, candidates{c})
-                    mapping.(key) = ports{p}.name;
+                    mapping.(key) = port.name;
                     break;
                 end
             end
@@ -128,6 +129,16 @@ function mapping = map_ports(ports, aliases)
                 break;
             end
         end
+    end
+end
+
+function port = get_port(ports, index)
+%JSONDECODE returns a structure array for uniform JSON object arrays.
+%Keep cell indexing too, so manually-produced heterogeneous data still works.
+    if iscell(ports)
+        port = ports{index};
+    else
+        port = ports(index);
     end
 end
 

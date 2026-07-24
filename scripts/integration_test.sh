@@ -27,6 +27,7 @@ echo "============================================================"
 echo "  HIL Full Pipeline Integration Test"
 echo "============================================================"
 rm -rf "$BUILD_DIR"; mkdir -p "$BUILD_DIR" "$ROOT/models/executables"
+rm -f /tmp/hil_test_task.json /tmp/hil_test_result.json
 
 # ---- Phase 0a: Generate .slx ----
 echo ""; echo -e "${C}=== Phase 0a: Generate Model ===${N}"
@@ -44,6 +45,9 @@ sed -i "s|SLX_PATH_PLACEHOLDER|$SLX|g; s|BUILD_DIR_PLACEHOLDER|$BUILD_DIR|g" /tm
 echo ""; echo -e "${C}=== Phase 0b: ERT Build (MATLAB + GCC, ~2-3 min) ===${N}"
 "$MATLAB" -nodisplay -nosplash -nodesktop -r \
     "addpath('$ROOT/matlab_scripts'); build_script('/tmp/hil_test_task.json','/tmp/hil_test_result.json'); exit;" 2>&1 || true
+if [ ! -f "$EXE" ] && [ -f /tmp/hil_test_result.json ]; then
+    python3 -c "import json; d=json.load(open('/tmp/hil_test_result.json')); print('ERT failure: %s' % d.get('message', 'no diagnostic message'))" || true
+fi
 check_file "ERT build" "$EXE"
 [ -f "$EXE" ] || { echo "ABORT: executable not built"; exit 1; }
 
