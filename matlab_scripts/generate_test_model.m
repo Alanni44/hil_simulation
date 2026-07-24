@@ -8,8 +8,7 @@ function generate_test_model(output_dir)
 %     Outports: pos_x, pos_y, pos_z, roll, pitch, yaw, vel_x, vel_y, vel_z, airborne
 %     Tunable  Constants: u_mass, u_gravity, u_drag_x, u_drag_y,
 %                          u_kpz, u_kiz, u_kdz, u_kpxy, u_kixy, u_kdxy
-%     Scopes:  Scope_pos_x, Scope_pos_y, Scope_pos_z,
-%              Scope_roll, Scope_pitch, Scope_yaw
+%     Scopes:  Scope_X, Scope_Y, Scope_Z, Scope_Phi, Scope_Theta, Scope_Psi
 
     if nargin < 1, output_dir = pwd; end
     if ~exist(output_dir, 'dir'), mkdir(output_dir); end
@@ -29,7 +28,7 @@ function generate_test_model(output_dir)
     ports  = {'cmd_x','cmd_y','cmd_z','cmd_yaw','cmd_mode','cmd_speed'};
     for i = 1:6
         add_block('simulink/Sources/In1', [mdl '/' ports{i}]);
-        set_param([mdl '/' ports{i}], 'Port', int2str(i));
+        set_param([mdl '/' ports{i}], 'Port', num2str(i));
     end
 
     % ---- Root Outports (avoid naming conflict with Drone internals) ----
@@ -37,7 +36,7 @@ function generate_test_model(output_dir)
     % adapt_model aliases map these to: pos_x, pos_y, pos_z, roll, pitch, yaw, vel_x, vel_y, vel_z, airborne
     for i = 1:10
         add_block('simulink/Sinks/Out1', [mdl '/' routs{i}]);
-        set_param([mdl '/' routs{i}], 'Port', int2str(i));
+        set_param([mdl '/' routs{i}], 'Port', num2str(i));
     end
 
     % ---- Tunable Constants (u_ prefix for adapt_model recognition) ----
@@ -49,12 +48,12 @@ function generate_test_model(output_dir)
     end
 
     % ---- Root Scopes ----
-    add_block('simulink/Sinks/Scope', [mdl '/X'], 'Position', [600,25,630,55]);
-    add_block('simulink/Sinks/Scope', [mdl '/Y'], 'Position', [600,60,630,90]);
-    add_block('simulink/Sinks/Scope', [mdl '/Z'], 'Position', [600,95,630,125]);
-    add_block('simulink/Sinks/Scope', [mdl '/Phi'], 'Position', [600,130,630,160]);
-    add_block('simulink/Sinks/Scope', [mdl '/Theta'], 'Position', [600,165,630,195]);
-    add_block('simulink/Sinks/Scope', [mdl '/Psi'], 'Position', [600,200,630,230]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_X'], 'Position', [600,25,630,55]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_Y'], 'Position', [600,60,630,90]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_Z'], 'Position', [600,95,630,125]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_Phi'], 'Position', [600,130,630,160]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_Theta'], 'Position', [600,165,630,195]);
+    add_block('simulink/Sinks/Scope', [mdl '/Scope_Psi'], 'Position', [600,200,630,230]);
 
     % ======== Drone SubSystem ========
     sys    = [mdl '/Drone'];
@@ -190,12 +189,12 @@ function generate_test_model(output_dir)
     end
 
     % Drone -> Scopes (match root Outport names)
-    add_line(mdl, 'Drone/1', 'X/1');
-    add_line(mdl, 'Drone/2', 'Y/1');
-    add_line(mdl, 'Drone/3', 'Z/1');
-    add_line(mdl, 'Drone/4', 'Phi/1');
-    add_line(mdl, 'Drone/5', 'Theta/1');
-    add_line(mdl, 'Drone/6', 'Psi/1');
+    add_line(mdl, 'Drone/1', 'Scope_X/1');
+    add_line(mdl, 'Drone/2', 'Scope_Y/1');
+    add_line(mdl, 'Drone/3', 'Scope_Z/1');
+    add_line(mdl, 'Drone/4', 'Scope_Phi/1');
+    add_line(mdl, 'Drone/5', 'Scope_Theta/1');
+    add_line(mdl, 'Drone/6', 'Scope_Psi/1');
 
     % Save
     slx_file = fullfile(output_dir, [mdl '.slx']);
