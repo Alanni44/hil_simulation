@@ -68,7 +68,8 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn("'CodeGenFolder', output_dir", source)
         self.assertIn('RTW.getBuildDir(build_model)', source)
         self.assertIn('onCleanup(@() close_model_without_save(build_model))', source)
-        self.assertIn('cd(output_dir);', source)
+        self.assertIn("build_work_dir = fullfile(output_dir, 'matlab_build_work');", source)
+        self.assertIn('cd(build_work_dir);', source)
         self.assertIn('onCleanup(@() cd(original_dir))', source)
 
     def test_python_dependency_is_pinned_for_python_36(self):
