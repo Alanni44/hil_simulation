@@ -106,6 +106,9 @@ function build_script(task_file, result_file)
     fprintf('[MATLAB] ---- Step 3: ERT configuration ----\n');
     try
         load_system(build_slx);
+        % Never leave a modified model open when this noninteractive build
+        % exits, otherwise MATLAB prompts for a save and blocks the test.
+        model_cleanup = onCleanup(@() close_model_without_save(build_model));
         fprintf('[MATLAB] Model loaded: %s\n', build_model);
     catch ME
         write_result(result_file, -1, sprintf('Failed to load model: %s', ME.message));
@@ -113,6 +116,13 @@ function build_script(task_file, result_file)
     end
 
     try
+        codegen_cache_dir = fullfile(output_dir, 'slcache');
+        Simulink.fileGenControl('set', ...
+            'CacheFolder', codegen_cache_dir, ...
+            'CodeGenFolder', output_dir, ...
+            'CodeGenFolderStructure', ...
+                Simulink.filegen.CodeGenFolderStructure.ModelSpecific, ...
+            'createDir', true);
         set_param(build_model, 'SystemTargetFile', 'ert.tlc');
         set_param(build_model, 'TargetLang', 'C');
         set_param(build_model, 'GenerateComments', 'on');
@@ -153,9 +163,20 @@ function build_script(task_file, result_file)
     end
 
     % ---- Step 5: locate generated code ----
-    code_dir = fullfile(output_dir, [build_model '_ert_rtw']);
+    % Do not infer the folder from pwd or a user preference.  ERT reports
+    % the exact build directory through RTW.getBuildDir after a successful build.
+    try
+        build_dir_info = RTW.getBuildDir(build_model);
+        code_dir = build_dir_info.BuildDirectory;
+    catch ME
+        write_result(result_file, -1, ...
+            sprintf('Cannot determine generated code directory: %s', ME.message));
+        return;
+    end
     if ~exist(code_dir, 'dir')
-        code_dir = output_dir;
+        write_result(result_file, -1, ...
+            sprintf('Generated code directory not found: %s', code_dir));
+        return;
     end
     fprintf('[MATLAB] Code directory: %s\n', code_dir);
 
@@ -441,7 +462,6 @@ function build_script(task_file, result_file)
         fprintf('[MATLAB] Executable: %s\n', exe_path);
     catch ME
         write_result(result_file, -1, sprintf('Compile failed: %s', ME.message));
-        bdclose(build_model);
         return;
     end
 
@@ -452,7 +472,6 @@ function build_script(task_file, result_file)
                     'timestamp', datestr(now, 'yyyy-mm-dd HH:MM:SS'));
     write_result_json(result_file, result);
     fprintf('[MATLAB] Build complete\n');
-    bdclose(build_model);
 end
 
 % ---- Helpers ----
@@ -653,4 +672,15 @@ end
 function write_result(filename, code, message)
     data = struct('code', code, 'message', message);
     write_result_json(filename, data);
+end
+
+function close_model_without_save(model_name)
+%CLOSE_MODEL_WITHOUT_SAVE Avoid interactive save prompts in batch MATLAB.
+    try
+        if bdIsLoaded(model_name)
+            close_system(model_name, 0);
+        end
+    catch
+        % The build result has already been written; never mask it during cleanup.
+    end
 end

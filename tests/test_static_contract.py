@@ -62,6 +62,13 @@ class ModelContractStaticTests(unittest.TestCase):
                 "'kiz/1','Ig_Z/2'", "'kdz/1','Dg_Z/2'"):
             self.assertIn(connection, source)
 
+    def test_build_uses_explicit_and_discovered_codegen_directory(self):
+        source = read('matlab_scripts/build_script.m')
+        self.assertIn("Simulink.fileGenControl('set'", source)
+        self.assertIn("'CodeGenFolder', output_dir", source)
+        self.assertIn('RTW.getBuildDir(build_model)', source)
+        self.assertIn('onCleanup(@() close_model_without_save(build_model))', source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 
