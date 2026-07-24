@@ -116,6 +116,11 @@ function build_script(task_file, result_file)
     end
 
     try
+        % ERT refuses a nondefault CodeGenFolder when pwd contains a stale
+        % build folder.  Build from output_dir so pwd and CodeGenFolder agree.
+        original_dir = pwd;
+        cwd_cleanup = onCleanup(@() cd(original_dir));
+        cd(output_dir);
         codegen_cache_dir = fullfile(output_dir, 'slcache');
         Simulink.fileGenControl('set', ...
             'CacheFolder', codegen_cache_dir, ...
