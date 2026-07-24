@@ -7,7 +7,7 @@ G='\033[0;32m'; R='\033[0;31m'; C='\033[0;36m'; N='\033[0m'
 MATLAB="/usr/local/MATLAB/R2018b/bin/matlab"
 BUILD_DIR="$ROOT/test_output"
 SLX="$BUILD_DIR/hil_test_model.slx"
-EXE="$ROOT/models/executables/hil_test_model_rt"
+EXE="$ROOT/executables/hil_test_model_rt"
 PASS=0; FAIL=0
 CORE_PID=''; PY_PID=''; UE4_PID=''
 
@@ -26,7 +26,7 @@ trap cleanup EXIT
 echo "============================================================"
 echo "  HIL Full Pipeline Integration Test"
 echo "============================================================"
-rm -rf "$BUILD_DIR"; mkdir -p "$BUILD_DIR" "$ROOT/models/executables"
+rm -rf "$BUILD_DIR"; mkdir -p "$BUILD_DIR" "$ROOT/executables"
 rm -f /tmp/hil_test_task.json /tmp/hil_test_result.json
 
 # ---- Phase 0a: Generate .slx ----

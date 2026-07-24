@@ -84,6 +84,15 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn("inner = regexprep(inner, '/\\*[\\s\\S]*?\\*/', '');", source)
         self.assertIn("inner = regexprep(inner, '//[^\\r\\n]*', '');", source)
 
+    def test_build_excludes_ert_example_main(self):
+        source = read('matlab_scripts/build_script.m')
+        self.assertIn("excluded_sources = {'ert_main.c'}", source)
+        self.assertIn('any(strcmp(c_files(i).name, excluded_sources))', source)
+
+    def test_integration_executable_matches_build_output(self):
+        source = read('scripts/integration_test.sh')
+        self.assertIn('EXE="$ROOT/executables/hil_test_model_rt"', source)
+
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
 

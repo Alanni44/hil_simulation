@@ -673,7 +673,14 @@ end
 
 function flags = gen_c_flags(code_dir, c_files)
     flags = '';
+    % ert_main.c is an ERT example executable entry point.  The HIL binary
+    % supplies its own main() in c_core/src/main_rt.c, so linking both is
+    % invalid and produces a duplicate-main linker error.
+    excluded_sources = {'ert_main.c'};
     for i = 1:length(c_files)
+        if any(strcmp(c_files(i).name, excluded_sources))
+            continue;
+        end
         flags = [flags ' "' fullfile(code_dir, c_files(i).name) '"'];
     end
 end
