@@ -7,7 +7,7 @@
  *
  * Compile with:  -DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h
  *
- * Hot-reload: reads /tmp/model_ready.signal, then calls execv() to
+ * Hot-reload: reads the configured model-ready signal, then calls execv() to
  * replace this process with the freshly built executable.
  */
 #include <stdio.h>
@@ -15,6 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <json-c/json.h>
+#include <limits.h>
 #include <sys/stat.h>
 
 /* The bridge header is injected at compile time (or defaults to development ABI). */
@@ -108,12 +109,23 @@ void model_check_for_update(void) {
 }
 
 void model_apply_pending_update(int* argc_ptr, char** argv) {
-    const char* signal_file = "/tmp/model_ready.signal";
-    struct stat st;
-    if (stat(signal_file, &st) != 0) return;
+    const char* signal_file = getenv("HIL_MODEL_READY_SIGNAL");
+    const char* expected_model = getenv("HIL_MODEL_NAME");
+    char claimed_signal[PATH_MAX];
+    if (!signal_file || signal_file[0] == '\0') signal_file = "/tmp/model_ready.signal";
+    if (snprintf(claimed_signal, sizeof(claimed_signal), "%s.core.%ld",
+                 signal_file, (long)getpid()) >= (int)sizeof(claimed_signal)) {
+        fprintf(stderr, "[ModelRT] model-ready signal path is too long\n");
+        return;
+    }
 
-    FILE* f = fopen(signal_file, "r");
-    if (!f) return;
+    /* Claim exactly one complete signal.  Python publishes by atomic rename;
+     * this rename prevents a concurrently published newer signal from being
+     * deleted after this core has read the older one. */
+    if (rename(signal_file, claimed_signal) != 0) return;
+
+    FILE* f = fopen(claimed_signal, "r");
+    if (!f) { unlink(claimed_signal); return; }
 
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
@@ -123,18 +135,51 @@ void model_apply_pending_update(int* argc_ptr, char** argv) {
     size_t nr = fread(content, 1, size, f);
     if (nr > 0) content[nr] = '\0'; else content[0] = '\0';
     fclose(f);
-    unlink(signal_file);
+    unlink(claimed_signal);
 
     struct json_object* root = json_tokener_parse(content);
     free(content);
     if (!root) return;
 
     struct json_object* exe_obj;
+    struct json_object* model_obj;
     const char* exe_path = NULL;
+    const char* signal_model = NULL;
     json_object_object_get_ex(root, "exe_path", &exe_obj);
     if (exe_obj) exe_path = json_object_get_string(exe_obj);
+    json_object_object_get_ex(root, "model_name", &model_obj);
+    if (model_obj) signal_model = json_object_get_string(model_obj);
 
     if (!exe_path) { json_object_put(root); return; }
+
+    /* Production core instances are bound to one model.  Notifications are
+     * model-specific as well, but keep this defensive check so a malformed or
+     * manually placed signal cannot switch a different service instance. */
+    if (expected_model && expected_model[0] != '\0' &&
+        (!signal_model || strcmp(expected_model, signal_model) != 0)) {
+        fprintf(stderr, "[ModelRT] Ignoring update for model '%s' (this core: '%s')\n",
+                signal_model ? signal_model : "", expected_model);
+        json_object_put(root);
+        return;
+    }
+
+    /* A model service started through models/active may encounter the signal
+     * that selected its own executable.  Consume that stale handoff rather
+     * than needlessly execing and disrupting its freshly bound UDP sockets. */
+    {
+        char current_exe[PATH_MAX];
+        char target_exe[PATH_MAX];
+        ssize_t current_len = readlink("/proc/self/exe", current_exe,
+                                       sizeof(current_exe) - 1);
+        if (current_len > 0 && realpath(exe_path, target_exe)) {
+            current_exe[current_len] = '\0';
+            if (strcmp(current_exe, target_exe) == 0) {
+                printf("[ModelRT] Hot-reload signal already matches current executable\n");
+                json_object_put(root);
+                return;
+            }
+        }
+    }
 
     printf("[ModelRT] Hot-reload: execv(%s)\n", exe_path);
 
@@ -144,6 +189,8 @@ void model_apply_pending_update(int* argc_ptr, char** argv) {
      * execv replaces this process.  argv[0] is the exe path, the rest
      * of argv is forwarded so the new instance knows its own args.
      */
+    (void)argc_ptr;
+    (void)argv;
     char** new_argv = malloc(2 * sizeof(char*));
     new_argv[0] = (char*)exe_path;
     new_argv[1] = NULL;

@@ -72,15 +72,25 @@ pip3 install -r requirements.txt
 
 编辑 `config.yaml`，确认 UE4 Bridge 地址与实际环境一致。
 
-### 2. 生产启动
+### 2. 生产部署
+
+生产环境使用 systemd 服务、最小权限能力和版本化模型归档；请按
+[`deploy/systemd/README.md`](deploy/systemd/README.md) 安装，而不是用 `sudo`
+运行开发脚本。模型归档、校验和、回滚及远程管理边界见
+[`models/README.md`](models/README.md)。
+
+### 3. 开发启动
+
+`start_all.sh` 是前台开发辅助工具，默认不请求 sudo；它会把构建产物放入
+版本化模型归档，而不是散落在 `models/builds` 或 `models/executables`。
 
 ```bash
 chmod +x scripts/start_all.sh scripts/stop_all.sh
-SLX_PATH=/absolute/path/to/model.slx ./scripts/start_all.sh
-./scripts/stop_all.sh
+MODEL_NAME=my_model SLX_PATH=/absolute/path/to/model.slx ./scripts/start_all.sh
+MODEL_NAME=my_model ./scripts/stop_all.sh
 ```
 
-### 3. 手动运行各组件
+### 4. 手动运行各组件
 
 ```bash
 # 仅启动 Python 服务

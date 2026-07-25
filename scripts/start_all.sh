@@ -1,118 +1,88 @@
 #!/bin/bash
-set -e
+# Development launcher.  Production uses deploy/systemd/ and never runs this
+# foreground helper as root.
+set -euo pipefail
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
-
-echo "=== HIL System (MATLAB ERT Pipeline) ==="
-
-# ---- Config ----
-MODEL_NAME="${MODEL_NAME:-Quad_sim}"
+MODEL_NAME="${MODEL_NAME:-}"
 SLX_PATH="${SLX_PATH:-}"
-MATLAB_BIN="/usr/local/MATLAB/R2018b/bin/matlab"
-EXE_PATH="$ROOT/models/executables/${MODEL_NAME}_rt"
 
-# ---- Find MATLAB ----
-if [ ! -x "$MATLAB_BIN" ]; then
-    MATLAB_BIN="$(command -v matlab 2>/dev/null || echo '')"
+if [ -z "$MODEL_NAME" ]; then
+    echo "ERROR: MODEL_NAME is required (for example: MODEL_NAME=my_uav)"
+    exit 2
 fi
-if [ -z "$MATLAB_BIN" ]; then
-    echo "ERROR: MATLAB R2018b not found"
+
+RUN_DIR="${HIL_DEV_RUN_DIR:-/tmp/hil_dev_${MODEL_NAME}}"
+PID_FILE="$RUN_DIR/pids"
+SIGNAL_FILE="$RUN_DIR/${MODEL_NAME}.signal"
+
+if [ -f "$PID_FILE" ]; then
+    while read -r pid _; do
+        if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then
+            echo "ERROR: an existing development run is recorded in $RUN_DIR"
+            echo "Run scripts/stop_all.sh with HIL_DEV_RUN_DIR=$RUN_DIR first."
+            exit 1
+        fi
+    done < "$PID_FILE"
+fi
+mkdir -p "$RUN_DIR"
+
+if [ "${HIL_SKIP_BUILD:-0}" != "1" ]; then
+    if [ -z "$SLX_PATH" ] || [ ! -f "$SLX_PATH" ]; then
+        echo "ERROR: SLX_PATH must name an existing .slx file (or set HIL_SKIP_BUILD=1)."
+        exit 2
+    fi
+    echo "Building immutable archive for $MODEL_NAME ..."
+    HIL_MODEL_READY_SIGNAL="$SIGNAL_FILE" \
+        "$ROOT/scripts/build_model.py" "$SLX_PATH" "$MODEL_NAME"
+fi
+
+EXE="$ROOT/models/active/$MODEL_NAME/executable/${MODEL_NAME}_rt"
+if [ ! -x "$EXE" ]; then
+    echo "ERROR: active archived executable is missing: $EXE"
     exit 1
 fi
 
-# ---- Check SLX ----
-if [ -z "$SLX_PATH" ]; then
-    echo "ERROR: SLX_PATH is required"
-    echo "Set SLX_PATH=/path/to/model.slx"
-    exit 1
-fi
-if [ ! -f "$SLX_PATH" ]; then
-    echo "ERROR: SLX not found: $SLX_PATH"
-    exit 1
-fi
-
-echo "SLX:    $SLX_PATH"
-echo "MATLAB: $MATLAB_BIN"
-echo ""
-
-# ---------- 1. MATLAB ERT Build ----------
-echo "[1/2] MATLAB ERT build..."
-
-mkdir -p "$ROOT/models/builds/$MODEL_NAME" "$ROOT/models/executables"
-
-cat > /tmp/hil_build_task.json << JSONEOF
-{
-  "model_name": "$MODEL_NAME",
-  "slx_path": "$SLX_PATH",
-  "output_dir": "$ROOT/models/builds/$MODEL_NAME",
-  "lib_name": "lib${MODEL_NAME}"
-}
-JSONEOF
-
-"$MATLAB_BIN" -nodisplay -nosplash -nodesktop -r \
-    "addpath('$ROOT/matlab_scripts'); build_script('/tmp/hil_build_task.json', '/tmp/hil_build_result.json'); exit;" \
-    2>&1
-
-if [ ! -f /tmp/hil_build_result.json ]; then
-    echo "ERROR: MATLAB did not produce build result"
-    exit 1
-fi
-
-RESULT=$(python3 -c "import json; print(json.load(open('/tmp/hil_build_result.json')).get('code', -1))" 2>/dev/null || echo "-1")
-if [ "$RESULT" != "0" ]; then
-    echo "ERROR: MATLAB ERT build failed"
-    python3 -c "import json; d=json.load(open('/tmp/hil_build_result.json')); print('  reason:', d.get('message','?'))" 2>/dev/null || true
-    exit 1
-fi
-
-echo "MATLAB ERT build OK"
-
-# ---------- 2. Start services ----------
-echo "[2/2] Starting services..."
-
-RT_PID=''
+CORE_PID=''
 PY_PID=''
 cleanup() {
-    [ -n "$RT_PID" ] && kill "$RT_PID" 2>/dev/null || true
+    local status=$?
+    trap - EXIT INT TERM
+    [ -n "$CORE_PID" ] && kill "$CORE_PID" 2>/dev/null || true
     [ -n "$PY_PID" ] && kill "$PY_PID" 2>/dev/null || true
     wait 2>/dev/null || true
+    rm -f "$PID_FILE"
+    exit "$status"
 }
 trap cleanup EXIT
-trap 'cleanup; exit 0' INT TERM
+trap 'exit 0' INT TERM
 
-sudo "$EXE_PATH" &
-RT_PID=$!
-echo "C core PID: $RT_PID"
-
-sleep 1
-
-cd python_services
-python3 main.py &
+(
+    cd "$ROOT/python_services"
+    HIL_MODEL_READY_SIGNAL="$SIGNAL_FILE" HIL_MODEL_NAME="$MODEL_NAME" exec python3 main.py
+) >"$RUN_DIR/python_services.log" 2>&1 &
 PY_PID=$!
-echo "Python PID: $PY_PID"
-cd ..
 
+HIL_MODEL_READY_SIGNAL="$SIGNAL_FILE" HIL_MODEL_NAME="$MODEL_NAME" \
+    "$EXE" >"$RUN_DIR/core.log" 2>&1 &
+CORE_PID=$!
+
+printf '%s core\n%s python\n' "$CORE_PID" "$PY_PID" > "$PID_FILE"
 sleep 1
-if ! kill -0 "$RT_PID" 2>/dev/null || ! kill -0 "$PY_PID" 2>/dev/null; then
-    echo "ERROR: one or more services exited during startup"
+if ! kill -0 "$CORE_PID" 2>/dev/null || ! kill -0 "$PY_PID" 2>/dev/null; then
+    echo "ERROR: development services exited during startup; inspect $RUN_DIR/*.log"
     exit 1
 fi
 
-echo ""
-echo "=== All started ==="
-echo "  C core:  $EXE_PATH (PID $RT_PID)"
-echo "  Python:  PID $PY_PID"
-echo "  Ctrl+C to stop"
-echo ""
+echo "HIL development services started"
+echo "  model:  $MODEL_NAME"
+echo "  core:   $CORE_PID"
+echo "  python: $PY_PID"
+echo "  logs:   $RUN_DIR"
+echo "Use Ctrl+C or HIL_DEV_RUN_DIR=$RUN_DIR ./scripts/stop_all.sh to stop."
 
-while :; do
-    if ! kill -0 "$RT_PID" 2>/dev/null; then
-        echo "ERROR: C core exited unexpectedly"
-        exit 1
-    fi
-    if ! kill -0 "$PY_PID" 2>/dev/null; then
-        echo "ERROR: Python service exited unexpectedly"
-        exit 1
-    fi
+while kill -0 "$CORE_PID" 2>/dev/null && kill -0 "$PY_PID" 2>/dev/null; do
     sleep 1
 done
+echo "ERROR: a development service exited; inspect $RUN_DIR/*.log"
+exit 1

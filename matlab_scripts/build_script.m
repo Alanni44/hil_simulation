@@ -4,7 +4,8 @@ function build_script(task_file, result_file)
 % Task JSON fields:
 %   model_name   - model name (e.g. 'Quad_sim')
 %   slx_path     - absolute path to .slx file
-%   output_dir   - where generated code & executable go
+%   output_dir   - where generated code and artifacts go
+%   executable_dir - optional directory for the compiled executable
 %   lib_name     - ignored (legacy)
 %
 % New V2 pipeline:
@@ -32,10 +33,17 @@ function build_script(task_file, result_file)
     slx_path = task.slx_path;
     output_dir = task.output_dir;
     lib_name = task.lib_name;
+    if isfield(task, 'executable_dir') && ~isempty(task.executable_dir)
+        executable_dir = task.executable_dir;
+    else
+        % Backward compatibility for the integration-test task format.
+        executable_dir = fullfile(fileparts(output_dir), 'executables');
+    end
 
     fprintf('[MATLAB] Model: %s\n', model_name);
     fprintf('[MATLAB] SLX: %s\n', slx_path);
     fprintf('[MATLAB] Output: %s\n', output_dir);
+    fprintf('[MATLAB] Executable output: %s\n', executable_dir);
 
     % ---- Step 0: determine script directory paths ----
     script_dir = fileparts(mfilename('fullpath'));
@@ -440,11 +448,10 @@ function build_script(task_file, result_file)
             error('No C files found in %s', code_dir);
         end
 
-        exe_dir = fullfile(fileparts(output_dir), 'executables');
-        if ~exist(exe_dir, 'dir')
-            mkdir(exe_dir);
+        if ~exist(executable_dir, 'dir')
+            mkdir(executable_dir);
         end
-        exe_path = fullfile(exe_dir, [model_name '_rt']);
+        exe_path = fullfile(executable_dir, [model_name '_rt']);
 
         cmd = sprintf(['gcc -O2 -Wall -pthread ' ...
                        '-I"%s" -I"%s" ' ...

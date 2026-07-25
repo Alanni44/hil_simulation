@@ -1,0 +1,24 @@
+[Unit]
+Description=HIL Python bridge and UDP forwarding services
+After=network-online.target systemd-tmpfiles-setup.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hil
+Group=hil
+WorkingDirectory=/opt/hil/python_services
+ExecStart=/opt/hil/venv/bin/python3 /opt/hil/python_services/main.py
+Environment=HIL_MODEL_READY_SIGNAL=/run/hil/model_ready.signal
+Environment=HIL_MODEL_READY_DIR=/run/hil
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/hil/models /run/hil
+
+[Install]
+WantedBy=multi-user.target

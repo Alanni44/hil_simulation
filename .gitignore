@@ -11,6 +11,9 @@ logs/
 models/libs/
 models/builds/
 models/executables/
+models/registry/
+models/active/
+models/locks/
 c_core/build/
 *.so
 *.o

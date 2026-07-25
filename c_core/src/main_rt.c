@@ -279,8 +279,10 @@ static uint8_t derive_flight_state(int airborne, double pos_z, int wp_active) {
     }
 
     /* Steady-state derivation */
-    if (!airborne && pos_z < 0.5) { _fs = 5; return _fs; } /* landed */
-    if (!airborne && pos_z >= 0.5) { _fs = 0; return _fs; } /* ready */
+    /* The integration contract treats a vehicle within one metre of the
+     * ground as landed; use the same threshold for the reported state. */
+    if (pos_z < 1.0) { _fs = 5; return _fs; } /* landed */
+    if (!airborne) { _fs = 0; return _fs; } /* ready */
     if (wp_active) { _fs = 2; return _fs; } /* flying (waypoint mode) */
     if (airborne && _fs != 2) { _fs = 3; return _fs; } /* hovering */
     if (airborne) { _fs = 2; return _fs; }  /* flying */
@@ -541,6 +543,10 @@ static int parse_command(const char* json_str) {
         printf("[Cmd] takeoff\n");
     } else if (cmd && strcmp(cmd, "land") == 0) {
         cancel_pending_mission();
+        /* Models that expose position set-points but do not implement the
+         * optional command-mode state machine still need an unambiguous
+         * descent target. */
+        MODEL_U_SET(U, cmd_z, 0.0);
         MODEL_U_SET(U, cmd_mode, 2);
         publish_command_mode(2);
         publish_pending_input();

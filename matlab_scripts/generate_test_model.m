@@ -91,9 +91,12 @@ function generate_test_model(output_dir)
     add_block('simulink/Math Operations/Product', [sys '/Ig_X'], 'Inputs','**');
     add_block('simulink/Math Operations/Product', [sys '/Ig_Y'], 'Inputs','**');
     add_block('simulink/Math Operations/Product', [sys '/Ig_Z'], 'Inputs','**');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_X'], 'gainval','0.001');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Y'], 'gainval','0.001');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Z'], 'gainval','0.001');
+    % The integrator block already applies the model's 1 ms sample time.
+    % A gain of 0.001 here would therefore integrate at 1e-6 per step,
+    % making the simulated vehicle 1000x slower than its command interface.
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_X'], 'gainval','1');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Y'], 'gainval','1');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Z'], 'gainval','1');
 
     % ---- D: discrete derivative times coefficient ----
     add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_X']);
@@ -115,12 +118,12 @@ function generate_test_model(output_dir)
     add_block('simulink/Discontinuities/Saturation', [sys '/Sat_yaw'], 'UpperLimit','pi','LowerLimit','-pi');
 
     % ---- Velocity integrator: vel -> pos ----
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_X'], 'gainval','0.001');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Y'], 'gainval','0.001');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Z'], 'gainval','0.001');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_X'], 'gainval','1');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Y'], 'gainval','1');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Z'], 'gainval','1');
 
     % ---- Yaw integrator ----
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Int_yaw'], 'gainval','0.001');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Int_yaw'], 'gainval','1');
 
     % ---- Roll/Pitch = 0 (stub) ----
     add_block('simulink/Sources/Constant', [sys '/zero_rp'], 'Value','0');

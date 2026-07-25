@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,9 +14,20 @@ static int monitor_sock = -1;
 static struct sockaddr_in status_addr;
 static struct sockaddr_in monitor_addr;
 
+static int set_close_on_exec(int fd) {
+    int flags = fcntl(fd, F_GETFD);
+    if (flags < 0) return -1;
+    return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
 int udp_init(int command_port, int status_port) {
     cmd_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (cmd_sock < 0) return -1;
+    if (set_close_on_exec(cmd_sock) < 0) {
+        close(cmd_sock);
+        cmd_sock = -1;
+        return -1;
+    }
 
     struct timeval tv = {0, 100000};
     setsockopt(cmd_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -38,6 +50,13 @@ int udp_init(int command_port, int status_port) {
         cmd_sock = -1;
         return -1;
     }
+    if (set_close_on_exec(status_sock) < 0) {
+        close(status_sock);
+        status_sock = -1;
+        close(cmd_sock);
+        cmd_sock = -1;
+        return -1;
+    }
     memset(&status_addr, 0, sizeof(status_addr));
     status_addr.sin_family = AF_INET;
     status_addr.sin_port = htons(status_port);
@@ -48,6 +67,10 @@ int udp_init(int command_port, int status_port) {
     monitor_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (monitor_sock < 0) {
         perror("[UDP] monitor socket");
+    } else if (set_close_on_exec(monitor_sock) < 0) {
+        perror("[UDP] monitor socket close-on-exec");
+        close(monitor_sock);
+        monitor_sock = -1;
     } else {
         memset(&monitor_addr, 0, sizeof(monitor_addr));
         monitor_addr.sin_family = AF_INET;

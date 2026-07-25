@@ -49,7 +49,7 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertNotIn('v[34]', source)
         self.assertNotIn('v[35]', source)
         self.assertNotIn('v[33]', source)
-        self.assertIn('v[2],v[3],v[4],v[27],v[29],v[28]', source)
+        self.assertIn('state[2], state[3], state[4], state[27], state[29], state[28]', source)
 
     def test_integration_task_uses_the_slx_file_not_build_directory(self):
         source = read('scripts/integration_test.sh')
@@ -128,15 +128,17 @@ class ModelContractStaticTests(unittest.TestCase):
         self.assertIn('json_value_as_finite_number', source)
         self.assertIn('rejected unknown command', parser)
 
-    def test_start_script_confirms_core_and_python_survive_startup(self):
+    def test_development_start_script_uses_active_archive_without_sudo(self):
         source = read('scripts/start_all.sh')
-        self.assertIn('sudo "$EXE_PATH"', source)
-        self.assertIn('kill -0 "$RT_PID"', source)
+        self.assertIn('models/active/$MODEL_NAME/executable/${MODEL_NAME}_rt', source)
+        self.assertNotIn('sudo ', source)
+        self.assertIn('kill -0 "$CORE_PID"', source)
         self.assertIn('kill -0 "$PY_PID"', source)
 
     def test_integration_sender_uses_an_empty_object_for_omitted_params(self):
         source = read('scripts/integration_test.sh')
-        self.assertIn('local params="${2:-{}}"', source)
+        self.assertIn('local params="${2:-}"', source)
+        self.assertIn("[ -n \"$params\" ] || params='{}'", source)
 
     def test_state_cache_updates_frame_metadata_under_its_lock(self):
         source = read('python_services/shared/state_cache.py')
@@ -156,6 +158,24 @@ class ModelContractStaticTests(unittest.TestCase):
 
     def test_python_dependency_is_pinned_for_python_36(self):
         self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
+
+    def test_production_units_scope_handoffs_per_model(self):
+        core = read('deploy/systemd/hil-core@.service')
+        python = read('deploy/systemd/hil-python-services.service')
+        wrapper = read('c_core/src/model_rt_wrapper.c')
+        self.assertIn('HIL_MODEL_READY_SIGNAL=/run/hil/%i.signal', core)
+        self.assertIn('HIL_MODEL_NAME=%i', core)
+        self.assertIn('HIL_MODEL_READY_DIR=/run/hil', python)
+        self.assertIn('Ignoring update for model', wrapper)
+
+    def test_development_stop_script_does_not_use_broad_process_killing(self):
+        self.assertNotIn('pkill', read('scripts/stop_all.sh'))
+
+    def test_hot_reload_test_requires_explicit_opt_in_and_restores_active_build(self):
+        source = read('scripts/test_hot_reload.sh')
+        self.assertIn('HIL_HOT_RELOAD_TEST', source)
+        self.assertIn('activate "$ORIGINAL_BUILD_ID"', source)
+        self.assertIn('HIL_MODEL_READY_SIGNAL="$READY_DIR/${MODEL_NAME}.signal"', source)
 
 
 if __name__ == '__main__':
