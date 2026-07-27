@@ -28,7 +28,8 @@ function generate_test_model(output_dir)
     add_line(mdl, 'total_gain/1', 'north_integrator/1');
 
     add_block('simulink/Sources/Constant', [mdl '/force_newton'], 'Value', '20');
-    add_block('simulink/Sources/Constant', [mdl '/mass_kg'], 'Value', 'uav_mass_kg');
+    add_block('simulink/Sources/Constant', [mdl '/mass_kg']);
+    set_param([mdl '/mass_kg'], 'Value', 'uav_mass_kg');
     add_block('simulink/Math Operations/Divide', [mdl '/force_over_mass']);
     add_line(mdl, 'force_newton/1', 'force_over_mass/1');
     add_line(mdl, 'mass_kg/1', 'force_over_mass/2');
