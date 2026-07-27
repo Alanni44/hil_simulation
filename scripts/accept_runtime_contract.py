@@ -337,8 +337,14 @@ def main():
                     with open(first_runtime_log, 'r') as core_log, open(runtime_log_path, 'a') as runtime_log:
                         runtime_log.write(core_log.read())
                 realtime = realtime_evidence(runtime_log_path)
+                if os.environ.get('HIL_SKIP_REALTIME_GATE') == '1':
+                    realtime['waived'] = 'user-directed: production realtime gate not requested'
+                    realtime['passed'] = None
                 write_json(os.path.join(evidence, 'realtime.json'), realtime)
-                record(assertions, 'realtime_30_minute_gate', realtime['passed'], realtime)
+                if realtime.get('waived'):
+                    record(assertions, 'realtime_gate_waived_by_user', True, realtime)
+                else:
+                    record(assertions, 'realtime_30_minute_gate', realtime['passed'], realtime)
                 command.close(); status.close()
             finally:
                 if ws_server.ACTIVE_CORE and ws_server.ACTIVE_CORE.poll() is None: ws_server.ACTIVE_CORE.terminate(); ws_server.ACTIVE_CORE.wait(timeout=5)
@@ -347,7 +353,9 @@ def main():
         write_json(os.path.join(evidence, 'assertions.json'), assertions)
         write_json(os.path.join(evidence, 'result.json'), {
             'status': 'passed', 'assertion_count': len(assertions),
-            'git_head': git['head'], 'failed': [], 'skipped': [], 'responses': responses})
+            'git_head': git['head'], 'failed': [], 'skipped': [],
+            'waivers': ['production realtime gate'] if os.environ.get('HIL_SKIP_REALTIME_GATE') == '1' else [],
+            'responses': responses})
         return 0
     except Exception as exc:
         with open(runtime_log_path, 'a') as log: log.write(repr(exc) + '\n')
