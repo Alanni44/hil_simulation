@@ -222,6 +222,8 @@ def realtime_evidence(runtime_log_path):
 
 
 def main():
+    # This must precede creation of the untracked evidence directory itself.
+    git = git_evidence()
     run_id = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ') + '-runtime-contract'
     evidence = os.path.join(ROOT, 'artifacts', 'acceptance', run_id)
     os.makedirs(evidence)
@@ -234,7 +236,6 @@ def main():
     write_json(os.path.join(evidence, 'source-manifest.json'), {})
     write_json(os.path.join(evidence, 'realtime.json'), {})
     try:
-        git = git_evidence()
         write_json(os.path.join(evidence, 'environment.json'), target_environment())
         with tempfile.TemporaryDirectory(prefix='hil-contract-acceptance-') as temporary:
             package_root = os.path.join(temporary, 'packages'); os.makedirs(package_root)
