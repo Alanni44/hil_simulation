@@ -391,6 +391,22 @@ static void apply_live_update(void) {
     }
 }
 
+/* Reset restores all ordinary model inputs to their contract defaults, while
+ * retaining the current values of explicitly live parameters.  Reset-only
+ * values are then layered onto this snapshot by parse_tune(). */
+static int reset_snapshot_from_initial(ModelU_t* input, HilParameterValues* parameters) {
+    unsigned index;
+    *input = initial_input;
+    *parameters = initial_parameters;
+    for (index = 0; index < HIL_PARAMETER_COUNT; ++index) {
+        const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[index];
+        if (spec->klass != HIL_PARAM_LIVE) continue;
+        if (!hil_contract_set_parameter(input, parameters, spec->name,
+                                        active_parameters.value[index])) return 0;
+    }
+    return 1;
+}
+
 static void parse_tune(struct json_object* root, const char* request_id,
                        const struct sockaddr_in* sender) {
     struct json_object *params = NULL;
@@ -406,8 +422,14 @@ static void parse_tune(struct json_object* root, const char* request_id,
     pthread_mutex_lock(&command_lock);
     live_candidate = pending_live.input;
     live_parameters = pending_live.parameters;
-    reset_candidate = pending_reset.generation ? pending_reset.input : active_input;
-    reset_parameters = pending_reset.generation ? pending_reset.parameters : active_parameters;
+    if (pending_reset.generation) {
+        reset_candidate = pending_reset.input;
+        reset_parameters = pending_reset.parameters;
+    } else if (!reset_snapshot_from_initial(&reset_candidate, &reset_parameters)) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "cannot construct reset input snapshot", sequence, field_results);
+        return;
+    }
     reset_slot_busy = pending_reset_receipt.pending;
     json_object_object_foreach(params, name, value) {
         const HilParameterSpec* spec = find_parameter(name);
