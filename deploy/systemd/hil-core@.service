@@ -9,10 +9,8 @@ Type=simple
 User=hil
 Group=hil
 WorkingDirectory=/opt/hil
-ConditionPathExists=/opt/hil/models/active/%i/executable/%i_rt
-ExecStart=/opt/hil/models/active/%i/executable/%i_rt
-Environment=HIL_MODEL_READY_SIGNAL=/run/hil/%i.signal
-Environment=HIL_MODEL_NAME=%i
+ConditionPathExists=/opt/hil/runtime/verified/%i_rt
+ExecStart=/opt/hil/runtime/verified/%i_rt
 Restart=on-failure
 RestartSec=2
 UMask=0077
@@ -26,7 +24,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/run/hil
+ReadWritePaths=/opt/hil/runtime
 
 [Install]
 WantedBy=multi-user.target

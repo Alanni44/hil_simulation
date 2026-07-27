@@ -2,93 +2,67 @@ import hashlib
 import json
 import os
 import pathlib
-import stat
 import sys
 import tempfile
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
-import ws_server  # noqa: E402
+from shared.model_package import PackageError, package_sha256, validate_package  # noqa
 
 
-class ModelRegistryTests(unittest.TestCase):
+FIELDS = ('north_m east_m down_m vn_mps ve_mps vd_mps q_w q_x q_y q_z '
+          'p_radps q_radps r_radps airborne').split()
+UNITS = dict(zip(FIELDS, ('m m m m/s m/s m/s 1 1 1 1 rad/s rad/s rad/s bool').split()))
 
+
+class ModelPackageTests(unittest.TestCase):
     def setUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.store = os.path.join(self.temp_dir.name, 'models')
-        self.ready_dir = os.path.join(self.temp_dir.name, 'run')
-        os.makedirs(self.ready_dir)
-        self.old_store = ws_server.MODEL_STORE
-        self.old_ready_dir = ws_server.MODEL_READY_DIR
-        self.old_ready_signal = ws_server.MODEL_READY_SIGNAL
-        ws_server.MODEL_STORE = self.store
-        ws_server.MODEL_READY_DIR = self.ready_dir
-        ws_server.MODEL_READY_SIGNAL = os.path.join(self.temp_dir.name, 'legacy.signal')
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = os.path.join(self.temp.name, 'controlled')
+        self.package = os.path.join(self.root, 'example')
+        os.makedirs(self.package)
+        with open(os.path.join(self.package, 'example.slx'), 'wb') as output:
+            output.write(b'fixture slx')
+        contract = {'contract_version': 1, 'model_name': 'example',
+                    'state': {'frame': 'NED', 'orientation': 'FRD_TO_NED_QUATERNION',
+                              'outputs': {field: field for field in FIELDS}, 'units': UNITS},
+                    'parameters': [{'name': 'gain', 'generated_field': 'gain', 'type': 'double',
+                                    'unit': '1', 'default': 1.0, 'min': 0.0, 'max': 10.0,
+                                    'class': 'live', 'allowed_phases': ['RUNNING', 'PAUSED']}]}
+        with open(os.path.join(self.package, 'hil_contract.json'), 'w') as out: json.dump(contract, out)
+        self._write_manifest()
 
-    def tearDown(self):
-        ws_server.MODEL_STORE = self.old_store
-        ws_server.MODEL_READY_DIR = self.old_ready_dir
-        ws_server.MODEL_READY_SIGNAL = self.old_ready_signal
-        self.temp_dir.cleanup()
+    def tearDown(self): self.temp.cleanup()
 
-    def _successful_build(self, model_name='my_model', build_id='b001'):
-        build_dir = os.path.join(self.store, 'registry', model_name, build_id)
-        exe_dir = os.path.join(build_dir, 'executable')
-        os.makedirs(exe_dir)
-        executable = os.path.join(exe_dir, model_name + '_rt')
-        with open(executable, 'wb') as handle:
-            handle.write(b'not a real binary, but immutable test content')
-        os.chmod(executable, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-        with open(executable, 'rb') as handle:
-            digest = hashlib.sha256(handle.read()).hexdigest()
-        with open(os.path.join(build_dir, 'manifest.json'), 'w') as handle:
-            json.dump({
-                'build_id': build_id,
-                'model_name': model_name,
-                'status': 'succeeded',
-                'executable': {
-                    'path': 'executable/{}_rt'.format(model_name),
-                    'sha256': digest,
-                },
-            }, handle)
-        return build_dir, executable
+    def _write_manifest(self):
+        files = {}
+        for name in ('example.slx', 'hil_contract.json'):
+            with open(os.path.join(self.package, name), 'rb') as source:
+                files[name] = hashlib.sha256(source.read()).hexdigest()
+        manifest = {'model_ref': 'external-42', 'model_revision_ref': 'rev-3', 'top_model': 'example.slx',
+                    'matlab_version': 'R2018b', 'files': files, 'package_sha256': package_sha256(self.package)}
+        with open(os.path.join(self.package, 'package_manifest.json'), 'w') as out: json.dump(manifest, out)
 
-    def test_activation_is_checksum_verified_and_model_scoped(self):
-        build_dir, executable = self._successful_build()
-        activated = ws_server._activate_archived_build('my_model', 'b001')
+    def test_valid_local_package_has_explicit_verified_contract(self):
+        result = validate_package(self.package, self.root, package_sha256(self.package))
+        self.assertEqual('example', result['contract']['model_name'])
+        self.assertEqual(64, len(result['contract_sha256']))
 
-        self.assertEqual(os.path.realpath(activated), os.path.realpath(executable))
-        self.assertEqual(os.path.realpath(os.path.join(self.store, 'active', 'my_model')),
-                         os.path.realpath(build_dir))
-        with open(os.path.join(self.ready_dir, 'my_model.signal')) as handle:
-            signal = json.load(handle)
-        self.assertEqual('my_model', signal['model_name'])
-        self.assertEqual('b001', signal['build_id'])
-        self.assertFalse(os.path.exists(os.path.join(self.ready_dir, 'other_model.signal')))
+    def test_missing_attitude_speed_or_units_is_rejected(self):
+        for field, remove_unit in (('q_z', False), ('vd_mps', False), ('north_m', True)):
+            contract_path = os.path.join(self.package, 'hil_contract.json')
+            with open(contract_path, 'r') as source:
+                contract = json.load(source)
+            if remove_unit: del contract['state']['units'][field]
+            else: del contract['state']['outputs'][field]
+            with open(contract_path, 'w') as out: json.dump(contract, out)
+            self._write_manifest()
+            with self.assertRaises(PackageError): validate_package(self.package, self.root)
+            self.tearDown(); self.setUp()
 
-        with open(executable, 'ab') as handle:
-            handle.write(b'tampered')
-        with self.assertRaises(ValueError):
-            ws_server._activate_archived_build('my_model', 'b001')
-
-    def test_remote_model_administration_fails_closed(self):
-        old_value = ws_server.REMOTE_MODEL_ADMIN_ENABLED
-        try:
-            ws_server.REMOTE_MODEL_ADMIN_ENABLED = False
-            self.assertIn('disabled', ws_server._remote_model_admin_error())
-            ws_server.REMOTE_MODEL_ADMIN_ENABLED = True
-            self.assertIsNone(ws_server._remote_model_admin_error())
-        finally:
-            ws_server.REMOTE_MODEL_ADMIN_ENABLED = old_value
-
-    def test_source_tree_fingerprint_is_repeatable(self):
-        first = ws_server._source_tree_sha256('c_core/src')
-        second = ws_server._source_tree_sha256('c_core/src')
-        self.assertEqual(first, second)
-        self.assertEqual(64, len(first))
+    def test_outside_controlled_root_is_rejected(self):
+        with self.assertRaises(PackageError): validate_package(self.package, os.path.join(self.temp.name, 'elsewhere'))
 
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

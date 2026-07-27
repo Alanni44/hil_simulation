@@ -74,20 +74,20 @@ pip3 install -r requirements.txt
 
 ### 2. 生产部署
 
-生产环境使用 systemd 服务、最小权限能力和版本化模型归档；请按
-[`deploy/systemd/README.md`](deploy/systemd/README.md) 安装，而不是用 `sudo`
-运行开发脚本。模型归档、校验和、回滚及远程管理边界见
+外部模型管理系统将不可变模型包放入受控本地目录；HIL 只校验包、调用
+MATLAB/GCC 并运行唯一的已验证核心。它不提供模型上传、注册表、历史回滚、
+活动软链接、远程下载或进程内热重载。包必须含 `package_manifest.json`、顶层
+`.slx` 和显式 `hil_contract.json`；详细边界见
 [`models/README.md`](models/README.md)。
 
 ### 3. 开发启动
 
-`start_all.sh` 是前台开发辅助工具，默认不请求 sudo；它会把构建产物放入
-版本化模型归档，而不是散落在 `models/builds` 或 `models/executables`。
+`start_all.sh` 只接受已经完整验证的可执行程序，默认不请求 sudo。
 
 ```bash
 chmod +x scripts/start_all.sh scripts/stop_all.sh
-MODEL_NAME=my_model SLX_PATH=/absolute/path/to/model.slx ./scripts/start_all.sh
-MODEL_NAME=my_model ./scripts/stop_all.sh
+./scripts/start_all.sh /absolute/path/to/verified_model_rt
+./scripts/stop_all.sh
 ```
 
 ### 4. 手动运行各组件
@@ -97,26 +97,21 @@ MODEL_NAME=my_model ./scripts/stop_all.sh
 cd python_services && python3 main.py
 ```
 
-## Target validation prerequisites
+## 目标环境验收
 
-`ert.tlc` requires an Embedded Coder license in addition to MATLAB and
-Simulink. On the Ubuntu 18.04 target, use GCC 7.x and run the complete
-acceptance sequence from a clean checkout:
+`ert.tlc` 需要 Embedded Coder 许可证。Ubuntu 18.04 RT 目标机使用 GCC 7.x，
+从干净工作区运行完整验收：
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential libjson-c-dev python3 python3-pip
 python3 -m pip install -r requirements.txt
-bash scripts/integration_test.sh
+python3 scripts/accept_runtime_contract.py
 ```
 
-The ERT phase must complete and report `ModelU_t fields (6)` and
-`ModelY_t fields (10)` for the supplied integration model. The integration
-summary must report zero failed tests; it also verifies that the executable
-and all three services remain alive.
-
-Windows development validates source structure only; it does not prove the
-MATLAB R2018b ERT build, GCC 7.x link, or real-time runtime path.
+该命令在 `artifacts/acceptance/<UTC-run-id>/` 写入环境、源码哈希、完整构建和
+运行日志、原始命令/回执/NED/UE4 报文、断言与唯一结论。任意依赖不可用、跳过或
+断言失败都会写入 `result.json: failed` 并以非零状态退出。
 
 ## 开发约束
 

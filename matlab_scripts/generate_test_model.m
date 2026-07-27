@@ -1,214 +1,50 @@
 function generate_test_model(output_dir)
-% GENERATE_TEST_MODEL  R2018b-compatible Simulink model generator for HIL pipeline test.
-%   generate_test_model(output_dir) creates output_dir/hil_test_model.slx
-%
-%   The model implements a simplified discrete 6DOF drone with PID control.
-%   Interface names match the alias tables in adapt_model.m:
-%     Inports:  cmd_x, cmd_y, cmd_z, cmd_yaw, cmd_mode, cmd_speed
-%     Outports: pos_x, pos_y, pos_z, roll, pitch, yaw, vel_x, vel_y, vel_z, airborne
-%     Tunable  Constants: u_mass, u_gravity, u_drag_x, u_drag_y,
-%                          u_kpz, u_kiz, u_kdz, u_kpxy, u_kixy, u_kdxy
-%     Scopes:  Scope_X, Scope_Y, Scope_Z, Scope_Phi, Scope_Theta, Scope_Psi
-
+%GENERATE_TEST_MODEL Small explicit-contract ERT acceptance model.
+% ``gain`` is a root input and drives North position/velocity.  All required
+% NED state fields are root outputs with their exact contract names.
     if nargin < 1, output_dir = pwd; end
     if ~exist(output_dir, 'dir'), mkdir(output_dir); end
-
     mdl = 'hil_test_model';
-    try close_system(mdl, 0); catch, end
-
-    new_system(mdl);
-    open_system(mdl);
-
+    try, close_system(mdl, 0); catch, end
+    new_system(mdl); open_system(mdl);
     set_param(mdl, 'SolverType', 'Fixed-step');
     set_param(mdl, 'Solver', 'FixedStepDiscrete');
     set_param(mdl, 'FixedStep', '0.001');
     set_param(mdl, 'StopTime', 'inf');
 
-    % ---- Root Inports ----
-    ports  = {'cmd_x','cmd_y','cmd_z','cmd_yaw','cmd_mode','cmd_speed'};
-    for i = 1:6
-        add_block('simulink/Sources/In1', [mdl '/' ports{i}]);
-        set_param([mdl '/' ports{i}], 'Port', num2str(i));
+    add_block('simulink/Sources/In1', [mdl '/gain']);
+    set_param([mdl '/gain'], 'Port', '1');
+    add_block('simulink/Sources/In1', [mdl '/reset_gain']);
+    set_param([mdl '/reset_gain'], 'Port', '2');
+    add_block('simulink/Math Operations/Add', [mdl '/total_gain'], 'Inputs', '++');
+    add_line(mdl, 'gain/1', 'total_gain/1');
+    add_line(mdl, 'reset_gain/1', 'total_gain/2');
+    add_block('simulink/Discrete/Discrete-Time Integrator', [mdl '/north_integrator']);
+    set_param([mdl '/north_integrator'], 'gainval', '1', 'SampleTime', '0.001');
+    add_line(mdl, 'total_gain/1', 'north_integrator/1');
+
+    outputs = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps', ...
+        'q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'};
+    for i = 1:length(outputs)
+        add_block('simulink/Sinks/Out1', [mdl '/' outputs{i}]);
+        set_param([mdl '/' outputs{i}], 'Port', num2str(i));
     end
+    add_line(mdl, 'north_integrator/1', 'north_m/1');
+    add_line(mdl, 'total_gain/1', 'vn_mps/1');
 
-    % ---- Root Outports (avoid naming conflict with Drone internals) ----
-    routs  = {'X','Y','Z','Phi','Theta','Psi','vx','vy','vz','airborne'};
-    % adapt_model aliases map these to: pos_x, pos_y, pos_z, roll, pitch, yaw, vel_x, vel_y, vel_z, airborne
-    for i = 1:10
-        add_block('simulink/Sinks/Out1', [mdl '/' routs{i}]);
-        set_param([mdl '/' routs{i}], 'Port', num2str(i));
+    constants = {'east_m','0'; 'down_m','0'; 've_mps','0'; 'vd_mps','0'; ...
+        'q_w','1'; 'q_x','0'; 'q_y','0'; 'q_z','0'; 'p_radps','0'; ...
+        'q_radps','0'; 'r_radps','0'};
+    for i = 1:size(constants, 1)
+        block = ['const_' constants{i,1}];
+        add_block('simulink/Sources/Constant', [mdl '/' block], 'Value', constants{i,2});
+        add_line(mdl, [block '/1'], [constants{i,1} '/1']);
     end
-
-    % ---- Tunable Constants (u_ prefix for adapt_model recognition) ----
-    tun    = {'u_mass','0.65'; 'u_gravity','9.81'; 'u_drag_x','0.05'; 'u_drag_y','0.05'; ...
-              'u_kpz','2.5'; 'u_kiz','0.05'; 'u_kdz','1.2'; ...
-              'u_kpxy','1.5'; 'u_kixy','0.02'; 'u_kdxy','0.8'};
-    for i = 1:size(tun,1)
-        add_block('simulink/Sources/Constant', [mdl '/' tun{i,1}], 'Value', tun{i,2});
-    end
-
-    % ---- Root Scopes ----
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_X'], 'Position', [600,25,630,55]);
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_Y'], 'Position', [600,60,630,90]);
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_Z'], 'Position', [600,95,630,125]);
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_Phi'], 'Position', [600,130,630,160]);
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_Theta'], 'Position', [600,165,630,195]);
-    add_block('simulink/Sinks/Scope', [mdl '/Scope_Psi'], 'Position', [600,200,630,230]);
-
-    % ======== Drone SubSystem ========
-    sys    = [mdl '/Drone'];
-    add_block('simulink/Ports & Subsystems/Subsystem', sys);
-
-    % Delete SubSystem default I/O
-    din = find_system(sys, 'SearchDepth', 1, 'BlockType', 'Inport');
-    dout = find_system(sys, 'SearchDepth', 1, 'BlockType', 'Outport');
-    for k = 1:length(din), delete_block(din{k}); end
-    for k = 1:length(dout), delete_block(dout{k}); end
-    subin  = {'cmd_x','cmd_y','cmd_z','cmd_yaw','cmd_mode','cmd_speed', ...
-              'mass','gravity','drag_x','drag_y','kpz','kiz','kdz','kpxy','kixy','kdxy'};
-    for i = 1:16
-        add_block('simulink/Sources/In1', [sys '/' subin{i}], 'Port', num2str(i));
-    end
-
-    % Sub outports
-    sout   = {'pos_x','pos_y','pos_z','roll','pitch','yaw','vel_x','vel_y','vel_z','airborne'};
-    for i = 1:10
-        add_block('simulink/Sinks/Out1', [sys '/' sout{i}], 'Port', num2str(i));
-    end
-
-    % ---- PID error = cmd - feedback ----
-    add_block('simulink/Math Operations/Add', [sys '/err_X'], 'Inputs','+-');
-    add_block('simulink/Math Operations/Add', [sys '/err_Y'], 'Inputs','+-');
-    add_block('simulink/Math Operations/Add', [sys '/err_Z'], 'Inputs','+-');
-
-    % ---- P signal multipliers ----
-    % PID coefficients are subsystem Inport signals, not workspace values.
-    add_block('simulink/Math Operations/Product', [sys '/P_X'],  'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/P_Y'],  'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/P_Z'],  'Inputs','**');
-
-    % ---- I: error times coefficient -> discrete-time integrator ----
-    add_block('simulink/Math Operations/Product', [sys '/Ig_X'], 'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/Ig_Y'], 'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/Ig_Z'], 'Inputs','**');
-    % The integrator block already applies the model's 1 ms sample time.
-    % A gain of 0.001 here would therefore integrate at 1e-6 per step,
-    % making the simulated vehicle 1000x slower than its command interface.
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_X'], 'gainval','1');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Y'], 'gainval','1');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/I_Z'], 'gainval','1');
-
-    % ---- D: discrete derivative times coefficient ----
-    add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_X']);
-    add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_Y']);
-    add_block('simulink/Discrete/Discrete Derivative', [sys '/Deriv_Z']);
-    add_block('simulink/Math Operations/Product', [sys '/Dg_X'], 'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/Dg_Y'], 'Inputs','**');
-    add_block('simulink/Math Operations/Product', [sys '/Dg_Z'], 'Inputs','**');
-
-    % ---- PID Sum ----
-    add_block('simulink/Math Operations/Add', [sys '/PID_X'], 'Inputs','+++');
-    add_block('simulink/Math Operations/Add', [sys '/PID_Y'], 'Inputs','+++');
-    add_block('simulink/Math Operations/Add', [sys '/PID_Z'], 'Inputs','+++');
-
-    % ---- Saturation ----
-    add_block('simulink/Discontinuities/Saturation', [sys '/Sat_X'],   'UpperLimit','15','LowerLimit','-15');
-    add_block('simulink/Discontinuities/Saturation', [sys '/Sat_Y'],   'UpperLimit','15','LowerLimit','-15');
-    add_block('simulink/Discontinuities/Saturation', [sys '/Sat_Z'],   'UpperLimit','10','LowerLimit','-10');
-    add_block('simulink/Discontinuities/Saturation', [sys '/Sat_yaw'], 'UpperLimit','pi','LowerLimit','-pi');
-
-    % ---- Velocity integrator: vel -> pos ----
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_X'], 'gainval','1');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Y'], 'gainval','1');
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Pos_Z'], 'gainval','1');
-
-    % ---- Yaw integrator ----
-    add_block('simulink/Discrete/Discrete-Time Integrator', [sys '/Int_yaw'], 'gainval','1');
-
-    % ---- Roll/Pitch = 0 (stub) ----
-    add_block('simulink/Sources/Constant', [sys '/zero_rp'], 'Value','0');
-
-    % ---- Airborne = pos_z > 0.5 ----
-    add_block('simulink/Logic and Bit Operations/Compare To Constant', [sys '/Airborne'], ...
-              'relop','>','const','0.5');
-
-    % ---- Feedback Unit Delays ----
-    add_block('simulink/Discrete/Unit Delay', [sys '/FB_X'], 'SampleTime','0.001');
-    add_block('simulink/Discrete/Unit Delay', [sys '/FB_Y'], 'SampleTime','0.001');
-    add_block('simulink/Discrete/Unit Delay', [sys '/FB_Z'], 'SampleTime','0.001');
-
-    % ======== Internal wiring ========
-
-    % err: cmd(+) feedback(-)
-    add_line(sys,'cmd_x/1','err_X/1'); add_line(sys,'FB_X/1','err_X/2');
-    add_line(sys,'cmd_y/1','err_Y/1'); add_line(sys,'FB_Y/1','err_Y/2');
-    add_line(sys,'cmd_z/1','err_Z/1'); add_line(sys,'FB_Z/1','err_Z/2');
-
-    % X chain
-    add_line(sys,'err_X/1','P_X/1'); add_line(sys,'kpxy/1','P_X/2');
-    add_line(sys,'err_X/1','Ig_X/1'); add_line(sys,'kixy/1','Ig_X/2'); add_line(sys,'err_X/1','Deriv_X/1');
-    add_line(sys,'Ig_X/1','I_X/1'); add_line(sys,'Deriv_X/1','Dg_X/1');
-    add_line(sys,'kdxy/1','Dg_X/2');
-    add_line(sys,'P_X/1','PID_X/1'); add_line(sys,'I_X/1','PID_X/2'); add_line(sys,'Dg_X/1','PID_X/3');
-    add_line(sys,'PID_X/1','Sat_X/1'); add_line(sys,'Sat_X/1','Pos_X/1');
-    add_line(sys,'Pos_X/1','FB_X/1');
-    add_line(sys,'Pos_X/1','pos_x/1'); add_line(sys,'Sat_X/1','vel_x/1');
-
-    % Y chain
-    add_line(sys,'err_Y/1','P_Y/1'); add_line(sys,'kpxy/1','P_Y/2');
-    add_line(sys,'err_Y/1','Ig_Y/1'); add_line(sys,'kixy/1','Ig_Y/2'); add_line(sys,'err_Y/1','Deriv_Y/1');
-    add_line(sys,'Ig_Y/1','I_Y/1'); add_line(sys,'Deriv_Y/1','Dg_Y/1');
-    add_line(sys,'kdxy/1','Dg_Y/2');
-    add_line(sys,'P_Y/1','PID_Y/1'); add_line(sys,'I_Y/1','PID_Y/2'); add_line(sys,'Dg_Y/1','PID_Y/3');
-    add_line(sys,'PID_Y/1','Sat_Y/1'); add_line(sys,'Sat_Y/1','Pos_Y/1');
-    add_line(sys,'Pos_Y/1','FB_Y/1');
-    add_line(sys,'Pos_Y/1','pos_y/1'); add_line(sys,'Sat_Y/1','vel_y/1');
-
-    % Z chain
-    add_line(sys,'err_Z/1','P_Z/1'); add_line(sys,'kpz/1','P_Z/2');
-    add_line(sys,'err_Z/1','Ig_Z/1'); add_line(sys,'kiz/1','Ig_Z/2'); add_line(sys,'err_Z/1','Deriv_Z/1');
-    add_line(sys,'Ig_Z/1','I_Z/1'); add_line(sys,'Deriv_Z/1','Dg_Z/1');
-    add_line(sys,'kdz/1','Dg_Z/2');
-    add_line(sys,'P_Z/1','PID_Z/1'); add_line(sys,'I_Z/1','PID_Z/2'); add_line(sys,'Dg_Z/1','PID_Z/3');
-    add_line(sys,'PID_Z/1','Sat_Z/1'); add_line(sys,'Sat_Z/1','Pos_Z/1');
-    add_line(sys,'Pos_Z/1','FB_Z/1');
-    add_line(sys,'Pos_Z/1','pos_z/1'); add_line(sys,'Sat_Z/1','vel_z/1');
-    add_line(sys,'Pos_Z/1','Airborne/1');
-    add_line(sys,'Airborne/1','airborne/1');
-
-    % Yaw
-    add_line(sys,'cmd_yaw/1','Int_yaw/1');
-    add_line(sys,'Int_yaw/1','Sat_yaw/1');
-    add_line(sys,'Sat_yaw/1','yaw/1');
-
-    % Roll/Pitch = 0
-    add_line(sys,'zero_rp/1','roll/1');
-    add_line(sys,'zero_rp/1','pitch/1');
-
-    % ======== Root wiring: Inports + Constants -> Drone -------
-    for i = 1:6
-        add_line(mdl, [ports{i} '/1'], ['Drone/' num2str(i)]);
-    end
-    for i = 1:10
-        add_line(mdl, [tun{i,1} '/1'], ['Drone/' num2str(6+i)]);
-    end
-
-    % Drone -> root Outports
-    for i = 1:10
-        add_line(mdl, ['Drone/' num2str(i)], [routs{i} '/1']);
-    end
-
-    % Drone -> Scopes (match root Outport names)
-    add_line(mdl, 'Drone/1', 'Scope_X/1');
-    add_line(mdl, 'Drone/2', 'Scope_Y/1');
-    add_line(mdl, 'Drone/3', 'Scope_Z/1');
-    add_line(mdl, 'Drone/4', 'Scope_Phi/1');
-    add_line(mdl, 'Drone/5', 'Scope_Theta/1');
-    add_line(mdl, 'Drone/6', 'Scope_Psi/1');
-
-    % Save
-    slx_file = fullfile(output_dir, [mdl '.slx']);
-    save_system(mdl, slx_file);
+    add_block('simulink/Sources/Constant', [mdl '/airborne_source'], 'Value', '1');
+    add_block('simulink/Logic and Bit Operations/Compare To Constant', [mdl '/airborne_bool'], ...
+        'relop', '>', 'const', '0');
+    add_line(mdl, 'airborne_source/1', 'airborne_bool/1');
+    add_line(mdl, 'airborne_bool/1', 'airborne/1');
+    save_system(mdl, fullfile(output_dir, [mdl '.slx']));
     close_system(mdl, 0);
-    fprintf('[generate_test_model] Created: %s\n', slx_file);
 end

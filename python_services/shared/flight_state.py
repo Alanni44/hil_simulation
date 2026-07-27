@@ -1,81 +1,51 @@
 #!/usr/bin/env python3
-"""Binary flight state protocol definition and parser.
-Packed little-endian struct shared with the C core (flight_state.h).
+"""The fixed, normalized C-core → Python NED state wire contract.
 
-Layout — core fields always present:
-    =I Q ddd ddd fff fff fff fff f ffff I I I B B 2x
-
-Field names are read from flight_state_schema.json if present (allows
-per-model field remapping). Falls back to the default list below.
+No model-specific schema is permitted here.  Model names occur only in the
+build-time ``hil_contract.json``; by this boundary every model emits this
+single layout.
 """
-import struct
-import os
+from __future__ import print_function
 
-FLIGHT_STATE_FORMAT = (
-    "=I" "Q" "ddd" "ddd" "fff" "fff" "fff" "fff" "f" "ffff" "I" "I" "I" "B" "B" "2x"
+import math
+import struct
+
+
+# uint32 version, uint64 sequence, double sim time and NED position,
+# float NED velocity, quaternion, body rates, airborne, lifecycle, padding.
+FLIGHT_STATE_FORMAT = '=IQddddffffffffffBBH'
+FLIGHT_STATE_SIZE = struct.calcsize(FLIGHT_STATE_FORMAT)
+FLIGHT_STATE_FIELDS = (
+    'version', 'sequence', 'sim_time_s',
+    'north_m', 'east_m', 'down_m',
+    'vn_mps', 've_mps', 'vd_mps',
+    'q_w', 'q_x', 'q_y', 'q_z',
+    'p_radps', 'q_radps', 'r_radps',
+    'airborne', 'lifecycle', 'reserved',
 )
 
-FLIGHT_STATE_SIZE = struct.calcsize(FLIGHT_STATE_FORMAT)
-
-_DEFAULT_FIELDS = [
-    'version', 'timestamp_us',
-    'pos_x', 'pos_y', 'pos_z',
-    'lat', 'lon', 'alt',
-    'roll', 'pitch', 'yaw',
-    'vel_x', 'vel_y', 'vel_z',
-    'acc_x', 'acc_y', 'acc_z',
-    'ang_vel_p', 'ang_vel_q', 'ang_vel_r',
-    'battery_voltage',
-    'motor_speed_0', 'motor_speed_1', 'motor_speed_2', 'motor_speed_3',
-    'status_word', 'mission_id', 'waypoint_index', 'flight_phase',
-    'flight_state'
-]
-
-FLIGHT_STATE_FIELDS = list(_DEFAULT_FIELDS)  # may be replaced by load_schema()
-
-# Schema file path — set by ws_server.py after build completes
-_SCHEMA_PATH = '/tmp/flight_state_schema.json'
+LIFECYCLE_NAMES = {0: 'RUNNING', 1: 'PAUSED', 2: 'RESETTING', 3: 'ENDED'}
 
 
-def load_schema(schema_path=None):
-    """Load a per-model flight state schema.
-
-    The schema is a JSON array of field names matching the binary layout.
-    Size must match FLIGHT_STATE_SIZE.  Call this after a model hot-reload.
-
-    Returns True if loaded successfully; False otherwise (defaults stay).
-    """
-    global FLIGHT_STATE_FIELDS
-    path = schema_path or _SCHEMA_PATH
-    try:
-        import json
-        with open(path, 'r') as f:
-            fields = json.load(f)
-        # Verify the schema size matches the C struct
-        fmt = ''.join(
-            'd' if n.startswith(('pos_', 'lat', 'lon', 'alt', 'acc_')) else
-            'f' if n.startswith(('roll', 'pitch', 'yaw', 'vel_', 'ang_', 'battery', 'motor')) else
-            'I' if n in ('version', 'status_word', 'mission_id', 'waypoint_index') else
-            'Q' if n == 'timestamp_us' else
-            'B' if n in ('flight_phase', 'flight_state') else
-            'x' if n == 'reserved' else
-            None
-            for n in fields
-        )
-        if None not in fmt and struct.calcsize('=' + ''.join(fmt)) == FLIGHT_STATE_SIZE:
-            FLIGHT_STATE_FIELDS = list(fields)
-            return True
-    except Exception:
-        pass
-    FLIGHT_STATE_FIELDS = list(_DEFAULT_FIELDS)
-    return False
-
-
-def parse_flight_state(data: bytes):
-    """Parse a raw binary FlightState_t into a dict.
-
-    Uses the current FLIGHT_STATE_FIELDS list (default or schema-loaded).
-    """
+def parse_flight_state(data):
     if len(data) != FLIGHT_STATE_SIZE:
-        raise ValueError("Bad size: {} != {}".format(len(data), FLIGHT_STATE_SIZE))
-    return dict(zip(FLIGHT_STATE_FIELDS, struct.unpack(FLIGHT_STATE_FORMAT, data)))
+        raise ValueError('Bad state size: {} != {}'.format(len(data), FLIGHT_STATE_SIZE))
+    state = dict(zip(FLIGHT_STATE_FIELDS, struct.unpack(FLIGHT_STATE_FORMAT, data)))
+    validate_flight_state(state)
+    return state
+
+
+def validate_flight_state(state):
+    for field in ('sim_time_s', 'north_m', 'east_m', 'down_m', 'vn_mps', 've_mps',
+                  'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z', 'p_radps', 'q_radps', 'r_radps'):
+        if not math.isfinite(state[field]):
+            raise ValueError('non-finite {}'.format(field))
+    norm = math.sqrt(sum(state[field] * state[field]
+                         for field in ('q_w', 'q_x', 'q_y', 'q_z')))
+    if norm == 0.0 or abs(norm - 1.0) > 0.02:
+        raise ValueError('invalid quaternion norm {}'.format(norm))
+    if state['airborne'] not in (0, 1):
+        raise ValueError('invalid airborne flag')
+    if state['lifecycle'] not in LIFECYCLE_NAMES:
+        raise ValueError('invalid lifecycle')
+    return state

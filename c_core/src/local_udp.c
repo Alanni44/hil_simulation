@@ -94,14 +94,24 @@ void udp_send_monitor(const FlightState_t* state) {
            (struct sockaddr*)&monitor_addr, sizeof(monitor_addr));
 }
 
-int udp_recv_command(char* buffer, int buffer_size) {
+int udp_recv_command(char* buffer, int buffer_size, struct sockaddr_in* sender) {
     if (cmd_sock < 0) return -1;
     struct sockaddr_in from_addr;
     socklen_t from_len = sizeof(from_addr);
     int n = recvfrom(cmd_sock, buffer, buffer_size - 1, 0,
                      (struct sockaddr*)&from_addr, &from_len);
-    if (n > 0) { buffer[n] = '\0'; return n; }
+    if (n > 0) {
+        buffer[n] = '\0';
+        if (sender) *sender = from_addr;
+        return n;
+    }
     return -1;
+}
+
+int udp_send_receipt(const char* receipt, const struct sockaddr_in* recipient) {
+    if (cmd_sock < 0 || !receipt || !recipient) return -1;
+    return (int)sendto(cmd_sock, receipt, strlen(receipt), 0,
+                       (const struct sockaddr*)recipient, sizeof(*recipient));
 }
 
 void udp_close(void) {

@@ -1,0 +1,452 @@
+[
+  {
+    "detail": {
+      "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031255Z-runtime-contract/20260727T031324Z-missing_attitude",
+      "failed_stage": "VALIDATING",
+      "log_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031324Z-missing_attitude/build.log",
+      "message": "contract.state.outputs.q_z must be a non-empty string",
+      "model_ref": "acceptance-model",
+      "model_revision_ref": "acceptance-r1",
+      "request_id": "missing_attitude",
+      "status": "FAILED",
+      "transitions": [
+        "RECEIVED",
+        "VALIDATING"
+      ]
+    },
+    "name": "missing_attitude",
+    "passed": true,
+    "utc": "2026-07-27T03:13:24.144929Z"
+  },
+  {
+    "detail": {
+      "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031255Z-runtime-contract/20260727T031324Z-missing_speed",
+      "failed_stage": "VALIDATING",
+      "log_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031324Z-missing_speed/build.log",
+      "message": "contract.state.outputs.vd_mps must be a non-empty string",
+      "model_ref": "acceptance-model",
+      "model_revision_ref": "acceptance-r1",
+      "request_id": "missing_speed",
+      "status": "FAILED",
+      "transitions": [
+        "RECEIVED",
+        "VALIDATING"
+      ]
+    },
+    "name": "missing_speed",
+    "passed": true,
+    "utc": "2026-07-27T03:13:24.184253Z"
+  },
+  {
+    "detail": {
+      "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031255Z-runtime-contract/20260727T031324Z-missing_unit",
+      "failed_stage": "VALIDATING",
+      "log_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031324Z-missing_unit/build.log",
+      "message": "contract.state.units.north_m must be m",
+      "model_ref": "acceptance-model",
+      "model_revision_ref": "acceptance-r1",
+      "request_id": "missing_unit",
+      "status": "FAILED",
+      "transitions": [
+        "RECEIVED",
+        "VALIDATING"
+      ]
+    },
+    "name": "missing_unit",
+    "passed": true,
+    "utc": "2026-07-27T03:13:24.220809Z"
+  },
+  {
+    "detail": {
+      "contract_sha256": "2848b7223562231584b05b6432d664b509d879ae7ece7a0782df465598c88f5f",
+      "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031255Z-runtime-contract/20260727T031324Z-valid-deploy",
+      "executable_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031324Z-valid-deploy/executable/hil_test_model_rt",
+      "executable_sha256": "001e7ad485b201647a3bcb0ccb15205c76a4d34ad318d010b23a70b14d26f3c7",
+      "failed_stage": null,
+      "log_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031324Z-valid-deploy/build.log",
+      "model_ref": "acceptance-model",
+      "model_revision_ref": "acceptance-r1",
+      "model_sha256": "9b9f61e5f627d5e0d293d45e8f101d3ddaed179cf446f82d0f21693f91926002",
+      "request_id": "valid-deploy",
+      "status": "DEPLOYED",
+      "transitions": [
+        "RECEIVED",
+        "VALIDATING",
+        "BUILDING",
+        "VERIFYING",
+        "READY",
+        "DEPLOYED"
+      ]
+    },
+    "name": "valid_ert_gcc_build",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.205784Z"
+  },
+  {
+    "detail": {
+      "airborne": 1,
+      "down_m": 0.0,
+      "east_m": 0.0,
+      "lifecycle": 0,
+      "north_m": 0.01900000000000001,
+      "p_radps": 0.0,
+      "q_radps": 0.0,
+      "q_w": 1.0,
+      "q_x": 0.0,
+      "q_y": 0.0,
+      "q_z": 0.0,
+      "r_radps": 0.0,
+      "reserved": 0,
+      "sequence": 20,
+      "sim_time_s": 0.02000000000000001,
+      "vd_mps": 0.0,
+      "ve_mps": 0.0,
+      "version": 1,
+      "vn_mps": 1.0
+    },
+    "name": "normalized_ned_state",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.225536Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 21,
+      "fields": {
+        "gain": {
+          "accepted": true,
+          "reason": "accepted"
+        }
+      },
+      "lifecycle": "RUNNING",
+      "reason": "accepted",
+      "request_id": "gain-live"
+    },
+    "name": "live_parameter_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.226071Z"
+  },
+  {
+    "detail": {
+      "accepted": false,
+      "effective_sequence": 21,
+      "fields": {
+        "north_diagnostic": {
+          "accepted": false,
+          "reason": "readonly"
+        }
+      },
+      "lifecycle": "RUNNING",
+      "reason": "atomic parameter group rejected",
+      "request_id": "readonly"
+    },
+    "name": "readonly_parameter_rejected",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.226339Z"
+  },
+  {
+    "detail": {
+      "airborne": 1,
+      "down_m": 0.0,
+      "east_m": 0.0,
+      "lifecycle": 0,
+      "north_m": 0.058000000000000045,
+      "p_radps": 0.0,
+      "q_radps": 0.0,
+      "q_w": 1.0,
+      "q_x": 0.0,
+      "q_y": 0.0,
+      "q_z": 0.0,
+      "r_radps": 0.0,
+      "reserved": 0,
+      "sequence": 40,
+      "sim_time_s": 0.04000000000000003,
+      "vd_mps": 0.0,
+      "ve_mps": 0.0,
+      "version": 1,
+      "vn_mps": 2.0
+    },
+    "name": "live_gain_effect",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.245325Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 40,
+      "lifecycle": "PAUSED",
+      "reason": "applied",
+      "request_id": "pause"
+    },
+    "name": "pause_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.246338Z"
+  },
+  {
+    "detail": [
+      {
+        "airborne": 1,
+        "down_m": 0.0,
+        "east_m": 0.0,
+        "lifecycle": 1,
+        "north_m": 0.058000000000000045,
+        "p_radps": 0.0,
+        "q_radps": 0.0,
+        "q_w": 1.0,
+        "q_x": 0.0,
+        "q_y": 0.0,
+        "q_z": 0.0,
+        "r_radps": 0.0,
+        "reserved": 0,
+        "sequence": 40,
+        "sim_time_s": 0.04000000000000003,
+        "vd_mps": 0.0,
+        "ve_mps": 0.0,
+        "version": 1,
+        "vn_mps": 2.0
+      },
+      {
+        "airborne": 1,
+        "down_m": 0.0,
+        "east_m": 0.0,
+        "lifecycle": 1,
+        "north_m": 0.058000000000000045,
+        "p_radps": 0.0,
+        "q_radps": 0.0,
+        "q_w": 1.0,
+        "q_x": 0.0,
+        "q_y": 0.0,
+        "q_z": 0.0,
+        "r_radps": 0.0,
+        "reserved": 0,
+        "sequence": 40,
+        "sim_time_s": 0.04000000000000003,
+        "vd_mps": 0.0,
+        "ve_mps": 0.0,
+        "version": 1,
+        "vn_mps": 2.0
+      }
+    ],
+    "name": "pause_freezes_sequence",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.285471Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 40,
+      "fields": {
+        "reset_gain": {
+          "accepted": true,
+          "reason": "accepted"
+        }
+      },
+      "lifecycle": "PAUSED",
+      "reason": "accepted",
+      "request_id": "reset-gain"
+    },
+    "name": "reset_only_queued_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.285831Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 40,
+      "lifecycle": "RUNNING",
+      "reason": "applied",
+      "request_id": "resume"
+    },
+    "name": "resume_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.286285Z"
+  },
+  {
+    "detail": {
+      "airborne": 1,
+      "down_m": 0.0,
+      "east_m": 0.0,
+      "lifecycle": 0,
+      "north_m": 0.09800000000000007,
+      "p_radps": 0.0,
+      "q_radps": 0.0,
+      "q_w": 1.0,
+      "q_x": 0.0,
+      "q_y": 0.0,
+      "q_z": 0.0,
+      "r_radps": 0.0,
+      "reserved": 0,
+      "sequence": 60,
+      "sim_time_s": 0.060000000000000046,
+      "vd_mps": 0.0,
+      "ve_mps": 0.0,
+      "version": 1,
+      "vn_mps": 2.0
+    },
+    "name": "resume_advances_sequence",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.305267Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 60,
+      "lifecycle": "RUNNING",
+      "reason": "applied",
+      "request_id": "reset"
+    },
+    "name": "reset_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.306289Z"
+  },
+  {
+    "detail": {
+      "airborne": 1,
+      "down_m": 0.0,
+      "east_m": 0.0,
+      "lifecycle": 0,
+      "north_m": 0.057000000000000016,
+      "p_radps": 0.0,
+      "q_radps": 0.0,
+      "q_w": 1.0,
+      "q_x": 0.0,
+      "q_y": 0.0,
+      "q_z": 0.0,
+      "r_radps": 0.0,
+      "reserved": 0,
+      "sequence": 80,
+      "sim_time_s": 0.08000000000000006,
+      "vd_mps": 0.0,
+      "ve_mps": 0.0,
+      "version": 1,
+      "vn_mps": 3.0
+    },
+    "name": "reset_reinitializes_and_applies_queued_parameter",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.325296Z"
+  },
+  {
+    "detail": {
+      "accepted": true,
+      "effective_sequence": 80,
+      "lifecycle": "ENDED",
+      "reason": "applied",
+      "request_id": "end"
+    },
+    "name": "mission_end_receipt",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.326283Z"
+  },
+  {
+    "detail": [
+      {
+        "airborne": 1,
+        "down_m": 0.0,
+        "east_m": 0.0,
+        "lifecycle": 3,
+        "north_m": 0.057000000000000016,
+        "p_radps": 0.0,
+        "q_radps": 0.0,
+        "q_w": 1.0,
+        "q_x": 0.0,
+        "q_y": 0.0,
+        "q_z": 0.0,
+        "r_radps": 0.0,
+        "reserved": 0,
+        "sequence": 80,
+        "sim_time_s": 0.08000000000000006,
+        "vd_mps": 0.0,
+        "ve_mps": 0.0,
+        "version": 1,
+        "vn_mps": 3.0
+      },
+      {
+        "airborne": 1,
+        "down_m": 0.0,
+        "east_m": 0.0,
+        "lifecycle": 3,
+        "north_m": 0.057000000000000016,
+        "p_radps": 0.0,
+        "q_radps": 0.0,
+        "q_w": 1.0,
+        "q_x": 0.0,
+        "q_y": 0.0,
+        "q_z": 0.0,
+        "r_radps": 0.0,
+        "reserved": 0,
+        "sequence": 80,
+        "sim_time_s": 0.08000000000000006,
+        "vd_mps": 0.0,
+        "ve_mps": 0.0,
+        "version": 1,
+        "vn_mps": 3.0
+      }
+    ],
+    "name": "ended_freezes_sequence",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.365327Z"
+  },
+  {
+    "detail": {
+      "data": {
+        "angular_velocity": {
+          "p": 0.0,
+          "q": 0.0,
+          "r": 0.0
+        },
+        "attitude": {
+          "pitch": -0.0,
+          "roll": -0.0,
+          "yaw": 1.5707962925663537
+        },
+        "flight_state": "RUNNING",
+        "mission_id": "mission_001",
+        "position": {
+          "height": -30.0,
+          "x": 10.0,
+          "y": 20.0
+        },
+        "sequence": 999,
+        "sim_time": 1.0,
+        "velocity": {
+          "vx": 4.0,
+          "vy": 5.0,
+          "vz": -6.0
+        }
+      },
+      "protocol_version": "2.0",
+      "seq": 3,
+      "type": "vehicle_state",
+      "vehicle_id": "Drone1"
+    },
+    "name": "ue4_protocol_ned_axes_and_90_yaw",
+    "passed": true,
+    "utc": "2026-07-27T03:14:14.372133Z"
+  },
+  {
+    "detail": {
+      "contract_sha256": "2848b7223562231584b05b6432d664b509d879ae7ece7a0782df465598c88f5f",
+      "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031255Z-runtime-contract/20260727T031414Z-second-deploy",
+      "executable_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031414Z-second-deploy/executable/hil_test_model_rt",
+      "executable_sha256": "001e7ad485b201647a3bcb0ccb15205c76a4d34ad318d010b23a70b14d26f3c7",
+      "failed_stage": null,
+      "log_path": "/tmp/hil-contract-acceptance-ozek_mi_/work/20260727T031414Z-second-deploy/build.log",
+      "model_ref": "acceptance-model",
+      "model_revision_ref": "acceptance-r1",
+      "model_sha256": "9b9f61e5f627d5e0d293d45e8f101d3ddaed179cf446f82d0f21693f91926002",
+      "request_id": "second-deploy",
+      "status": "DEPLOYED",
+      "transitions": [
+        "RECEIVED",
+        "VALIDATING",
+        "BUILDING",
+        "VERIFYING",
+        "READY",
+        "DEPLOYED"
+      ]
+    },
+    "name": "single_instance_deployment",
+    "passed": true,
+    "utc": "2026-07-27T03:15:05.649373Z"
+  }
+]

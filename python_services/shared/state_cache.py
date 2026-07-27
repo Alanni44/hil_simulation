@@ -1,118 +1,107 @@
 #!/usr/bin/env python3
+"""Validated NED state cache and the sole NED → UE4 adapter."""
+from __future__ import print_function
+
+import math
 import threading
-import time
 from datetime import datetime
-from .flight_state import parse_flight_state
+
+from .flight_state import LIFECYCLE_NAMES, parse_flight_state
 
 _latest_raw = None
-_frame = 0
-_sim_time = 0.0
 _lock = threading.Lock()
-
-FLIGHT_STATE_NAMES = {
-    0: 'ready', 1: 'taking_off', 2: 'flying',
-    3: 'hovering', 4: 'landing', 5: 'landed', 6: 'fault'
-}
 
 
 def _utcnow_iso():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 
-def update(data: bytes):
-    global _latest_raw, _frame, _sim_time
-    try:
-        s = parse_flight_state(data)
-    except Exception:
-        return
+def ned_quaternion_to_ue4_rpy(q_w, q_x, q_y, q_z):
+    """FRD→NED quaternion to UE4 X-forward/Y-right/Z-up Euler radians.
+
+    UE4 exposes a left-handed visual frame.  With North=+X, East=+Y and
+    Down=-Z, a positive NED yaw (North toward East) is a positive UE4 yaw.
+    The FRD down axis is reflected for the visual body convention, yielding
+    pitch and roll sign inversion.  This formula is exercised by acceptance
+    tests using identity and +90 degree yaw vectors.
+    """
+    sinr_cosp = 2.0 * (q_w * q_x + q_y * q_z)
+    cosr_cosp = 1.0 - 2.0 * (q_x * q_x + q_y * q_y)
+    roll_ned = math.atan2(sinr_cosp, cosr_cosp)
+    sinp = 2.0 * (q_w * q_y - q_z * q_x)
+    pitch_ned = math.copysign(math.pi / 2.0, sinp) if abs(sinp) >= 1.0 else math.asin(sinp)
+    siny_cosp = 2.0 * (q_w * q_z + q_x * q_y)
+    cosy_cosp = 1.0 - 2.0 * (q_y * q_y + q_z * q_z)
+    yaw_ned = math.atan2(siny_cosp, cosy_cosp)
+    return -roll_ned, -pitch_ned, yaw_ned
+
+
+def ned_to_ue4(state):
+    roll, pitch, yaw = ned_quaternion_to_ue4_rpy(
+        state['q_w'], state['q_x'], state['q_y'], state['q_z'])
+    return {
+        'position': {'x': state['north_m'], 'y': state['east_m'],
+                     'height': -state['down_m']},
+        'attitude': {'roll': roll, 'pitch': pitch, 'yaw': yaw},
+        'velocity': {'vx': state['vn_mps'], 'vy': state['ve_mps'],
+                     'vz': -state['vd_mps']},
+    }
+
+
+def update(data):
+    global _latest_raw
+    state = parse_flight_state(data)
     with _lock:
-        _latest_raw = s
-        _sim_time = s['timestamp_us'] / 1_000_000.0
-        _frame = s.get('mission_id', 0)
+        previous = _latest_raw
+        if previous and state['sequence'] < previous['sequence'] and state['lifecycle'] != 2:
+            raise ValueError('state sequence regressed without reset')
+        _latest_raw = state
 
 
 def get_flight_data():
     with _lock:
-        s = _latest_raw
-        frame = _frame
-    if not s:
+        state = _latest_raw
+    if not state:
         return None
-    return {
-        'position': {'x': s['pos_x'], 'y': s['pos_y'], 'height': s['pos_z']},
-        'attitude': {'yaw': s['yaw'], 'pitch': s['pitch'], 'roll': s['roll']},
-        'velocity': {'vx': s['vel_x'], 'vy': s['vel_y'], 'vz': s['vel_z']},
-        'timestamp': _utcnow_iso(),
-        'frame': frame,
-    }
+    converted = ned_to_ue4(state)
+    converted.update({'timestamp': _utcnow_iso(), 'frame': state['sequence']})
+    return converted
 
 
 def get_heartbeat():
     with _lock:
-        s = _latest_raw
-        sim_time = _sim_time
-    return {
-        'sim_time': sim_time,
-        'rt_factor': 0.98,
-        'task_cpu': 5,
-        'status': 'running' if (s and (s['status_word'] & 1)) else 'idle',
-    }
+        state = _latest_raw
+    return {'sim_time': state['sim_time_s'] if state else 0.0,
+            'rt_factor': 0.98, 'task_cpu': 5,
+            'status': LIFECYCLE_NAMES.get(state['lifecycle'], 'IDLE') if state else 'IDLE'}
 
 
 def get_state_dict():
     with _lock:
-        s = _latest_raw
-    if not s:
+        state = _latest_raw
+    if not state:
         return None
-    airborne = (s['status_word'] & 1) != 0
-    return {
-        'position': {'x': s['pos_x'], 'y': s['pos_y'], 'height': s['pos_z']},
-        'velocity': {'vx': s['vel_x'], 'vy': s['vel_y'], 'vz': s['vel_z']},
-        'landed_state': 'Flying' if airborne else 'Landed',
-    }
+    converted = ned_to_ue4(state)
+    return {'position': converted['position'], 'velocity': converted['velocity'],
+            'landed_state': 'Flying' if state['airborne'] else 'Landed',
+            'sequence': state['sequence'], 'sim_time_s': state['sim_time_s'],
+            'lifecycle': LIFECYCLE_NAMES[state['lifecycle']]}
 
 
 def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
-    """V2.0 vehicle_state 消息完整体"""
     with _lock:
-        s = _latest_raw
-        sim_time = _sim_time
-    if not s:
+        state = _latest_raw
+    if not state:
         return None
-    fs_code = s.get('flight_state', 0)
-    return {
-        'protocol_version': '2.0',
-        'type': 'vehicle_state',
-        'vehicle_id': 'Drone1',
-        'data': {
-            'mission_id': mission_id,
-            'sim_time': sim_time,
-            'position': {
-                'x': s['pos_x'],
-                'y': s['pos_y'],
-                'height': s['pos_z'],
-            },
-            'attitude': {
-                'roll': s['roll'],
-                'pitch': s['pitch'],
-                'yaw': s['yaw'],
-            },
-            'velocity': {
-                'vx': s['vel_x'],
-                'vy': s['vel_y'],
-                'vz': s['vel_z'],
-            },
-            'angular_velocity': {
-                'p': s.get('ang_vel_p', 0.0),
-                'q': s.get('ang_vel_q', 0.0),
-                'r': s.get('ang_vel_r', 0.0),
-            },
-            'flight_state': FLIGHT_STATE_NAMES.get(fs_code, 'ready'),
-        },
-    }
+    converted = ned_to_ue4(state)
+    return {'protocol_version': '2.0', 'type': 'vehicle_state', 'vehicle_id': 'Drone1',
+            'data': {'mission_id': mission_id, 'sim_time': state['sim_time_s'],
+                     'sequence': state['sequence'], 'position': converted['position'],
+                     'attitude': converted['attitude'], 'velocity': converted['velocity'],
+                     'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
+                                          'r': state['r_radps']},
+                     'flight_state': LIFECYCLE_NAMES[state['lifecycle']]}}
 
 
 def get_mission_waypoints_from_cache():
-    """返回最近一次 load_mission 的航点（供 bridge 发送 mission_plan）"""
-    with _lock:
-        s = _latest_raw
-    return []  # 航点由 ws_server 直接从后端命令提取并转发
+    return []

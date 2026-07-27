@@ -1,0 +1,21 @@
+{
+  "contract_sha256": "2848b7223562231584b05b6432d664b509d879ae7ece7a0782df465598c88f5f",
+  "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T025429Z-runtime-contract/20260727T025459Z-valid-deploy",
+  "executable_path": "/tmp/hil-contract-acceptance-we5gkbdb/work/20260727T025459Z-valid-deploy/executable/hil_test_model_rt",
+  "executable_sha256": "001e7ad485b201647a3bcb0ccb15205c76a4d34ad318d010b23a70b14d26f3c7",
+  "failed_stage": null,
+  "log_path": "/tmp/hil-contract-acceptance-we5gkbdb/work/20260727T025459Z-valid-deploy/build.log",
+  "model_ref": "acceptance-model",
+  "model_revision_ref": "acceptance-r1",
+  "model_sha256": "9e8a0e65ca3c2bc3b6324c0a3871d3d225afd361b1e668a1edc1c8a4a75d6067",
+  "request_id": "valid-deploy",
+  "status": "DEPLOYED",
+  "transitions": [
+    "RECEIVED",
+    "VALIDATING",
+    "BUILDING",
+    "VERIFYING",
+    "READY",
+    "DEPLOYED"
+  ]
+}

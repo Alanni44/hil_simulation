@@ -9,8 +9,7 @@ User=hil
 Group=hil
 WorkingDirectory=/opt/hil/python_services
 ExecStart=/opt/hil/venv/bin/python3 /opt/hil/python_services/main.py
-Environment=HIL_MODEL_READY_SIGNAL=/run/hil/model_ready.signal
-Environment=HIL_MODEL_READY_DIR=/run/hil
+Environment=HIL_CONTROLLED_PACKAGE_ROOT=/opt/hil/packages
 Restart=on-failure
 RestartSec=2
 UMask=0077
@@ -18,7 +17,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/hil/models /run/hil
+ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts
 
 [Install]
 WantedBy=multi-user.target

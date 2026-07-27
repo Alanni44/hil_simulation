@@ -1,182 +1,57 @@
 import pathlib
-import re
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+def read(path): return (ROOT / path).read_text(encoding='utf-8')
 
 
-def read(relative_path):
-    return (ROOT / relative_path).read_text(encoding='utf-8')
+class RuntimeContractStaticTests(unittest.TestCase):
+    def test_no_model_registry_or_hot_reload_implementation(self):
+        combined = '\n'.join(read(path) for path in (
+            'python_services/ws_server.py', 'c_core/src/model_rt_wrapper.c',
+            'scripts/start_all.sh', 'scripts/test_hot_reload.sh'))
+        self.assertNotIn('_activate_archived_build', combined)
+        self.assertNotIn('execv(', combined)
+        self.assertNotIn('urlopen(', combined)
+        self.assertIn('intentionally unsupported', read('scripts/test_hot_reload.sh'))
 
-
-class ModelContractStaticTests(unittest.TestCase):
-
-    def test_build_does_not_force_include_model_config(self):
-        self.assertNotIn("'-include \"%s\" '",
-                         read('matlab_scripts/build_script.m'))
-
-    def test_adapter_declares_required_position_outputs(self):
+    def test_adapter_requires_explicit_ned_contract_not_aliases(self):
         source = read('matlab_scripts/adapt_model.m')
-        self.assertIn("required_outputs = {'pos_x', 'pos_y', 'pos_z'}", source)
+        self.assertIn('FRD_TO_NED_QUATERNION', source)
+        self.assertIn('required_state_fields()', source)
+        self.assertNotIn('make_output_aliases', source)
+        self.assertNotIn('map_ports', source)
 
-    def test_core_uses_generated_safe_accessors(self):
-        source = read('c_core/src/main_rt.c')
-        self.assertNotIn('#define MODEL_Y_GET', source)
-        self.assertIn('MODEL_READ_pos_x', source)
-
-    def test_core_applies_command_input_with_a_lock_free_snapshot(self):
-        source = read('c_core/src/main_rt.c')
-        self.assertIn('pending_input_seq', source)
-        self.assertIn('adopt_pending_command_state()', source)
-        self.assertNotIn('pthread_mutex_lock(&model_input_lock)', source)
-
-    def test_command_parser_does_not_mutate_active_mission_state(self):
-        source = read('c_core/src/main_rt.c')
-        parser = source[source.index('static int parse_command'):source.index('void* command_thread')]
-        self.assertNotIn('_wp_active', parser)
-        self.assertNotIn('_wp_queue', parser)
-        self.assertNotIn('_last_cmd_mode_written', parser)
-
-    def test_core_only_applies_model_input_when_snapshot_changes(self):
-        source = read('c_core/src/main_rt.c')
-        self.assertIn('uint32_t input_generation;', source)
-        self.assertIn('_adopted_input_generation', source)
-        self.assertIn('candidate.input_generation != _adopted_input_generation', source)
-
-    def test_integration_test_uses_valid_flight_state_indexes(self):
-        source = read('scripts/integration_test.sh')
-        self.assertNotIn('v[34]', source)
-        self.assertNotIn('v[35]', source)
-        self.assertNotIn('v[33]', source)
-        self.assertIn('state[2], state[3], state[4], state[27], state[29], state[28]', source)
-
-    def test_integration_task_uses_the_slx_file_not_build_directory(self):
-        source = read('scripts/integration_test.sh')
-        self.assertIn('"slx_path":"SLX_PATH_PLACEHOLDER"', source)
-        self.assertIn('s|SLX_PATH_PLACEHOLDER|$SLX|g', source)
-
-    def test_adapter_accepts_jsondecoded_port_struct_arrays(self):
-        source = read('matlab_scripts/adapt_model.m')
-        self.assertIn('if iscell(ports)', source)
-        self.assertIn('ports(index)', source)
-
-    def test_integration_test_reports_matlab_build_error_details(self):
-        source = read('scripts/integration_test.sh')
-        self.assertIn('/tmp/hil_test_result.json', source)
-        self.assertIn('ERT failure:', source)
-
-    def test_test_model_uses_signal_products_for_pid_gains(self):
-        source = read('matlab_scripts/generate_test_model.m')
-        self.assertNotIn("'simulink/Math Operations/Gain'", source)
-        self.assertIn("'simulink/Math Operations/Product'", source)
-        for connection in (
-                "'kpxy/1','P_X/2'", "'kixy/1','Ig_X/2'",
-                "'kdxy/1','Dg_X/2'", "'kpz/1','P_Z/2'",
-                "'kiz/1','Ig_Z/2'", "'kdz/1','Dg_Z/2'"):
-            self.assertIn(connection, source)
-
-    def test_build_uses_explicit_and_discovered_codegen_directory(self):
+    def test_build_validates_generated_abi_and_emits_no_defaults(self):
         source = read('matlab_scripts/build_script.m')
-        self.assertIn("Simulink.fileGenControl('set'", source)
-        self.assertIn("'CodeGenFolder', output_dir", source)
-        self.assertIn('RTW.getBuildDir(build_model)', source)
-        self.assertIn('onCleanup(@() close_model_without_save(build_model))', source)
-        self.assertIn("build_work_dir = fullfile(output_dir, 'matlab_build_work');", source)
-        self.assertIn('cd(build_work_dir);', source)
-        self.assertIn('onCleanup(@() cd(original_dir))', source)
+        self.assertIn('validate_contract_abi(contract, y_fields, u_fields)', source)
+        self.assertIn('Generated ExtY field missing', source)
+        self.assertIn('model_contract.h', source)
+        self.assertNotIn('MODEL_DEFAULT_', source)
 
-    def test_bridge_header_macro_is_an_unquoted_include_token(self):
-        source = read('matlab_scripts/build_script.m')
-        wrapper = read('c_core/src/model_rt_wrapper.c')
-        self.assertIn("bridge_header_name = 'model_rt_bridge.h';", source)
-        self.assertIn("-DMODEL_RT_BRIDGE_HEADER=%s", source)
-        self.assertIn('#define MODEL_RT_BRIDGE_HEADER my_uav_model.h', wrapper)
-
-    def test_generated_header_parser_strips_c_comments_before_fields(self):
-        source = read('matlab_scripts/build_script.m')
-        self.assertIn("inner = regexprep(inner, '/\\*[\\s\\S]*?\\*/', '');", source)
-        self.assertIn("inner = regexprep(inner, '//[^\\r\\n]*', '');", source)
-
-    def test_build_excludes_ert_example_main(self):
-        source = read('matlab_scripts/build_script.m')
-        self.assertIn("excluded_sources = {'ert_main.c'}", source)
-        self.assertIn('any(strcmp(c_files(i).name, excluded_sources))', source)
-
-    def test_integration_executable_matches_build_output(self):
-        source = read('scripts/integration_test.sh')
-        self.assertIn('EXE="$ROOT/executables/hil_test_model_rt"', source)
-
-    def test_core_publishes_mission_metadata_with_the_input_snapshot(self):
+    def test_core_has_fixed_state_receipts_and_lifecycle(self):
         source = read('c_core/src/main_rt.c')
-        self.assertIn('PendingCommandState_t pending_command', source)
-        self.assertIn('adopt_pending_command_state()', source)
-        self.assertNotIn('static int _cmd_mode_snapshot', source)
+        protocol = read('c_core/src/flight_state.h')
+        self.assertIn('send_receipt', source)
+        self.assertIn('atomic parameter group rejected', source)
+        self.assertIn('HIL_PAUSED', source)
+        self.assertIn('if (lifecycle == HIL_RUNNING)', source)
+        self.assertIn('north_m', protocol)
+        self.assertIn('q_w', protocol)
+        self.assertNotIn('pos_x', protocol)
 
-    def test_core_validates_waypoint_array_before_access(self):
-        source = read('c_core/src/main_rt.c')
-        guard = ('!params_obj || !json_object_object_get_ex(params_obj, "waypoints", &wps_obj) '
-                 '|| json_object_get_type(wps_obj) != json_type_array')
-        normalized = re.sub(r'\s+', ' ', source)
-        self.assertIn(guard, normalized)
-        self.assertLess(normalized.index(guard), normalized.index('json_object_array_length(wps_obj)'))
-
-    def test_core_routes_command_numbers_through_finite_type_checks(self):
-        source = read('c_core/src/main_rt.c')
-        parser = source[source.index('static int parse_command'):source.index('void* command_thread')]
-        self.assertNotIn('json_object_get_double', parser)
-        self.assertIn('json_value_as_finite_number', source)
-        self.assertIn('rejected unknown command', parser)
-
-    def test_development_start_script_uses_active_archive_without_sudo(self):
-        source = read('scripts/start_all.sh')
-        self.assertIn('models/active/$MODEL_NAME/executable/${MODEL_NAME}_rt', source)
-        self.assertNotIn('sudo ', source)
-        self.assertIn('kill -0 "$CORE_PID"', source)
-        self.assertIn('kill -0 "$PY_PID"', source)
-
-    def test_integration_sender_uses_an_empty_object_for_omitted_params(self):
-        source = read('scripts/integration_test.sh')
-        self.assertIn('local params="${2:-}"', source)
-        self.assertIn("[ -n \"$params\" ] || params='{}'", source)
-
-    def test_state_cache_updates_frame_metadata_under_its_lock(self):
+    def test_python_only_location_of_ned_to_ue4_conversion(self):
         source = read('python_services/shared/state_cache.py')
-        update = source[source.index('def update('):source.index('\ndef get_flight_data')]
-        lock_body = update[update.index('with _lock:'):]
-        self.assertIn('_latest_raw = s', lock_body)
-        self.assertIn("_sim_time = s['timestamp_us'] / 1_000_000.0", lock_body)
-        self.assertIn("_frame = s.get('mission_id', 0)", lock_body)
+        self.assertIn('def ned_to_ue4', source)
+        self.assertIn("'height': -state['down_m']", source)
+        self.assertIn('ned_quaternion_to_ue4_rpy', source)
+        self.assertNotIn('flight_state_schema', read('python_services/shared/flight_state.py'))
 
-    def test_readme_documents_target_pipeline_acceptance(self):
-        source = read('README.md')
-        self.assertIn('sudo apt install -y build-essential libjson-c-dev python3 python3-pip', source)
-        self.assertIn('python3 -m pip install -r requirements.txt', source)
-        self.assertIn('bash scripts/integration_test.sh', source)
-        self.assertIn('ModelU_t fields (6)', source)
-        self.assertIn('ModelY_t fields (10)', source)
-
-    def test_python_dependency_is_pinned_for_python_36(self):
-        self.assertEqual('PyYAML==6.0.1\n', read('requirements.txt'))
-
-    def test_production_units_scope_handoffs_per_model(self):
-        core = read('deploy/systemd/hil-core@.service')
-        python = read('deploy/systemd/hil-python-services.service')
-        wrapper = read('c_core/src/model_rt_wrapper.c')
-        self.assertIn('HIL_MODEL_READY_SIGNAL=/run/hil/%i.signal', core)
-        self.assertIn('HIL_MODEL_NAME=%i', core)
-        self.assertIn('HIL_MODEL_READY_DIR=/run/hil', python)
-        self.assertIn('Ignoring update for model', wrapper)
-
-    def test_development_stop_script_does_not_use_broad_process_killing(self):
-        self.assertNotIn('pkill', read('scripts/stop_all.sh'))
-
-    def test_hot_reload_test_requires_explicit_opt_in_and_restores_active_build(self):
-        source = read('scripts/test_hot_reload.sh')
-        self.assertIn('HIL_HOT_RELOAD_TEST', source)
-        self.assertIn('activate "$ORIGINAL_BUILD_ID"', source)
-        self.assertIn('HIL_MODEL_READY_SIGNAL="$READY_DIR/${MODEL_NAME}.signal"', source)
+    def test_build_request_is_controlled_and_auditable(self):
+        source = read('python_services/ws_server.py')
+        for value in ('request_id', 'package_path', 'package_sha256', 'VALIDATING', 'VERIFYING', 'evidence_path'):
+            self.assertIn(value, source)
+        self.assertIn('validate_package(', source)
 
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

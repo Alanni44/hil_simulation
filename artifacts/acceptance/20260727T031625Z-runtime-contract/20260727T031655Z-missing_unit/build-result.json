@@ -1,0 +1,14 @@
+{
+  "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T031625Z-runtime-contract/20260727T031655Z-missing_unit",
+  "failed_stage": "VALIDATING",
+  "log_path": "/tmp/hil-contract-acceptance-62t66zwe/work/20260727T031655Z-missing_unit/build.log",
+  "message": "contract.state.units.north_m must be m",
+  "model_ref": "acceptance-model",
+  "model_revision_ref": "acceptance-r1",
+  "request_id": "missing_unit",
+  "status": "FAILED",
+  "transitions": [
+    "RECEIVED",
+    "VALIDATING"
+  ]
+}
