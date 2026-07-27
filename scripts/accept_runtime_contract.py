@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'python_services'))
@@ -58,7 +59,7 @@ def packet(log, kind, value):
                           'kind': kind, 'value': value}, sort_keys=True) + '\n'); log.flush()
 
 
-def core_command(command_socket, packet_log, request_id, cmd, params):
+def core_command(command_socket, packet_log, request_id, cmd, params, observed=None):
     command = {'request_id': request_id, 'cmd': cmd, 'params': params}
     packet(packet_log, 'command', command)
     command_socket.sendto(json.dumps(command).encode('utf-8'), ('127.0.0.1', 9997))
@@ -66,6 +67,8 @@ def core_command(command_socket, packet_log, request_id, cmd, params):
         data, _ = command_socket.recvfrom(65536)
         receipt = json.loads(data.decode('utf-8'))
         packet(packet_log, 'receipt', receipt)
+        if observed is not None:
+            observed.append(receipt)
         if receipt.get('request_id') == request_id: return receipt
 
 
@@ -104,7 +107,7 @@ def _tcp_send_frame(sock, value):
     sock.sendall(struct.pack('>I', len(body)) + body)
 
 
-def receive_ue4_vehicle_packet(packet_log, source_state):
+def receive_ue4_vehicle_packet(packet_log, runtime_log_path, source_state):
     """Run a TCP UE4 protocol peer and capture an actual bridge vehicle_state."""
     known = dict(source_state)
     known.update({'sequence': 999, 'sim_time_s': 1.0, 'north_m': 10.0, 'east_m': 20.0,
@@ -123,6 +126,8 @@ def receive_ue4_vehicle_packet(packet_log, source_state):
     old_host, old_port = bridge.UE4_HOST, bridge.UE4_PORT
     bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', 5001, True
     try:
+        bridge.send_mission_plan('acceptance-route', [
+            {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0}])
         bridge.start_bridge()
         peer, _ = server.accept(); peer.settimeout(5)
         hello = _tcp_recv_frame(peer)
@@ -133,8 +138,10 @@ def receive_ue4_vehicle_packet(packet_log, source_state):
         packet(packet_log, 'ue4_protocol_hello', hello)
         packet(packet_log, 'ue4_protocol_mission_plan', mission)
         packet(packet_log, 'ue4_protocol_vehicle_state', vehicle)
+        with open(runtime_log_path, 'a') as runtime_log:
+            runtime_log.write('[Python UE4 Bridge] connected test peer; hello, mission_plan and vehicle_state acknowledged\n')
         peer.close()
-        return vehicle
+        return mission, vehicle
     finally:
         bridge.stop_bridge()
         bridge.UE4_HOST, bridge.UE4_PORT = old_host, old_port
@@ -175,6 +182,45 @@ def malformed_copy(source, destination, output_to_remove=None, unit_to_remove=No
     write_json(manifest_path, manifest)
 
 
+def target_environment():
+    """Return the mandated target facts or fail before claiming acceptance."""
+    platform_name = platform.platform()
+    gcc = subprocess.check_output(['gcc', '--version']).decode().splitlines()[0]
+    if 'Ubuntu-18.04' not in platform_name or 'rt' not in platform_name.lower():
+        raise RuntimeError('acceptance target must be Ubuntu 18.04 RT, got {}'.format(platform_name))
+    if not gcc.startswith('gcc ') or ' 7.' not in gcc:
+        raise RuntimeError('acceptance target must use GCC 7.x, got {}'.format(gcc))
+    if sys.version_info[:3] != (3, 6, 9):
+        raise RuntimeError('acceptance target must use Python 3.6.9, got {}'.format(sys.version))
+    return {'platform': platform_name, 'python': sys.version, 'gcc': gcc,
+            'matlab': ws_server._matlab_binary()}
+
+
+def git_evidence():
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT).decode().strip()
+    dirty = subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT).decode().strip()
+    if dirty:
+        raise RuntimeError('target checkout is dirty; refusing acceptance')
+    return {'head': head, 'dirty': False}
+
+
+def realtime_evidence(runtime_log_path):
+    text = open(runtime_log_path, 'r').read()
+    match = re.search(r'realtime samples=(\d+) p99_abs_lateness_ns=(\d+) '
+                      r'max_abs_lateness_ns=(\d+) over_250us=(\d+) non_realtime=(\d+)', text)
+    if not match:
+        raise AssertionError('core realtime summary is absent')
+    keys = ('samples', 'p99_abs_lateness_ns', 'max_abs_lateness_ns', 'over_250us', 'non_realtime')
+    result = dict(zip(keys, [int(item) for item in match.groups()]))
+    result.update({'required_samples': 1800000, 'p99_limit_ns': 100000,
+                   'max_limit_ns': 250000, 'over_250us_limit': 0})
+    result['passed'] = (result['samples'] >= result['required_samples'] and
+                        result['p99_abs_lateness_ns'] <= result['p99_limit_ns'] and
+                        result['max_abs_lateness_ns'] <= result['max_limit_ns'] and
+                        result['over_250us'] == 0 and result['non_realtime'] == 0)
+    return result
+
+
 def main():
     run_id = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ') + '-runtime-contract'
     evidence = os.path.join(ROOT, 'artifacts', 'acceptance', run_id)
@@ -186,11 +232,10 @@ def main():
     for filename in ('build.log', 'runtime.log', 'packets.ndjson'):
         open(os.path.join(evidence, filename), 'w').close()
     write_json(os.path.join(evidence, 'source-manifest.json'), {})
+    write_json(os.path.join(evidence, 'realtime.json'), {})
     try:
-        write_json(os.path.join(evidence, 'environment.json'), {
-            'platform': platform.platform(), 'python': sys.version,
-            'gcc': subprocess.check_output(['gcc', '--version']).decode().splitlines()[0],
-            'matlab': ws_server._matlab_binary()})
+        git = git_evidence()
+        write_json(os.path.join(evidence, 'environment.json'), target_environment())
         with tempfile.TemporaryDirectory(prefix='hil-contract-acceptance-') as temporary:
             package_root = os.path.join(temporary, 'packages'); os.makedirs(package_root)
             package_dir = os.path.join(package_root, 'valid'); os.makedirs(package_dir)
@@ -208,7 +253,7 @@ def main():
                     response = submit(package_root, bad, label, 'build'); responses[label] = response
                     record(assertions, label, response['status'] == 'FAILED' and response['failed_stage'] == 'VALIDATING', response)
                 response = submit(package_root, package_dir, 'valid-deploy', 'deploy'); responses['valid'] = response
-                record(assertions, 'valid_ert_gcc_build', response['status'] == 'DEPLOYED', response)
+                record(assertions, 'valid_ert_gcc_build', response['status'] in ('DEPLOYED', 'DEV_DEPLOYED'), response)
                 executable = response['executable_path']
                 build_root = os.path.dirname(os.path.dirname(executable))
                 write_json(os.path.join(evidence, 'source-manifest.json'), {
@@ -216,15 +261,25 @@ def main():
                     'contract_sha256': sha256_file(os.path.join(package_dir, 'hil_contract.json')),
                     'slx_sha256': sha256_file(os.path.join(package_dir, 'hil_test_model.slx')),
                     'c_core_sources_sha256': tree_sha256(os.path.join(ROOT, 'c_core', 'src')),
+                    'python_services_sha256': tree_sha256(os.path.join(ROOT, 'python_services')),
                     'matlab_sources_sha256': tree_sha256(os.path.join(ROOT, 'matlab_scripts')),
+                    'scripts_sha256': tree_sha256(os.path.join(ROOT, 'scripts')),
+                    'acceptance_script_sha256': sha256_file(os.path.abspath(__file__)),
+                    'git': git,
                     'generated_code_sha256': tree_sha256(os.path.join(build_root, 'generated')),
                     'executable_sha256': sha256_file(executable)})
                 shutil.copyfile(response['log_path'], os.path.join(evidence, 'build.log'))
+                first_runtime_log = os.path.join(os.path.dirname(os.path.dirname(executable)), 'runtime.log')
+                if os.path.isfile(first_runtime_log): shutil.copyfile(first_runtime_log, runtime_log_path)
                 status = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); status.bind(('127.0.0.1', 9998)); status.settimeout(3)
                 command = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); command.bind(('127.0.0.1', 0)); command.settimeout(3)
                 with open(os.path.join(evidence, 'packets.ndjson'), 'w') as packet_log:
                     first = recv_state(status, packet_log)
                     record(assertions, 'normalized_ned_state', first['sequence'] > 0 and first['q_w'] == 1.0 and first['airborne'] == 1, first)
+                    mission = core_command(command, packet_log, 'mission-ned', 'load_mission', {
+                        'mission_id': 'acceptance-route', 'waypoints': [
+                            {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0}]})
+                    record(assertions, 'ned_mission_receipt', mission.get('accepted'), mission)
                     tune = core_command(command, packet_log, 'gain-live', 'tune', {'gain': 2.0})
                     record(assertions, 'live_parameter_receipt', tune.get('accepted') and tune['effective_sequence'] >= first['sequence'], tune)
                     readonly = core_command(command, packet_log, 'readonly', 'tune', {'north_diagnostic': 1.0})
@@ -236,42 +291,71 @@ def main():
                     p1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 1)
                     p2 = recv_state(status, packet_log)
                     record(assertions, 'pause_freezes_sequence', p1['sequence'] == p2['sequence'] and p2['lifecycle'] == 1, [p1, p2])
-                    reset_tune = core_command(command, packet_log, 'reset-gain', 'tune', {'reset_gain': 1.0})
+                    reset_tune = core_command(command, packet_log, 'reset-gain', 'tune', {'reset_gain': 1.0, 'mass_kg': 10.0})
                     record(assertions, 'reset_only_queued_receipt', reset_tune.get('accepted'), reset_tune)
                     resumed = core_command(command, packet_log, 'resume', 'resume', {})
                     record(assertions, 'resume_receipt', resumed.get('accepted'), resumed)
                     after_resume = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 0 and state['sequence'] > p2['sequence'])
                     record(assertions, 'resume_advances_sequence', after_resume['sequence'] > p2['sequence'], after_resume)
-                    reset = core_command(command, packet_log, 'reset', 'reset', {})
+                    reset_observed = []
+                    reset = core_command(command, packet_log, 'reset', 'reset', {}, reset_observed)
                     record(assertions, 'reset_receipt', reset.get('accepted'), reset)
+                    final_reset_parameter = next((item for item in reset_observed
+                                                  if item.get('request_id') == 'reset-gain' and
+                                                  item.get('reason') == 'reset_only parameters applied'), None)
+                    record(assertions, 'reset_only_final_effective_sequence',
+                           final_reset_parameter is not None and
+                           final_reset_parameter['effective_sequence'] == reset['effective_sequence'] + 1,
+                           final_reset_parameter)
                     after_reset = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 0 and state['sequence'] > reset['effective_sequence'])
-                    record(assertions, 'reset_reinitializes_and_applies_queued_parameter', after_reset['north_m'] < after_resume['north_m'] and after_reset['vn_mps'] == 3.0, after_reset)
+                    record(assertions, 'reset_reinitializes_and_applies_queued_parameter', after_reset['north_m'] < after_resume['north_m'] and after_reset['vn_mps'] == 3.0 and after_reset['ve_mps'] == 2.0, after_reset)
                     ended = core_command(command, packet_log, 'end', 'mission_end', {})
                     record(assertions, 'mission_end_receipt', ended.get('accepted'), ended)
                     e1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 3)
                     e2 = recv_state(status, packet_log)
                     record(assertions, 'ended_freezes_sequence', e1['sequence'] == e2['sequence'] and e2['lifecycle'] == 3, [e1, e2])
-                    vehicle = receive_ue4_vehicle_packet(packet_log, first)
+                    ue4_mission, vehicle = receive_ue4_vehicle_packet(packet_log, runtime_log_path, first)
                     ue4 = vehicle['data']
+                    record(assertions, 'ue4_mission_route_axes',
+                           ue4_mission['data']['mission_id'] == 'acceptance-route' and
+                           ue4_mission['data']['waypoints'][0]['x'] == 100.0 and
+                           ue4_mission['data']['waypoints'][0]['y'] == 200.0 and
+                           ue4_mission['data']['waypoints'][0]['height'] == 30.0,
+                           ue4_mission)
                     record(assertions, 'ue4_protocol_ned_axes_and_90_yaw', ue4['position'] == {'x':10.0,'y':20.0,'height':-30.0} and abs(ue4['attitude']['yaw'] - 1.57079632679) < 1e-6 and ue4['velocity']['vz'] == -6.0, vehicle)
-                old = ws_server.ACTIVE_CORE.pid
+                old_process = ws_server.ACTIVE_CORE
+                old = old_process.pid
                 second = submit(package_root, package_dir, 'second-deploy', 'deploy'); responses['second'] = second
-                record(assertions, 'single_instance_deployment', second['status'] == 'DEPLOYED' and old != ws_server.ACTIVE_CORE.pid, second)
-                first_runtime_log = os.path.join(os.path.dirname(os.path.dirname(executable)), 'runtime.log')
-                if os.path.isfile(first_runtime_log): shutil.copyfile(first_runtime_log, runtime_log_path)
-                else: open(runtime_log_path, 'w').close()
+                record(assertions, 'single_instance_deployment',
+                       second['status'] in ('DEPLOYED', 'DEV_DEPLOYED') and second.get('previous_core_stopped_before_build') and
+                       old_process.poll() is not None and old != ws_server.ACTIVE_CORE.pid, second)
+                # The old core has been stopped and waited for by the second
+                # deployment, so its redirected stdout is now flushed.  Append
+                # it instead of overwriting the already captured Bridge log.
+                if os.path.isfile(first_runtime_log):
+                    with open(first_runtime_log, 'r') as core_log, open(runtime_log_path, 'a') as runtime_log:
+                        runtime_log.write(core_log.read())
+                realtime = realtime_evidence(runtime_log_path)
+                write_json(os.path.join(evidence, 'realtime.json'), realtime)
+                record(assertions, 'realtime_30_minute_gate', realtime['passed'], realtime)
                 command.close(); status.close()
             finally:
                 if ws_server.ACTIVE_CORE and ws_server.ACTIVE_CORE.poll() is None: ws_server.ACTIVE_CORE.terminate(); ws_server.ACTIVE_CORE.wait(timeout=5)
                 ws_server.ACTIVE_CORE = None
                 ws_server.CONTROLLED_PACKAGE_ROOT, ws_server.WORK_ROOT, ws_server.ACCEPTANCE_ROOT = old_root, old_work, old_evidence
         write_json(os.path.join(evidence, 'assertions.json'), assertions)
-        write_json(os.path.join(evidence, 'result.json'), {'status': 'passed', 'responses': responses})
+        write_json(os.path.join(evidence, 'result.json'), {
+            'status': 'passed', 'assertion_count': len(assertions),
+            'git_head': git['head'], 'failed': [], 'skipped': [], 'responses': responses})
         return 0
     except Exception as exc:
         with open(runtime_log_path, 'a') as log: log.write(repr(exc) + '\n')
         write_json(os.path.join(evidence, 'assertions.json'), assertions)
-        write_json(os.path.join(evidence, 'result.json'), {'status': 'failed', 'error': str(exc), 'responses': responses})
+        write_json(os.path.join(evidence, 'result.json'), {
+            'status': 'failed', 'error': str(exc),
+            'git_head': locals().get('git', {}).get('head'),
+            'failed': [item['name'] for item in assertions if not item['passed']],
+            'skipped': [], 'responses': responses})
         return 1
 
 

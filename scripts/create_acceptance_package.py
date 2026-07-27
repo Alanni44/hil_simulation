@@ -20,10 +20,16 @@ contract = {'contract_version': 1, 'model_name': model,
                       'outputs': {name: name for name in fields}, 'units': units},
             'parameters': [{'name': 'gain', 'generated_field': 'gain', 'type': 'double',
                             'unit': 'm/s', 'default': 1.0, 'min': 0.0, 'max': 5.0,
-                            'class': 'live', 'allowed_phases': ['RUNNING', 'PAUSED']},
+                            'class': 'live', 'allowed_phases': ['RUNNING', 'PAUSED'],
+                            'binding': {'kind': 'extu', 'field': 'gain'}},
                            {'name': 'reset_gain', 'generated_field': 'reset_gain', 'type': 'double',
                             'unit': 'm/s', 'default': 0.0, 'min': 0.0, 'max': 5.0,
-                            'class': 'reset_only', 'allowed_phases': ['PAUSED']},
+                            'class': 'reset_only', 'allowed_phases': ['PAUSED'],
+                            'binding': {'kind': 'extu', 'field': 'reset_gain'}},
+                           {'name': 'mass_kg', 'generated_field': 'mass_kg', 'type': 'double',
+                            'unit': 'kg', 'default': 5.0, 'min': 0.1, 'max': 100.0,
+                            'class': 'reset_only', 'allowed_phases': ['PAUSED'],
+                            'binding': {'kind': 'exported_global', 'symbol': 'uav_mass_kg'}},
                            {'name': 'north_diagnostic', 'generated_field': 'north_m', 'type': 'double',
                             'unit': 'm', 'default': 0.0, 'min': -1000000.0, 'max': 1000000.0,
                             'class': 'readonly', 'allowed_phases': ['RUNNING', 'PAUSED', 'RESETTING', 'ENDED']}]} 
@@ -35,6 +41,6 @@ for name in (model + '.slx', 'hil_contract.json'):
         files[name] = hashlib.sha256(source.read()).hexdigest()
 manifest = {'model_ref': 'acceptance-model', 'model_revision_ref': 'acceptance-r1',
             'top_model': model + '.slx', 'matlab_version': 'R2018b',
-            'files': files, 'package_sha256': package_sha256(package)}
+            'files': files, 'dependencies': [], 'package_sha256': package_sha256(package)}
 with open(os.path.join(package, 'package_manifest.json'), 'w') as output:
     json.dump(manifest, output, indent=2, sort_keys=True); output.write('\n')

@@ -1,0 +1,17 @@
+{
+  "contract_sha256": "c42184fefa0d03084a537f58de9f80d967ca993325d71daff6815d13dd8c2383",
+  "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T083102Z-runtime-contract/20260727T083131Z-missing_unit",
+  "failed_stage": "VALIDATING",
+  "log_path": "/tmp/hil-contract-acceptance-z42yls6m/work/20260727T083131Z-missing_unit/build.log",
+  "message": "contract.state.units.north_m must be m",
+  "model_ref": "acceptance-model",
+  "model_revision_ref": "acceptance-r1",
+  "model_sha256": "b63390665c4d06043eeca97b0a5064acff74aefd471df1c3eced2fb0680061b9",
+  "package_sha256": "4ed562e79ce77ab8e501cf9252f33c8eb121b070da6e8a48d1d95b57f6be1b07",
+  "request_id": "missing_unit",
+  "status": "FAILED",
+  "transitions": [
+    "RECEIVED",
+    "VALIDATING"
+  ]
+}

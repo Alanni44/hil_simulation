@@ -14,29 +14,54 @@
 #include "local_udp.h"
 #include "model_rt_wrapper.h"
 #include "model_contract.h"
+#include "realtime.h"
 
 #define STEP_NS 1000000L
 #define UDP_CMD_PORT 9997
 #define UDP_STATUS_PORT 9998
 #define SEND_INTERVAL 20U
 #define REQUEST_ID_MAX 96
+#define MISSION_ID_MAX 128
+#define MAX_MISSION_WAYPOINTS 50U
 
 static volatile sig_atomic_t running = 1;
 static volatile int lifecycle = HIL_RUNNING;
 static FlightState_t state;
+static int have_valid_state = 0;
 static uint64_t sequence = 0;
 static double sim_time_s = 0.0;
 
 typedef struct {
     ModelU_t input;
+    HilParameterValues parameters;
     unsigned generation;
 } InputSnapshot;
 static InputSnapshot pending_live;
 static InputSnapshot pending_reset;
 static ModelU_t active_input;
 static ModelU_t initial_input;
+static HilParameterValues active_parameters;
+static HilParameterValues initial_parameters;
 static unsigned applied_live_generation = 0;
 static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* A reset-only write has no truthful effective sequence until reset reaches
+ * the next model-step boundary.  Preserve its command identity so C can send
+ * a second, final receipt with that actual sequence. */
+typedef struct {
+    int pending;
+    uint64_t parameter_mask;
+    char request_id[REQUEST_ID_MAX];
+    struct sockaddr_in sender;
+} PendingResetReceipt;
+static PendingResetReceipt pending_reset_receipt;
+
+typedef struct {
+    int active;
+    unsigned waypoint_count;
+    char mission_id[MISSION_ID_MAX];
+} MissionMetadata;
+static MissionMetadata mission;
 
 typedef struct {
     int pending;
@@ -91,6 +116,56 @@ static int valid_number(struct json_object* value, double* number, int* bool_val
     return isfinite(*number);
 }
 
+static int mission_waypoint_is_valid(struct json_object* waypoint) {
+    const char* required[] = {"north_m", "east_m", "down_m", "speed_mps"};
+    unsigned index;
+    if (!waypoint || json_object_get_type(waypoint) != json_type_object) return 0;
+    for (index = 0; index < sizeof(required) / sizeof(required[0]); ++index) {
+        struct json_object* value = NULL;
+        double number;
+        if (!json_object_object_get_ex(waypoint, required[index], &value) ||
+            !valid_number(value, &number, NULL)) return 0;
+    }
+    return 1;
+}
+
+/* Mission geometry is a fixed external NED request contract, not a model
+ * port inference mechanism. Models consume mission targets only through
+ * separately declared contract parameters. */
+static void parse_load_mission(struct json_object* root, const char* request_id,
+                               const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *mission_id = NULL, *waypoints = NULL;
+    size_t count, index;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "mission_id", &mission_id) ||
+        json_object_get_type(mission_id) != json_type_string ||
+        !json_object_object_get_ex(params, "waypoints", &waypoints) ||
+        json_object_get_type(waypoints) != json_type_array) {
+        send_receipt(sender, request_id, 0, "mission_id and NED waypoints are required", sequence, NULL);
+        return;
+    }
+    count = json_object_array_length(waypoints);
+    if (count == 0 || count > MAX_MISSION_WAYPOINTS) {
+        send_receipt(sender, request_id, 0, "waypoint count is outside contract limit", sequence, NULL);
+        return;
+    }
+    for (index = 0; index < count; ++index) {
+        if (!mission_waypoint_is_valid(json_object_array_get_idx(waypoints, index))) {
+            send_receipt(sender, request_id, 0,
+                         "waypoint must contain finite north_m/east_m/down_m/speed_mps", sequence, NULL);
+            return;
+        }
+    }
+    pthread_mutex_lock(&command_lock);
+    mission.active = 1;
+    mission.waypoint_count = (unsigned)count;
+    strncpy(mission.mission_id, json_object_get_string(mission_id), sizeof(mission.mission_id) - 1);
+    mission.mission_id[sizeof(mission.mission_id) - 1] = '\0';
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence, NULL);
+}
+
 static const HilParameterSpec* find_parameter(const char* name) {
     unsigned i;
     for (i = 0; i < HIL_PARAMETER_COUNT; ++i)
@@ -133,7 +208,10 @@ static void populate_state(void) {
     candidate.r_radps = MODEL_READ_r_radps(&output);
     candidate.airborne = MODEL_READ_airborne(&output) ? 1 : 0;
     candidate.lifecycle = (uint8_t)lifecycle;
-    if (state_is_valid(&candidate)) state = candidate;
+    if (state_is_valid(&candidate)) {
+        state = candidate;
+        have_valid_state = 1;
+    }
     else fprintf(stderr, "[HIL] rejected invalid generated state at sequence %llu\n", (unsigned long long)sequence);
 }
 
@@ -145,6 +223,29 @@ static void queue_lifecycle(int event, const char* request_id, const struct sock
     lifecycle_request.request_id[sizeof(lifecycle_request.request_id) - 1] = '\0';
     lifecycle_request.sender = *sender;
     pthread_mutex_unlock(&command_lock);
+}
+
+static void send_reset_parameter_completion(uint64_t effective_sequence) {
+    PendingResetReceipt completion;
+    struct json_object* fields;
+    unsigned index;
+    pthread_mutex_lock(&command_lock);
+    if (!pending_reset_receipt.pending) { pthread_mutex_unlock(&command_lock); return; }
+    completion = pending_reset_receipt;
+    pending_reset_receipt.pending = 0;
+    pthread_mutex_unlock(&command_lock);
+    fields = json_object_new_object();
+    for (index = 0; index < HIL_PARAMETER_COUNT && index < 64U; ++index) {
+        if (completion.parameter_mask & (1ULL << index)) {
+            struct json_object* detail = json_object_new_object();
+            json_object_object_add(detail, "accepted", json_object_new_boolean(1));
+            json_object_object_add(detail, "reason", json_object_new_string("applied on reset"));
+            json_object_object_add(detail, "effective_sequence", json_object_new_int64((int64_t)effective_sequence));
+            json_object_object_add(fields, HIL_PARAMETER_SPECS[index].name, detail);
+        }
+    }
+    send_receipt(&completion.sender, completion.request_id, 1,
+                 "reset_only parameters applied", effective_sequence, fields);
 }
 
 static void apply_lifecycle_request(void) {
@@ -161,21 +262,35 @@ static void apply_lifecycle_request(void) {
     } else if (request.event == HIL_RUNNING) {
         if (lifecycle != HIL_PAUSED) valid = 0; else lifecycle = HIL_RUNNING;
     } else if (request.event == HIL_ENDED) {
-        if (lifecycle != HIL_RUNNING && lifecycle != HIL_PAUSED) valid = 0; else lifecycle = HIL_ENDED;
+        if (lifecycle != HIL_RUNNING && lifecycle != HIL_PAUSED) valid = 0;
+        else { lifecycle = HIL_ENDED; mission.active = 0; }
     } else if (request.event == HIL_RESETTING) {
         if (lifecycle != HIL_PAUSED && lifecycle != HIL_ENDED && lifecycle != HIL_RUNNING) valid = 0;
         else {
             lifecycle = HIL_RESETTING;
+            /* Never publish a stale pre-reset state while the new model has
+             * not yet emitted a valid normalized state. */
+            have_valid_state = 0;
             model_terminate();
             model_initialize();
             active_input = initial_input;
+            active_parameters = initial_parameters;
             if (pending_reset.generation) active_input = pending_reset.input;
+            if (pending_reset.generation) active_parameters = pending_reset.parameters;
             *model_get_input() = active_input;
+            hil_contract_apply_exported_globals(&active_parameters);
             pending_live.input = active_input;
+            pending_live.parameters = active_parameters;
             pending_live.generation++;
             pending_reset.generation = 0;
+            mission.active = 0;
+            mission.waypoint_count = 0;
+            mission.mission_id[0] = '\0';
             lifecycle = HIL_RUNNING;
             populate_state();
+            /* The reset call occurs before this loop's model_step(); that
+             * next step is the contractual parameter effect boundary. */
+            send_reset_parameter_completion(sequence + 1U);
         }
     } else valid = 0;
     send_receipt(&request.sender, request.request_id, valid,
@@ -189,7 +304,9 @@ static void apply_live_update(void) {
     pthread_mutex_unlock(&command_lock);
     if (snapshot.generation != applied_live_generation) {
         active_input = snapshot.input;
+        active_parameters = snapshot.parameters;
         *model_get_input() = active_input;
+        hil_contract_apply_exported_globals(&active_parameters);
         applied_live_generation = snapshot.generation;
     }
 }
@@ -199,14 +316,19 @@ static void parse_tune(struct json_object* root, const char* request_id,
     struct json_object *params = NULL;
     struct json_object* field_results = json_object_new_object();
     ModelU_t live_candidate, reset_candidate;
-    int ok = 1, has_live = 0, has_reset = 0;
+    HilParameterValues live_parameters, reset_parameters;
+    int ok = 1, has_live = 0, has_reset = 0, reset_slot_busy;
+    uint64_t reset_parameter_mask = 0;
     if (!json_object_object_get_ex(root, "params", &params) ||
         json_object_get_type(params) != json_type_object || json_object_object_length(params) == 0) {
         send_receipt(sender, request_id, 0, "params must be a non-empty object", sequence, field_results); return;
     }
     pthread_mutex_lock(&command_lock);
     live_candidate = pending_live.input;
+    live_parameters = pending_live.parameters;
     reset_candidate = pending_reset.generation ? pending_reset.input : active_input;
+    reset_parameters = pending_reset.generation ? pending_reset.parameters : active_parameters;
+    reset_slot_busy = pending_reset_receipt.pending;
     json_object_object_foreach(params, name, value) {
         const HilParameterSpec* spec = find_parameter(name);
         double number = 0.0; int was_bool = 0; const char* reason = "accepted";
@@ -217,19 +339,35 @@ static void parse_tune(struct json_object* root, const char* request_id,
         else if (!valid_number(value, &number, &was_bool)) { ok = 0; reason = "value must be finite scalar or boolean"; }
         else if (spec->is_bool != was_bool) { ok = 0; reason = "parameter type mismatch"; }
         else if (number < spec->min_value || number > spec->max_value) { ok = 0; reason = "value outside contract range"; }
-        else if (spec->klass == HIL_PARAM_LIVE) { has_live = 1; if (!hil_contract_set_parameter(&live_candidate, name, number)) { ok = 0; reason = "generated setter unavailable"; } }
-        else { has_reset = 1; if (!hil_contract_set_parameter(&reset_candidate, name, number)) { ok = 0; reason = "generated setter unavailable"; } }
+        else if (spec->klass == HIL_PARAM_LIVE) { has_live = 1; if (!hil_contract_set_parameter(&live_candidate, &live_parameters, name, number)) { ok = 0; reason = "generated setter unavailable"; } }
+        else {
+            unsigned parameter_index = (unsigned)(spec - HIL_PARAMETER_SPECS);
+            has_reset = 1;
+            if (reset_slot_busy) { ok = 0; reason = "previous reset-only group is pending"; }
+            else if (parameter_index >= 64U) { ok = 0; reason = "too many reset-only parameters"; }
+            else {
+                reset_parameter_mask |= 1ULL << parameter_index;
+                if (!hil_contract_set_parameter(&reset_candidate, &reset_parameters, name, number)) { ok = 0; reason = "generated setter unavailable"; }
+            }
+        }
         json_object_object_add(detail, "accepted", json_object_new_boolean(!strcmp(reason, "accepted")));
         json_object_object_add(detail, "reason", json_object_new_string(reason));
         json_object_object_add(field_results, name, detail);
     }
     if (ok) {
-        if (has_live) { pending_live.input = live_candidate; pending_live.generation++; }
-        if (has_reset) { pending_reset.input = reset_candidate; pending_reset.generation++; }
+        if (has_live) { pending_live.input = live_candidate; pending_live.parameters = live_parameters; pending_live.generation++; }
+        if (has_reset) {
+            pending_reset.input = reset_candidate; pending_reset.parameters = reset_parameters; pending_reset.generation++;
+            pending_reset_receipt.pending = 1;
+            pending_reset_receipt.parameter_mask = reset_parameter_mask;
+            strncpy(pending_reset_receipt.request_id, request_id, sizeof(pending_reset_receipt.request_id) - 1);
+            pending_reset_receipt.request_id[sizeof(pending_reset_receipt.request_id) - 1] = '\0';
+            pending_reset_receipt.sender = *sender;
+        }
     }
     pthread_mutex_unlock(&command_lock);
-    send_receipt(sender, request_id, ok, ok ? "accepted" : "atomic parameter group rejected",
-                 ok && has_live ? sequence + 1U : sequence, field_results);
+    send_receipt(sender, request_id, ok, ok ? (has_reset ? "queued for reset" : "accepted") : "atomic parameter group rejected",
+                 ok && has_live ? sequence + 1U : (ok && has_reset ? 0U : sequence), field_results);
 }
 
 static void parse_command(const char* text, const struct sockaddr_in* sender) {
@@ -243,6 +381,7 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     }
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
+    else if (!strcmp(command, "load_mission")) parse_load_mission(root, request_id, sender);
     else if (!strcmp(command, "pause")) queue_lifecycle(HIL_PAUSED, request_id, sender);
     else if (!strcmp(command, "resume")) queue_lifecycle(HIL_RUNNING, request_id, sender);
     else if (!strcmp(command, "reset")) queue_lifecycle(HIL_RESETTING, request_id, sender);
@@ -260,13 +399,21 @@ static void* command_thread(void* ignored) {
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
+    if (hil_realtime_init(90) != 0) {
+        fprintf(stderr, "[HIL] SCHED_FIFO/locked memory unavailable; refusing production start\n");
+        return 1;
+    }
     if (udp_init(UDP_CMD_PORT, UDP_STATUS_PORT) != 0) { fprintf(stderr, "UDP initialization failed\n"); return 1; }
     model_initialize();
     initial_input = *model_get_input();
-    hil_contract_apply_defaults(&initial_input);
+    memset(&initial_parameters, 0, sizeof(initial_parameters));
+    hil_contract_apply_defaults(&initial_input, &initial_parameters);
     active_input = initial_input;
+    active_parameters = initial_parameters;
     *model_get_input() = active_input;
-    pending_live.input = active_input; pending_reset.input = active_input;
+    hil_contract_apply_exported_globals(&active_parameters);
+    pending_live.input = active_input; pending_live.parameters = active_parameters;
+    pending_reset.input = active_input; pending_reset.parameters = active_parameters;
     populate_state();
     if (pthread_create(&command_worker, NULL, command_thread, NULL) != 0) { model_terminate(); udp_close(); return 1; }
     clock_gettime(CLOCK_MONOTONIC, &next);
@@ -276,9 +423,18 @@ int main(void) {
         if (lifecycle == HIL_RUNNING) {
             apply_live_update();
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
-        } else { state.lifecycle = (uint8_t)lifecycle; }
-        if (++send_counter >= SEND_INTERVAL) { udp_send_status(&state); udp_send_monitor(&state); send_counter = 0; }
+        } else if (have_valid_state) { state.lifecycle = (uint8_t)lifecycle; }
+        if (++send_counter >= SEND_INTERVAL) {
+            if (have_valid_state) { udp_send_status(&state); udp_send_monitor(&state); }
+            send_counter = 0;
+        }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
+        { struct timespec now; clock_gettime(CLOCK_MONOTONIC, &now);
+          hil_realtime_record_deadline((int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec); }
     }
+    { HilRealtimeStats stats = hil_realtime_stats();
+      fprintf(stderr, "[HIL] realtime samples=%llu p99_abs_lateness_ns=%lld max_abs_lateness_ns=%lld over_250us=%llu non_realtime=%d\n",
+              (unsigned long long)stats.samples, (long long)stats.p99_abs_lateness_ns, (long long)stats.max_abs_lateness_ns,
+              (unsigned long long)stats.over_250us, stats.non_realtime); }
     pthread_join(command_worker, NULL); model_terminate(); udp_close(); return 0;
 }

@@ -1,0 +1,6 @@
+{
+  "gcc": "gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0",
+  "matlab": "/usr/local/MATLAB/R2018b/bin/matlab",
+  "platform": "Linux-5.4.10-rt5-x86_64-with-Ubuntu-18.04-bionic",
+  "python": "3.6.9 (default, Mar 10 2023, 16:46:00) \n[GCC 8.4.0]"
+}

@@ -1,0 +1,17 @@
+{
+  "contract_sha256": "bb961853bd683bd9cf56f7a5c90cbd4bc278468f89ce62c99ed2812bc2626e04",
+  "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T085111Z-runtime-contract/20260727T085141Z-missing_speed",
+  "failed_stage": "VALIDATING",
+  "log_path": "/tmp/hil-contract-acceptance-zcx0uuus/work/20260727T085141Z-missing_speed/build.log",
+  "message": "contract.state.outputs.vd_mps must be a non-empty string",
+  "model_ref": "acceptance-model",
+  "model_revision_ref": "acceptance-r1",
+  "model_sha256": "b4cd79562ed7e21ac8ab507ff9144286776e96f9e730290fc3a8990a1528029b",
+  "package_sha256": "5f2b05b9ddca9520e1e35d3bd73ed362e2d0f429e0ede927617631e34ab33fed",
+  "request_id": "missing_speed",
+  "status": "FAILED",
+  "transitions": [
+    "RECEIVED",
+    "VALIDATING"
+  ]
+}

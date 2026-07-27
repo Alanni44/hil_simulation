@@ -53,8 +53,10 @@ def update(data):
     state = parse_flight_state(data)
     with _lock:
         previous = _latest_raw
-        if previous and state['sequence'] < previous['sequence'] and state['lifecycle'] != 2:
-            raise ValueError('state sequence regressed without reset')
+        if previous and state['sequence'] < previous['sequence']:
+            raise ValueError('state sequence regressed')
+        if previous and state['sim_time_s'] < previous['sim_time_s']:
+            raise ValueError('state simulation time regressed')
         _latest_raw = state
 
 

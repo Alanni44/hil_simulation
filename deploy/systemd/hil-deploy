@@ -1,0 +1,17 @@
+#!/bin/sh
+# Install only the SHA-256 verified descriptor written by the executor.
+set -eu
+name="$1"
+pending="/opt/hil/runtime/pending/${name}.json"
+target="/opt/hil/runtime/verified/${name}_rt"
+test -r "$pending"
+path=$(sed -n 's/.*"executable_path": *"\([^"]*\)".*/\1/p' "$pending")
+sha=$(sed -n 's/.*"executable_sha256": *"\([0-9a-f]*\)".*/\1/p' "$pending")
+test -n "$path" && test -n "$sha"
+test "$(sha256sum "$path" | awk '{print $1}')" = "$sha"
+install -d -m 0750 /opt/hil/runtime/verified
+tmp="${target}.new"
+install -m 0750 "$path" "$tmp"
+test "$(sha256sum "$tmp" | awk '{print $1}')" = "$sha"
+mv -f "$tmp" "$target"
+systemctl restart "hil-core@${name}.service"

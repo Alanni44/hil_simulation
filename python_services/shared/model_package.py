@@ -28,6 +28,7 @@ REQUIRED_UNITS = {
     'p_radps': 'rad/s', 'q_radps': 'rad/s', 'r_radps': 'rad/s',
     'airborne': 'bool',
 }
+DEPENDENCY_KINDS = ('model_ref', 'data_dictionary', 'init_script', 'mat_data', 'custom_code')
 
 
 class PackageError(ValueError):
@@ -140,6 +141,20 @@ def validate_contract(contract):
                 raise PackageError('{}.{} must be a finite scalar'.format(label, key))
         if parameter.get('type') != 'bool' and parameter['min'] > parameter['max']:
             raise PackageError('{}.min must not exceed max'.format(label))
+        if parameter.get('type') != 'bool' and not (parameter['min'] <= parameter['default'] <= parameter['max']):
+            raise PackageError('{}.default must be inside the declared range'.format(label))
+        if parameter.get('class') != 'readonly':
+            binding = parameter.get('binding')
+            if not isinstance(binding, dict):
+                raise PackageError('{}.binding must be an object for writable parameter'.format(label))
+            if binding.get('kind') == 'extu':
+                _require_string(binding.get('field'), label + '.binding.field')
+                if binding['field'] != parameter['generated_field']:
+                    raise PackageError('{}.binding.field must match generated_field'.format(label))
+            elif binding.get('kind') == 'exported_global':
+                _require_string(binding.get('symbol'), label + '.binding.symbol')
+            else:
+                raise PackageError('{}.binding.kind must be extu or exported_global'.format(label))
     return contract
 
 
@@ -162,7 +177,7 @@ def validate_package(package_path, controlled_root, expected_sha256=None):
     manifest = _read_json(os.path.join(package_path, 'package_manifest.json'),
                           'package_manifest.json')
     for key in ('model_ref', 'model_revision_ref', 'top_model', 'matlab_version',
-                'files', 'package_sha256'):
+                'files', 'package_sha256', 'dependencies'):
         if key not in manifest:
             raise PackageError('package_manifest.json missing {}'.format(key))
     for key in ('model_ref', 'model_revision_ref', 'top_model', 'matlab_version',
@@ -170,6 +185,8 @@ def validate_package(package_path, controlled_root, expected_sha256=None):
         _require_string(manifest[key], 'manifest.{}'.format(key))
     if not isinstance(manifest['files'], dict) or not manifest['files']:
         raise PackageError('manifest.files must be a non-empty object')
+    if not isinstance(manifest['dependencies'], list):
+        raise PackageError('manifest.dependencies must be an array')
     top_model = manifest['top_model']
     if not top_model.endswith('.slx') or '/' in top_model or '\\' in top_model:
         raise PackageError('manifest.top_model must name a package-root .slx')
@@ -192,6 +209,26 @@ def validate_package(package_path, controlled_root, expected_sha256=None):
             raise PackageError('file checksum mismatch: {}'.format(relative))
     if not required_files.issubset(set(manifest['files'])):
         raise PackageError('manifest.files must include top_model and hil_contract.json')
+    dependency_paths = []
+    dependency_seen = set()
+    for index, dependency in enumerate(manifest['dependencies']):
+        label = 'manifest.dependencies[{}]'.format(index)
+        if not isinstance(dependency, dict):
+            raise PackageError('{} must be an object'.format(label))
+        relative = _require_string(dependency.get('path'), label + '.path')
+        if relative in dependency_seen:
+            raise PackageError('duplicate dependency path {}'.format(relative))
+        dependency_seen.add(relative)
+        if not relative.startswith('dependencies/') or relative.startswith('/') or '..' in relative.split('/'):
+            raise PackageError('{} must be a safe dependencies/ path'.format(label))
+        if dependency.get('kind') not in DEPENDENCY_KINDS:
+            raise PackageError('{} has unsupported kind'.format(label))
+        if relative not in manifest['files']:
+            raise PackageError('{} is not checksummed in manifest.files'.format(label))
+        resolved = os.path.join(package_path, *relative.split('/'))
+        if not os.path.isfile(resolved):
+            raise PackageError('{} is not a package file'.format(label))
+        dependency_paths.append(resolved)
     actual_sha = package_sha256(package_path)
     if manifest['package_sha256'] != actual_sha:
         raise PackageError('package_sha256 mismatch')
@@ -202,4 +239,6 @@ def validate_package(package_path, controlled_root, expected_sha256=None):
     if contract['model_name'] != os.path.splitext(top_model)[0]:
         raise PackageError('contract.model_name must match manifest.top_model')
     return {'path': package_path, 'manifest': manifest, 'contract': contract,
-            'package_sha256': actual_sha, 'contract_sha256': sha256_file(contract_path)}
+            'package_sha256': actual_sha, 'contract_sha256': sha256_file(contract_path),
+            'dependency_paths': dependency_paths,
+            'dependency_relpaths': [item['path'] for item in manifest['dependencies']]}

@@ -4,13 +4,19 @@ function build_script(task_file, result_file)
 % No port aliases, inferred constants or default output values are generated.
     try
         task = read_json(task_file);
-        require_task(task, {'model_name','slx_path','contract_path','output_dir','executable_dir'});
+        require_task(task, {'model_name','slx_path','contract_path','output_dir','executable_dir','matlab_version','package_root','dependency_paths'});
         model_name = task.model_name;
         slx_path = task.slx_path;
         contract_path = task.contract_path;
         output_dir = task.output_dir;
         executable_dir = task.executable_dir;
+        package_root = task.package_root;
+        dependency_paths = as_cell(task.dependency_paths);
         contract = read_json(contract_path);
+        executor_matlab = ['R' version('-release')];
+        if ~strcmp(executor_matlab, task.matlab_version)
+            error('Package MATLAB version %s does not match executor %s', task.matlab_version, executor_matlab);
+        end
         if ~strcmp(contract.model_name, model_name)
             error('task model_name and contract.model_name differ');
         end
@@ -21,6 +27,16 @@ function build_script(task_file, result_file)
         script_dir = fileparts(mfilename('fullpath'));
         hil_root = fileparts(script_dir);
         c_core_src = fullfile(hil_root, 'c_core', 'src');
+        % Python copied only a verified package and supplied only manifest
+        % dependency paths.  Do not use genpath or ambient user directories.
+        added_paths = {package_root};
+        for i = 1:length(dependency_paths)
+            dependency_dir = fileparts(dependency_paths{i});
+            if ~exist(dependency_paths{i}, 'file'), error('Verified dependency is missing: %s', dependency_paths{i}); end
+            if ~any(strcmp(added_paths, dependency_dir)), added_paths{end+1} = dependency_dir; end %#ok<AGROW>
+        end
+        for i = 1:length(added_paths), addpath(added_paths{i}); end
+        path_cleanup = onCleanup(@() remove_paths(added_paths)); %#ok<NASGU>
         interface_json = fullfile(output_dir, [model_name '_interface.json']);
         analyze_model(slx_path, interface_json);
         adapted_slx = fullfile(output_dir, [model_name '_contract_copy.slx']);
@@ -58,8 +74,8 @@ function build_script(task_file, result_file)
         end
         u_fields = parse_struct_fields_with_types(model_h, u_type);
         y_fields = parse_struct_fields_with_types(model_h, y_type);
-        validate_contract_abi(contract, y_fields, u_fields);
-        generate_contract_header(fullfile(code_dir, 'model_contract.h'), contract, y_fields, u_fields);
+        exported_globals = validate_contract_abi(contract, y_fields, u_fields, model_h);
+        generate_contract_header(fullfile(code_dir, 'model_contract.h'), contract, y_fields, u_fields, exported_globals);
         generate_bridge_header(fullfile(code_dir, 'model_rt_bridge.h'), model_name, u_type, y_type);
 
         c_files = dir(fullfile(code_dir, '*.c'));
@@ -68,9 +84,13 @@ function build_script(task_file, result_file)
         cmd = sprintf(['gcc -O2 -Wall -pthread -I"%s" -I"%s" ' ...
             '-DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h %s ' ...
             '"%s/main_rt.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
-            '"%s/hal_stub.c" -lm -lrt -ljson-c -o "%s"'], ...
-            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
+            '"%s/hal_stub.c" "%s/realtime.c" -lm -lrt -ljson-c -o "%s"'], ...
+            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
         [status, output] = system(cmd);
+        % ``system`` captures GCC output, so explicitly relay both the exact
+        % invocation and its output into MATLAB stdout for build.log audit.
+        fprintf('[HIL] GCC command: %s\n', cmd);
+        if ~isempty(output), fprintf('[HIL] GCC output:\n%s\n', output); end
         if status ~= 0, error('GCC failed: %s', output); end
         write_json(result_file, struct('code', 0, 'message', 'Build successful', ...
             'exe_path', exe_path, 'model_name', model_name, ...
@@ -82,7 +102,7 @@ end
 
 function require_task(task, names)
     for i = 1:length(names)
-        if ~isfield(task, names{i}) || isempty(task.(names{i}))
+        if ~isfield(task, names{i}) || (isempty(task.(names{i})) && ~strcmp(names{i}, 'dependency_paths'))
             error('Build task missing %s', names{i});
         end
     end
@@ -121,7 +141,8 @@ function fields = parse_struct_fields_with_types(header_path, struct_name)
     if isempty(fields), error('Generated ABI struct %s has no scalar fields', struct_name); end
 end
 
-function validate_contract_abi(contract, y_fields, u_fields)
+function exported_globals = validate_contract_abi(contract, y_fields, u_fields, model_header)
+    exported_globals = struct('name', {}, 'type', {});
     required = required_state_fields();
     if ~isfield(contract, 'state') || ~isfield(contract.state, 'outputs') || ...
             ~isfield(contract.state, 'units')
@@ -157,8 +178,19 @@ function validate_contract_abi(contract, y_fields, u_fields)
             f = lookup_field(y_fields, p.generated_field);
             if isempty(f), error('Readonly generated_field does not exist in ExtY: %s', p.generated_field); end
         else
-            f = lookup_field(u_fields, p.generated_field);
-            if isempty(f), error('Writable generated_field does not exist in ExtU: %s', p.generated_field); end
+            binding = parameter_binding(p);
+        if strcmp(binding.kind, 'extu')
+            if ~strcmp(binding.field, p.generated_field), error('ExtU binding field must match generated_field'); end
+            f = lookup_field(u_fields, binding.field);
+            if isempty(f), error('Writable generated_field does not exist in ExtU: %s', binding.field); end
+        elseif strcmp(binding.kind, 'exported_global')
+            f = find_exported_global(model_header, binding.symbol);
+            if isempty(f), error('ExportedGlobal symbol not declared in generated header: %s', binding.symbol); end
+            exported_globals(end+1).name = binding.symbol; %#ok<AGROW>
+            exported_globals(end).type = f.type;
+        else
+            error('Unsupported parameter binding');
+        end
         end
         if strcmp(p.type, 'bool')
             if ~is_bool_type(f.type), error('Parameter %s boolean ABI mismatch', p.name); end
@@ -169,7 +201,7 @@ function validate_contract_abi(contract, y_fields, u_fields)
     end
 end
 
-function generate_contract_header(path, contract, y_fields, u_fields)
+function generate_contract_header(path, contract, y_fields, u_fields, exported_globals)
     fid = fopen(path, 'w'); if fid < 0, error('Cannot write model_contract.h'); end
     fprintf(fid, '#ifndef HIL_MODEL_CONTRACT_H\n#define HIL_MODEL_CONTRACT_H\n#include <string.h>\n');
     required = required_state_fields();
@@ -179,8 +211,9 @@ function generate_contract_header(path, contract, y_fields, u_fields)
     end
     params = as_cell(contract.parameters);
     fprintf(fid, 'enum { HIL_PARAM_LIVE=1, HIL_PARAM_RESET_ONLY=2, HIL_PARAM_READONLY=3 };\n');
-    fprintf(fid, 'typedef struct { const char* name; int klass; double min_value; double max_value; int is_bool; unsigned phase_mask; } HilParameterSpec;\n');
     fprintf(fid, '#define HIL_PARAMETER_COUNT %d\n', length(params));
+    fprintf(fid, 'typedef struct { double value[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1]; } HilParameterValues;\n');
+    fprintf(fid, 'typedef struct { const char* name; int klass; double min_value; double max_value; int is_bool; unsigned phase_mask; } HilParameterSpec;\n');
     fprintf(fid, 'static const HilParameterSpec HIL_PARAMETER_SPECS[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1] = {\n');
     for i = 1:length(params)
         p = params{i};
@@ -188,11 +221,19 @@ function generate_contract_header(path, contract, y_fields, u_fields)
     end
     if isempty(params), fprintf(fid, '{"",0,0,0,0,0},\n'); end
     fprintf(fid, '};\n');
+    for i = 1:length(exported_globals)
+        fprintf(fid, 'extern %s %s;\n', exported_globals(i).type, exported_globals(i).name);
+    end
     fprintf(fid, 'static unsigned hil_contract_phase_mask(const char* name) { unsigned i; for (i=0; i<HIL_PARAMETER_COUNT; ++i) if (!strcmp(HIL_PARAMETER_SPECS[i].name,name)) return HIL_PARAMETER_SPECS[i].phase_mask; return 0; }\n');
-    fprintf(fid, 'static void hil_contract_apply_defaults(ModelU_t* u) {\n');
+    fprintf(fid, 'static void hil_contract_apply_defaults(ModelU_t* u, HilParameterValues* values) {\n');
     for i = 1:length(params)
         p = params{i};
         if strcmp(p.class, 'readonly')
+            continue;
+        end
+        fprintf(fid, 'values->value[%d] = %.17g;\n', i - 1, numeric_parameter_default(p));
+        binding = parameter_binding(p);
+        if strcmp(binding.kind, 'exported_global')
             continue;
         end
         if strcmp(p.type, 'bool')
@@ -202,18 +243,35 @@ function generate_contract_header(path, contract, y_fields, u_fields)
         end
     end
     fprintf(fid, '}\n');
-    fprintf(fid, 'static int hil_contract_set_parameter(ModelU_t* u, const char* name, double value) {\n');
+    fprintf(fid, 'static void hil_contract_apply_exported_globals(const HilParameterValues* values) {\n');
     for i = 1:length(params)
         p = params{i};
         if ~strcmp(p.class, 'readonly')
-            if strcmp(p.type, 'bool')
-                fprintf(fid, 'if (!strcmp(name,"%s")) { u->%s = value != 0.0; return 1; }\n', p.name, p.generated_field);
-            else
-                fprintf(fid, 'if (!strcmp(name,"%s")) { u->%s = (%s)value; return 1; }\n', p.name, p.generated_field, c_cast_type(p.type));
+            binding = parameter_binding(p);
+            if strcmp(binding.kind, 'exported_global')
+                fprintf(fid, '%s = (%s)values->value[%d];\n', binding.symbol, c_cast_type(p.type), i - 1);
             end
         end
     end
-    fprintf(fid, '(void)u; (void)name; (void)value; return 0; }\n#endif\n'); fclose(fid);
+    fprintf(fid, '}\n');
+    fprintf(fid, 'static int hil_contract_set_parameter(ModelU_t* u, HilParameterValues* values, const char* name, double value) {\n');
+    for i = 1:length(params)
+        p = params{i};
+        if ~strcmp(p.class, 'readonly')
+            binding = parameter_binding(p);
+            fprintf(fid, 'if (!strcmp(name,"%s")) { values->value[%d] = value; ', p.name, i - 1);
+            if strcmp(binding.kind, 'exported_global')
+                fprintf(fid, 'return 1; }\n');
+                continue;
+            end
+            if strcmp(p.type, 'bool')
+                fprintf(fid, 'u->%s = value != 0.0; return 1; }\n', p.generated_field);
+            else
+                fprintf(fid, 'u->%s = (%s)value; return 1; }\n', p.generated_field, c_cast_type(p.type));
+            end
+        end
+    end
+    fprintf(fid, '(void)u; (void)values; (void)name; (void)value; return 0; }\n#endif\n'); fclose(fid);
 end
 
 function generate_bridge_header(path, model_name, u_type, y_type)
@@ -240,6 +298,15 @@ function field = lookup_field(fields, name)
     end
 end
 
+function field = find_exported_global(header_path, symbol)
+    content = fileread(header_path);
+    token = regexp(content, ['extern\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+' regexptranslate('escape', symbol) '\\s*;'], 'tokens', 'once');
+    field = [];
+    if ~isempty(token), field = struct('name', symbol, 'type', token{1}); end
+end
+function binding = parameter_binding(parameter), if ~isfield(parameter, 'binding'), error('Writable parameter binding is required'); end, binding = parameter.binding; end
+function value = numeric_parameter_default(parameter), if islogical(parameter.default), value = double(parameter.default); else, value = parameter.default; end, end
+
 function yes = is_numeric_type(type)
     yes = any(strcmp(type, {'real_T','real32_T','real64_T','double','float','int8_T','uint8_T','int16_T','uint16_T','int32_T','uint32_T','int64_T','uint64_T'}));
 end
@@ -263,6 +330,7 @@ function mask = phase_mask_for_parameter(parameter)
     if mask == 0, error('Parameter allowed_phases must not be empty'); end
 end
 function close_model_without_save(model_name), if bdIsLoaded(model_name), close_system(model_name, 0); end, end
+function remove_paths(paths), for i = 1:length(paths), if exist(paths{i}, 'dir'), rmpath(paths{i}); end, end, end
 function fields = required_state_fields(), fields = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps','q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'}; end
 function unit = required_unit(field)
     units = struct('north_m','m','east_m','m','down_m','m','vn_mps','m/s','ve_mps','m/s','vd_mps','m/s','q_w','1','q_x','1','q_y','1','q_z','1','p_radps','rad/s','q_radps','rad/s','r_radps','rad/s','airborne','bool'); unit = units.(field);

@@ -29,7 +29,8 @@ class ModelPackageTests(unittest.TestCase):
                               'outputs': {field: field for field in FIELDS}, 'units': UNITS},
                     'parameters': [{'name': 'gain', 'generated_field': 'gain', 'type': 'double',
                                     'unit': '1', 'default': 1.0, 'min': 0.0, 'max': 10.0,
-                                    'class': 'live', 'allowed_phases': ['RUNNING', 'PAUSED']}]}
+                                    'class': 'live', 'allowed_phases': ['RUNNING', 'PAUSED'],
+                                    'binding': {'kind': 'extu', 'field': 'gain'}}]}
         with open(os.path.join(self.package, 'hil_contract.json'), 'w') as out: json.dump(contract, out)
         self._write_manifest()
 
@@ -41,7 +42,8 @@ class ModelPackageTests(unittest.TestCase):
             with open(os.path.join(self.package, name), 'rb') as source:
                 files[name] = hashlib.sha256(source.read()).hexdigest()
         manifest = {'model_ref': 'external-42', 'model_revision_ref': 'rev-3', 'top_model': 'example.slx',
-                    'matlab_version': 'R2018b', 'files': files, 'package_sha256': package_sha256(self.package)}
+                    'matlab_version': 'R2018b', 'files': files, 'dependencies': [],
+                    'package_sha256': package_sha256(self.package)}
         with open(os.path.join(self.package, 'package_manifest.json'), 'w') as out: json.dump(manifest, out)
 
     def test_valid_local_package_has_explicit_verified_contract(self):
@@ -63,6 +65,47 @@ class ModelPackageTests(unittest.TestCase):
 
     def test_outside_controlled_root_is_rejected(self):
         with self.assertRaises(PackageError): validate_package(self.package, os.path.join(self.temp.name, 'elsewhere'))
+
+    def test_undeclared_payload_file_is_rejected(self):
+        with open(os.path.join(self.package, 'dependencies.txt'), 'w') as output:
+            output.write('not checksummed')
+        with self.assertRaises(PackageError): validate_package(self.package, self.root)
+
+    def test_parameter_default_outside_its_contract_range_is_rejected(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract['parameters'][0]['default'] = 11.0
+        with open(contract_path, 'w') as out:
+            json.dump(contract, out)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root)
+
+    def test_declared_dependency_path_is_returned(self):
+        dependency_dir = os.path.join(self.package, 'dependencies')
+        os.makedirs(dependency_dir)
+        dependency = os.path.join(dependency_dir, 'init_model.m')
+        with open(dependency, 'w') as output:
+            output.write('% fixture')
+        manifest = json.load(open(os.path.join(self.package, 'package_manifest.json')))
+        with open(dependency, 'rb') as source:
+            manifest['files']['dependencies/init_model.m'] = hashlib.sha256(source.read()).hexdigest()
+        manifest['dependencies'] = [{'path': 'dependencies/init_model.m', 'kind': 'init_script'}]
+        manifest['package_sha256'] = package_sha256(self.package)
+        with open(os.path.join(self.package, 'package_manifest.json'), 'w') as output:
+            json.dump(manifest, output)
+        self.assertEqual([dependency], validate_package(self.package, self.root)['dependency_paths'])
+
+    def test_writable_parameter_rejects_unknown_binding(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        contract = json.load(open(contract_path))
+        contract['parameters'][0]['binding'] = {'kind': 'p_struct_offset', 'field': 'gain'}
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root)
 
 
 if __name__ == '__main__': unittest.main()

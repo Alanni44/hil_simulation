@@ -1,0 +1,17 @@
+{
+  "contract_sha256": "f165014b3a52298c66ae07c5358478fc0e06e81f4f7726defc2efac4d70e1636",
+  "evidence_path": "/home/user/\u684c\u9762/hil_simulation/artifacts/acceptance/20260727T083102Z-runtime-contract/20260727T083131Z-missing_attitude",
+  "failed_stage": "VALIDATING",
+  "log_path": "/tmp/hil-contract-acceptance-z42yls6m/work/20260727T083131Z-missing_attitude/build.log",
+  "message": "contract.state.outputs.q_z must be a non-empty string",
+  "model_ref": "acceptance-model",
+  "model_revision_ref": "acceptance-r1",
+  "model_sha256": "b63390665c4d06043eeca97b0a5064acff74aefd471df1c3eced2fb0680061b9",
+  "package_sha256": "3aae16fcf72106aa656bdb5287456d7443f8f5406171bd19df4feb9353595210",
+  "request_id": "missing_attitude",
+  "status": "FAILED",
+  "transitions": [
+    "RECEIVED",
+    "VALIDATING"
+  ]
+}

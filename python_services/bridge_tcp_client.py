@@ -35,24 +35,11 @@ _running = True
 _seq = 0
 _seq_lock = threading.Lock()
 
-_current_mission_id = 'mission_001'
+_current_mission_id = None
 _pending_waypoints = None
+_mission_queue = []
 _event_queue = []
 _queue_lock = threading.Lock()
-
-# 默认圆形航线 (V2.0 测试用)
-_DEFAULT_WAYPOINTS = [
-    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
-    {'x': 28.8, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
-    {'x': 22.8, 'y': 28.8, 'height': 10.0, 'speed': 5.0},
-    {'x': 15.0, 'y': 30.0, 'height': 10.0, 'speed': 5.0},
-    {'x': 7.2, 'y': 22.8, 'height': 10.0, 'speed': 5.0},
-    {'x': 1.2, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
-    {'x': 7.2, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
-    {'x': 15.0, 'y': 0.0, 'height': 10.0, 'speed': 5.0},
-    {'x': 22.8, 'y': 7.2, 'height': 10.0, 'speed': 5.0},
-    {'x': 30.0, 'y': 15.0, 'height': 10.0, 'speed': 5.0},
-]
 
 
 def _next_seq():
@@ -65,8 +52,8 @@ def _next_seq():
 def _sanitize(obj):
     if isinstance(obj, float):
         import math
-        if math.isnan(obj) or math.isinf(obj):
-            return 0.0
+        if not math.isfinite(obj):
+            raise ValueError('refusing non-finite value for UE4 protocol')
         return obj
     if isinstance(obj, dict):
         return {k: _sanitize(v) for k, v in obj.items()}
@@ -110,11 +97,16 @@ def _frame_recv(sock, timeout=0.5):
 
 
 def send_mission_plan(mission_id, waypoints):
-    """非阻塞：存储航点供 bridge 下一次连接时发送"""
+    """Queue an externally accepted NED-derived route for UE4 delivery.
+
+    There is deliberately no built-in route.  A mission must have passed the
+    C-core ``load_mission`` validation before this function is called.
+    """
     global _current_mission_id, _pending_waypoints
     _current_mission_id = mission_id
-    if waypoints:
-        _pending_waypoints = list(waypoints)
+    _pending_waypoints = list(waypoints)
+    with _queue_lock:
+        _mission_queue.append((mission_id, list(waypoints)))
 
 
 def send_simulation_event(event_name, mission_id=''):
@@ -210,13 +202,16 @@ def _run():
                 continue
             logger.info("hello acked")
 
-            # ---- step 2: mission_plan → ACK ----
-            wps = _pending_waypoints if _pending_waypoints else _DEFAULT_WAYPOINTS
-            if not _build_and_send_mission_plan(s, _current_mission_id, wps):
-                logger.error("mission_plan failed, reconnecting")
-                s.close()
-                time.sleep(3)
-                continue
+            # ---- step 2: externally accepted mission_plan, if any ----
+            # A model deployment does not fabricate a route.  When no route
+            # has been accepted yet, UE4 still receives normalized vehicle
+            # state and the later load_mission request is sent below.
+            if _pending_waypoints is not None:
+                if not _build_and_send_mission_plan(s, _current_mission_id, _pending_waypoints):
+                    logger.error("mission_plan failed, reconnecting")
+                    s.close()
+                    time.sleep(3)
+                    continue
 
             # 此时 StateManager 已建立任务，标记连接就绪
             _connected.set()
@@ -255,8 +250,20 @@ def _run():
                             resp.get('data', {}).get('message', '?')))
 
                 with _queue_lock:
+                    missions = list(_mission_queue)
+                    _mission_queue[:] = []
                     events = list(_event_queue)
                     _event_queue.clear()
+                # The first route may have been sent during the handshake;
+                # discard the matching queued notification rather than emit
+                # it twice.  Subsequent externally approved routes are sent
+                # on this already-established connection.
+                if missions and _pending_waypoints is not None and \
+                        missions[0] == (_current_mission_id, _pending_waypoints):
+                    missions = missions[1:]
+                for mission_id, waypoints in missions:
+                    if not _build_and_send_mission_plan(s, mission_id, waypoints):
+                        logger.warning("mission_plan delivery failed: %s", mission_id)
                 for event_name, mission_id in events:
                     ev_seq = _next_seq()
                     msg = {

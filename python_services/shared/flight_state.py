@@ -36,6 +36,8 @@ def parse_flight_state(data):
 
 
 def validate_flight_state(state):
+    if state['version'] != 1:
+        raise ValueError('unsupported state version {}'.format(state['version']))
     for field in ('sim_time_s', 'north_m', 'east_m', 'down_m', 'vn_mps', 've_mps',
                   'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z', 'p_radps', 'q_radps', 'r_radps'):
         if not math.isfinite(state[field]):

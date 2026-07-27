@@ -1,0 +1,15 @@
+[Unit]
+Description=Install verified HIL core (%i)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=hil
+Group=hil
+ExecStart=/opt/hil/bin/hil-deploy %i
+CapabilityBoundingSet=CAP_SYS_NICE CAP_IPC_LOCK
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/hil/runtime
