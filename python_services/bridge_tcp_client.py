@@ -62,6 +62,30 @@ def _sanitize(obj):
     return obj
 
 
+def validate_mission_plan(mission_id, waypoints):
+    import math
+    if not isinstance(mission_id, str) or not mission_id:
+        raise ValueError('mission_id must be a non-empty string')
+    if not isinstance(waypoints, list) or len(waypoints) < 2:
+        raise ValueError('mission_plan requires at least two waypoints')
+    validated = []
+    for index, waypoint in enumerate(waypoints):
+        if not isinstance(waypoint, dict):
+            raise ValueError('waypoint {} must be an object'.format(index))
+        required = ('x', 'y', 'height')
+        if any(key not in waypoint for key in required):
+            raise ValueError('waypoint {} lacks x/y/height'.format(index))
+        value = {'x': waypoint['x'], 'y': waypoint['y'], 'height': waypoint['height'],
+                 'speed': waypoint.get('speed', 5.0)}
+        for key, number in value.items():
+            if (not isinstance(number, (int, float)) or isinstance(number, bool) or
+                    not math.isfinite(number)):
+                raise ValueError('waypoint {} has invalid {}'.format(index, key))
+        _sanitize(value)
+        validated.append(value)
+    return validated
+
+
 def _frame_send(sock, data):
     clean = _sanitize(data)
     body = json.dumps(clean).encode('utf-8')
@@ -103,13 +127,15 @@ def send_mission_plan(mission_id, waypoints):
     C-core ``load_mission`` validation before this function is called.
     """
     global _current_mission_id, _pending_waypoints
+    validated = validate_mission_plan(mission_id, waypoints)
     _current_mission_id = mission_id
-    _pending_waypoints = list(waypoints)
+    _pending_waypoints = validated
     with _queue_lock:
-        _mission_queue.append((mission_id, list(waypoints)))
+        _mission_queue.append((mission_id, validated))
 
 
 def send_simulation_event(event_name, mission_id=''):
+    event_name = state_cache.v2_event_name(event_name)
     with _queue_lock:
         _event_queue.append((event_name, mission_id))
 
@@ -121,13 +147,13 @@ def is_connected():
 def _build_and_send_mission_plan(sock, mission_id, waypoints):
     """发送 mission_plan 并等待 ACK，返回 True/False"""
     wps = []
-    for i, wp in enumerate(waypoints):
+    for i, wp in enumerate(validate_mission_plan(mission_id, waypoints)):
         wps.append({
             'id': 'P{}'.format(i + 1),
-            'x': wp.get('x', 0),
-            'y': wp.get('y', 0),
-            'height': wp.get('height', 0),
-            'target_speed': wp.get('speed', 5),
+            'x': wp['x'],
+            'y': wp['y'],
+            'height': wp['height'],
+            'target_speed': wp['speed'],
         })
     msg = {
         'protocol_version': '2.0',
@@ -218,10 +244,20 @@ def _run():
 
             # ---- step 3: vehicle_state @50Hz ----
             def vehicle_state_sender():
+                next_send = time.monotonic()
+                stale_flagged = False
+                stale_warned = False
                 while _connected.is_set():
-                    vs = state_cache.get_vehicle_state_v2(
-                        _current_mission_id, 50)
+                    next_send += 0.02
+                    try:
+                        vs = state_cache.get_vehicle_state_v2(
+                            _current_mission_id, 50)
+                    except ValueError as exc:
+                        logger.warning("vehicle_state withheld: {}".format(exc))
+                        vs = None
                     if vs is not None:
+                        stale_flagged = False
+                        stale_warned = False
                         try:
                             vs['seq'] = _next_seq()
                             _frame_send(s, vs)
@@ -230,7 +266,15 @@ def _run():
                                 "vehicle_state send failed: {}".format(e))
                             _connected.clear()
                             break
-                    time.sleep(0.02)
+                    else:
+                        age = state_cache.state_age_s()
+                        if age is not None and age > 0.5 and not stale_flagged:
+                            logger.warning("vehicle_state stale for {:.3f}s; withholding state frame".format(age))
+                            stale_flagged = True
+                        if age is not None and age > 2.0 and not stale_warned:
+                            logger.warning("vehicle_state stale for {:.3f}s".format(age))
+                            stale_warned = True
+                    time.sleep(max(0.0, next_send - time.monotonic()))
 
             sender_t = threading.Thread(
                 target=vehicle_state_sender, daemon=True)

@@ -110,15 +110,19 @@ def _tcp_send_frame(sock, value):
 def receive_ue4_vehicle_packet(packet_log, runtime_log_path, source_state):
     """Run a TCP UE4 protocol peer and capture an actual bridge vehicle_state."""
     known = dict(source_state)
-    known.update({'sequence': 999, 'sim_time_s': 1.0, 'north_m': 10.0, 'east_m': 20.0,
+    known.update({'sequence': source_state['sequence'] + 1000000,
+                  'sim_time_s': source_state['sim_time_s'] + 1.0,
+                  'north_m': 10.0, 'east_m': 20.0,
                   'down_m': 30.0, 'vn_mps': 4.0, 've_mps': 5.0, 'vd_mps': 6.0,
                   'q_w': 0.7071067811865476, 'q_x': 0.0, 'q_y': 0.0,
                   'q_z': 0.7071067811865476, 'p_radps': 0.0, 'q_radps': 0.0,
-                  'r_radps': 0.0, 'airborne': 1, 'lifecycle': 0, 'reserved': 0})
+                  'r_radps': 0.0, 'ax_mps2': 4.0, 'ay_mps2': 5.0, 'az_mps2': 6.0,
+                  'airborne': 1, 'lifecycle': 0, 'reserved': 0})
     state_cache.update(struct.pack(FLIGHT_STATE_FORMAT, *[
         known[key] for key in ('version', 'sequence', 'sim_time_s', 'north_m', 'east_m', 'down_m',
                                'vn_mps', 've_mps', 'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z',
-                               'p_radps', 'q_radps', 'r_radps', 'airborne', 'lifecycle', 'reserved')]))
+                               'p_radps', 'q_radps', 'r_radps', 'ax_mps2', 'ay_mps2', 'az_mps2',
+                               'airborne', 'lifecycle', 'reserved')]))
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(('127.0.0.1', 5001)); server.listen(1); server.settimeout(8)
@@ -127,7 +131,8 @@ def receive_ue4_vehicle_packet(packet_log, runtime_log_path, source_state):
     bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', 5001, True
     try:
         bridge.send_mission_plan('acceptance-route', [
-            {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0}])
+            {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0},
+            {'x': 150.0, 'y': 220.0, 'height': 35.0, 'speed': 7.0}])
         bridge.start_bridge()
         peer, _ = server.accept(); peer.settimeout(5)
         hello = _tcp_recv_frame(peer)
@@ -279,7 +284,8 @@ def main():
                     record(assertions, 'normalized_ned_state', first['sequence'] > 0 and first['q_w'] == 1.0 and first['airborne'] == 1, first)
                     mission = core_command(command, packet_log, 'mission-ned', 'load_mission', {
                         'mission_id': 'acceptance-route', 'waypoints': [
-                            {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0}]})
+                            {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0},
+                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}]})
                     record(assertions, 'ned_mission_receipt', mission.get('accepted'), mission)
                     tune = core_command(command, packet_log, 'gain-live', 'tune', {'gain': 2.0})
                     record(assertions, 'live_parameter_receipt', tune.get('accepted') and tune['effective_sequence'] >= first['sequence'], tune)
@@ -287,6 +293,26 @@ def main():
                     record(assertions, 'readonly_parameter_rejected', not readonly.get('accepted') and readonly.get('fields', {}).get('north_diagnostic', {}).get('reason') == 'readonly', readonly)
                     changed = recv_matching(status, packet_log, lambda state: state['sequence'] > tune['effective_sequence'])
                     record(assertions, 'live_gain_effect', changed['vn_mps'] == 2.0 and changed['sequence'] > tune['effective_sequence'], changed)
+                    inputs = core_command(command, packet_log, 'inputs-live', 'set_inputs', {
+                        'flight_control': {'throttle': 0.5, 'roll_cmd': 0.1},
+                        'environment': {'wind_n_mps': 3.0},
+                        'fault': {'packet_loss_ratio': 0.02}})
+                    record(assertions, 'contract_inputs_receipt', inputs.get('accepted') and
+                           inputs['effective_sequence'] >= changed['sequence'], inputs)
+                    after_inputs = recv_matching(status, packet_log,
+                                                 lambda state: state['sequence'] > inputs['effective_sequence'])
+                    record(assertions, 'contract_input_effect_at_step_boundary',
+                           after_inputs['vn_mps'] == 2.5, after_inputs)
+                    rejected_inputs = core_command(command, packet_log, 'inputs-atomic-reject', 'set_inputs', {
+                        'flight_control': {'throttle': 0.7},
+                        'fault': {'packet_loss_ratio': 1.2}})
+                    record(assertions, 'contract_input_atomic_rejection',
+                           not rejected_inputs.get('accepted') and
+                           rejected_inputs.get('reason') == 'atomic input group rejected', rejected_inputs)
+                    unchanged = recv_matching(status, packet_log,
+                                              lambda state: state['sequence'] > rejected_inputs['effective_sequence'])
+                    record(assertions, 'contract_input_rejection_leaves_model_unchanged',
+                           unchanged['vn_mps'] == 2.5, unchanged)
                     paused = core_command(command, packet_log, 'pause', 'pause', {})
                     record(assertions, 'pause_receipt', paused.get('accepted'), paused)
                     p1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 1)
@@ -324,6 +350,9 @@ def main():
                            ue4_mission['data']['waypoints'][0]['height'] == 30.0,
                            ue4_mission)
                     record(assertions, 'ue4_protocol_ned_axes_and_90_yaw', ue4['position'] == {'x':10.0,'y':20.0,'height':-30.0} and abs(ue4['attitude']['yaw'] - 1.57079632679) < 1e-6 and ue4['velocity']['vz'] == -6.0, vehicle)
+                    record(assertions, 'ue4_protocol_acceleration_and_semantics',
+                           ue4['acceleration'] == {'ax':4.0,'ay':5.0,'az':-6.0} and
+                           'flight_state' not in ue4 and ue4['rate_hz'] == 50, vehicle)
                 old_process = ws_server.ACTIVE_CORE
                 old = old_process.pid
                 second = submit(package_root, package_dir, 'second-deploy', 'deploy'); responses['second'] = second

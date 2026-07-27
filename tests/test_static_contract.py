@@ -28,6 +28,9 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('Generated ExtY field missing', source)
         self.assertIn('model_contract.h', source)
         self.assertIn('[HIL] GCC command:', source)
+        self.assertIn('validate_input_contract_abi(contract, u_fields)', source)
+        self.assertIn('hil_contract_set_input', source)
+        self.assertIn('MODEL_READ_ax_mps2', source)
         self.assertNotIn('MODEL_DEFAULT_', source)
 
     def test_core_has_fixed_state_receipts_and_lifecycle(self):
@@ -44,6 +47,9 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('if (have_valid_state)', source)
         self.assertIn('parse_load_mission', source)
         self.assertIn('finite north_m/east_m/down_m/speed_mps', source)
+        self.assertIn('parse_set_inputs', source)
+        self.assertIn('atomic input group rejected', source)
+        self.assertIn('MODEL_READ_az_mps2', source)
 
     def test_core_enables_realtime_scheduler_and_memory_lock(self):
         source = read('c_core/src/realtime.c')
@@ -68,12 +74,17 @@ class RuntimeContractStaticTests(unittest.TestCase):
         cache = read('python_services/shared/state_cache.py')
         self.assertIn("unsupported state version", parser)
         self.assertIn("state simulation time regressed", cache)
+        self.assertIn("'acceleration'", cache)
+        self.assertIn("'flight_state' not", read('tests/test_v2_protocol.py'))
 
     def test_bridge_does_not_fabricate_default_mission_or_nonfinite_values(self):
         source = read('python_services/bridge_tcp_client.py')
         self.assertNotIn('_DEFAULT_WAYPOINTS', source)
         self.assertIn("raise ValueError('refusing non-finite value for UE4 protocol')", source)
         self.assertIn('_mission_queue.append', source)
+        self.assertIn('validate_mission_plan', source)
+        self.assertIn("state_rate_hz': 50", source)
+        self.assertIn("state_cache.v2_event_name", source)
 
     def test_build_request_is_controlled_and_auditable(self):
         source = read('python_services/ws_server.py')
@@ -102,6 +113,9 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn("'skipped': []", source)
         ws = read('python_services/ws_server.py')
         self.assertIn("if lifecycle_event and receipt.get('accepted')", ws)
+        self.assertIn("elif cmd == 'set_inputs'", ws)
+        self.assertIn("'inputs-atomic-reject'", source)
+        self.assertIn("'contract_input_effect_at_step_boundary'", source)
 
 
 if __name__ == '__main__': unittest.main()

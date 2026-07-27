@@ -29,6 +29,26 @@ REQUIRED_UNITS = {
     'airborne': 'bool',
 }
 DEPENDENCY_KINDS = ('model_ref', 'data_dictionary', 'init_script', 'mat_data', 'custom_code')
+REQUIRED_EXECUTION_LOCKS = (
+    'solver_step_s', 'model_topology', 'port_schema', 'communication_endpoint',
+)
+REQUIRED_ENVIRONMENT_PORTS = {
+    'wind_n_mps': ('m/s', 'double'), 'wind_e_mps': ('m/s', 'double'),
+    'wind_d_mps': ('m/s', 'double'), 'pressure_pa': ('Pa', 'double'),
+    'temperature_k': ('K', 'double'), 'ground_height_m': ('m', 'double'),
+}
+REQUIRED_FAULT_PORTS = {
+    'gps_bias_n_m': ('m', 'double'), 'gps_bias_e_m': ('m', 'double'),
+    'gps_bias_d_m': ('m', 'double'),
+    'imu_bias_p_radps': ('rad/s', 'double'), 'imu_bias_q_radps': ('rad/s', 'double'),
+    'imu_bias_r_radps': ('rad/s', 'double'),
+    'motor_1_failed': ('bool', 'bool'), 'motor_2_failed': ('bool', 'bool'),
+    'motor_3_failed': ('bool', 'bool'), 'motor_4_failed': ('bool', 'bool'),
+    'command_delay_ms': ('ms', 'double'), 'sensor_delay_ms': ('ms', 'double'),
+    'packet_loss_ratio': ('1', 'double'),
+}
+REQUIRED_AXIS_PORTS = ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
+REQUIRED_ACCELERATION_PORTS = ('ax_mps2', 'ay_mps2', 'az_mps2')
 
 
 class PackageError(ValueError):
@@ -87,9 +107,115 @@ def _finite_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+def _validate_port_descriptor(descriptor, label, expected_unit=None,
+                              expected_type=None, expected_dimension=1):
+    if not isinstance(descriptor, dict):
+        raise PackageError('{} must be an object'.format(label))
+    _require_string(descriptor.get('field'), label + '.field')
+    if descriptor.get('unit') != expected_unit:
+        raise PackageError('{}.unit must be {}'.format(label, expected_unit))
+    if descriptor.get('type') != expected_type:
+        raise PackageError('{}.type must be {}'.format(label, expected_type))
+    if descriptor.get('dimension') != expected_dimension:
+        raise PackageError('{}.dimension must be {}'.format(label, expected_dimension))
+    minimum = descriptor.get('min')
+    maximum = descriptor.get('max')
+    if not _finite_number(minimum) or not _finite_number(maximum) or minimum > maximum:
+        raise PackageError('{}.min and .max must be finite and ordered'.format(label))
+    return descriptor
+
+
+def _validate_port_group(group, label, required):
+    if not isinstance(group, dict) or not isinstance(group.get('ports'), dict):
+        raise PackageError('{}.ports must be an object'.format(label))
+    ports = group['ports']
+    for name, expected in required.items():
+        if name not in ports:
+            raise PackageError('{}.ports missing {}'.format(label, name))
+        _validate_port_descriptor(ports[name], '{}.ports.{}'.format(label, name),
+                                  expected[0], expected[1])
+    return ports
+
+
+def _validate_inputs(contract):
+    inputs = contract.get('inputs')
+    if not isinstance(inputs, dict):
+        raise PackageError('contract.inputs must be an object')
+    control = inputs.get('flight_control')
+    if not isinstance(control, dict) or not isinstance(control.get('ports'), dict):
+        raise PackageError('contract.inputs.flight_control.ports must be an object')
+    mode = control.get('mode')
+    ports = control['ports']
+    if mode == 'axis_command':
+        if 'motor_command' in ports:
+            raise PackageError('axis_command and motor_command are mutually exclusive')
+        for name in REQUIRED_AXIS_PORTS:
+            if name not in ports:
+                raise PackageError('flight_control axis_command missing {}'.format(name))
+            _validate_port_descriptor(ports[name], 'contract.inputs.flight_control.ports.{}'.format(name),
+                                      '1', 'double')
+    elif mode == 'motor_command':
+        if any(name in ports for name in REQUIRED_AXIS_PORTS):
+            raise PackageError('motor_command and axis_command are mutually exclusive')
+        if 'motor_command' not in ports:
+            raise PackageError('flight_control motor_command missing motor_command')
+        _validate_port_descriptor(ports['motor_command'],
+                                  'contract.inputs.flight_control.ports.motor_command',
+                                  '1', 'double', 4)
+    else:
+        raise PackageError('flight_control.mode must be axis_command or motor_command')
+    _validate_port_group(inputs.get('environment'), 'contract.inputs.environment',
+                         REQUIRED_ENVIRONMENT_PORTS)
+    _validate_port_group(inputs.get('fault'), 'contract.inputs.fault', REQUIRED_FAULT_PORTS)
+    mission = inputs.get('mission')
+    if mission is not None:
+        if not isinstance(mission, dict) or not isinstance(mission.get('enabled'), bool):
+            raise PackageError('contract.inputs.mission.enabled must be boolean when mission is declared')
+        if mission['enabled']:
+            raise PackageError('contract mission-to-model bindings are not implemented; omit mission or set enabled=false')
+    field_names = []
+    for group_name in ('flight_control', 'environment', 'fault'):
+        field_names.extend(item['field'] for item in inputs[group_name]['ports'].values())
+    if len(set(field_names)) != len(field_names):
+        raise PackageError('every declared model input must map to a distinct root input field')
+
+
+def _validate_outputs(contract):
+    outputs = contract.get('outputs')
+    if not isinstance(outputs, dict) or not isinstance(outputs.get('ue4_state'), dict):
+        raise PackageError('contract.outputs.ue4_state must be an object')
+    ue4 = outputs['ue4_state']
+    if ue4.get('rate_hz') != 50:
+        raise PackageError('contract.outputs.ue4_state.rate_hz must equal 50')
+    acceleration = ue4.get('acceleration')
+    if not isinstance(acceleration, dict):
+        raise PackageError('contract.outputs.ue4_state.acceleration must be an object')
+    fields = []
+    for name in REQUIRED_ACCELERATION_PORTS:
+        if name not in acceleration:
+            raise PackageError('contract.outputs.ue4_state.acceleration missing {}'.format(name))
+        descriptor = _validate_port_descriptor(
+            acceleration[name], 'contract.outputs.ue4_state.acceleration.{}'.format(name),
+            'm/s2', 'double')
+        fields.append(descriptor['field'])
+    if len(set(fields)) != len(fields):
+        raise PackageError('each acceleration field must map to a distinct root output')
+
+
+def _validate_execution(contract):
+    execution = contract.get('execution')
+    if not isinstance(execution, dict):
+        raise PackageError('contract.execution must be an object')
+    if execution.get('step_s') != 0.001:
+        raise PackageError('contract.execution.step_s must equal 0.001')
+    locked = execution.get('locked_configuration')
+    if not isinstance(locked, list) or not set(REQUIRED_EXECUTION_LOCKS).issubset(set(locked)):
+        raise PackageError('contract.execution.locked_configuration is incomplete')
+
+
 def validate_contract(contract):
-    if contract.get('contract_version') != 1:
-        raise PackageError('contract_version must equal 1')
+    if contract.get('contract_version') != 2:
+        raise PackageError('contract_version must equal 2')
     _require_string(contract.get('model_name'), 'contract.model_name')
     state = contract.get('state')
     if not isinstance(state, dict):
@@ -110,6 +236,10 @@ def validate_contract(contract):
     if len(set(outputs[field] for field in REQUIRED_STATE_FIELDS)) != len(REQUIRED_STATE_FIELDS):
         raise PackageError('each required state field must map to a distinct root output')
 
+    _validate_inputs(contract)
+    _validate_outputs(contract)
+    _validate_execution(contract)
+
     parameters = contract.get('parameters')
     if not isinstance(parameters, list):
         raise PackageError('contract.parameters must be an array')
@@ -126,12 +256,18 @@ def validate_contract(contract):
         if parameter.get('type') not in ('double', 'float', 'bool'):
             raise PackageError('{} has unsupported type'.format(label))
         _require_string(parameter.get('unit'), label + '.unit')
-        if parameter.get('class') not in ('live', 'reset_only', 'readonly'):
+        parameter_class = parameter.get('class')
+        if parameter_class not in ('live', 'reset_only', 'readonly'):
             raise PackageError('{} has unsupported class'.format(label))
         phases = parameter.get('allowed_phases')
         if not isinstance(phases, list) or not phases or any(
                 phase not in ('RUNNING', 'PAUSED', 'RESETTING', 'ENDED') for phase in phases):
             raise PackageError('{} has invalid allowed_phases'.format(label))
+        if parameter_class == 'live' and (not set(phases).issubset(set(('RUNNING', 'PAUSED'))) or
+                                          'RUNNING' not in phases):
+            raise PackageError('{} live parameter must allow RUNNING only or RUNNING/PAUSED'.format(label))
+        if parameter_class == 'reset_only' and phases != ['PAUSED']:
+            raise PackageError('{} reset_only parameter must allow only PAUSED'.format(label))
         for key in ('default', 'min', 'max'):
             value = parameter.get(key)
             if parameter.get('type') == 'bool':
@@ -143,7 +279,7 @@ def validate_contract(contract):
             raise PackageError('{}.min must not exceed max'.format(label))
         if parameter.get('type') != 'bool' and not (parameter['min'] <= parameter['default'] <= parameter['max']):
             raise PackageError('{}.default must be inside the declared range'.format(label))
-        if parameter.get('class') != 'readonly':
+        if parameter_class != 'readonly':
             binding = parameter.get('binding')
             if not isinstance(binding, dict):
                 raise PackageError('{}.binding must be an object for writable parameter'.format(label))

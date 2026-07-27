@@ -23,6 +23,7 @@
 #define REQUEST_ID_MAX 96
 #define MISSION_ID_MAX 128
 #define MAX_MISSION_WAYPOINTS 50U
+#define MAX_INPUT_VALUE_COUNT 16U
 
 static volatile sig_atomic_t running = 1;
 static volatile int lifecycle = HIL_RUNNING;
@@ -116,6 +117,79 @@ static int valid_number(struct json_object* value, double* number, int* bool_val
     return isfinite(*number);
 }
 
+static void add_input_result(struct json_object* results, const char* name,
+                             int accepted, const char* reason) {
+    struct json_object* detail = json_object_new_object();
+    json_object_object_add(detail, "accepted", json_object_new_boolean(accepted));
+    json_object_object_add(detail, "reason", json_object_new_string(reason));
+    json_object_object_add(results, name, detail);
+}
+
+static int parse_input_value(struct json_object* value, const HilInputSpec* spec,
+                             double* values) {
+    unsigned index;
+    if (spec->dimension > MAX_INPUT_VALUE_COUNT) return 0;
+    if (spec->dimension == 1) {
+        int was_bool = 0;
+        if (!valid_number(value, &values[0], &was_bool) || was_bool != spec->is_bool) return 0;
+    } else {
+        if (!value || json_object_get_type(value) != json_type_array ||
+            json_object_array_length(value) != spec->dimension) return 0;
+        for (index = 0; index < spec->dimension; ++index) {
+            int was_bool = 0;
+            if (!valid_number(json_object_array_get_idx(value, index), &values[index], &was_bool) ||
+                was_bool != spec->is_bool) return 0;
+        }
+    }
+    for (index = 0; index < spec->dimension; ++index)
+        if (values[index] < spec->min_value || values[index] > spec->max_value) return 0;
+    return 1;
+}
+
+static void parse_set_inputs(struct json_object* root, const char* request_id,
+                             const struct sockaddr_in* sender) {
+    struct json_object* params = NULL;
+    struct json_object* results = json_object_new_object();
+    ModelU_t candidate;
+    int ok = 1;
+    int seen = 0;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object || json_object_object_length(params) == 0) {
+        send_receipt(sender, request_id, 0, "params must be a non-empty input-group object", sequence, results);
+        return;
+    }
+    pthread_mutex_lock(&command_lock);
+    candidate = pending_live.input;
+    json_object_object_foreach(params, group_name, group_value) {
+        if (strcmp(group_name, "flight_control") && strcmp(group_name, "environment") && strcmp(group_name, "fault")) {
+            add_input_result(results, group_name, 0, "unknown input group"); ok = 0; continue;
+        }
+        if (json_object_get_type(group_value) != json_type_object || json_object_object_length(group_value) == 0) {
+            add_input_result(results, group_name, 0, "input group must be a non-empty object"); ok = 0; continue;
+        }
+        json_object_object_foreach(group_value, input_name, input_value) {
+            char full_name[256];
+            const HilInputSpec* spec;
+            double values[MAX_INPUT_VALUE_COUNT];
+            snprintf(full_name, sizeof(full_name), "%s.%s", group_name, input_name);
+            spec = hil_contract_find_input(full_name);
+            if (!spec) { add_input_result(results, full_name, 0, "undeclared input"); ok = 0; continue; }
+            if (!parse_input_value(input_value, spec, values)) {
+                add_input_result(results, full_name, 0, "type, dimension or range violates contract"); ok = 0; continue;
+            }
+            if (!hil_contract_set_input(&candidate, full_name, values, spec->dimension)) {
+                add_input_result(results, full_name, 0, "generated input setter unavailable"); ok = 0; continue;
+            }
+            add_input_result(results, full_name, 1, "accepted"); seen = 1;
+        }
+    }
+    if (ok && seen) { pending_live.input = candidate; pending_live.generation++; }
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, ok && seen,
+                 ok && seen ? "accepted" : "atomic input group rejected",
+                 ok && seen ? sequence + 1U : sequence, results);
+}
+
 static int mission_waypoint_is_valid(struct json_object* waypoint) {
     const char* required[] = {"north_m", "east_m", "down_m", "speed_mps"};
     unsigned index;
@@ -146,7 +220,7 @@ static void parse_load_mission(struct json_object* root, const char* request_id,
         return;
     }
     count = json_object_array_length(waypoints);
-    if (count == 0 || count > MAX_MISSION_WAYPOINTS) {
+    if (count < 2 || count > MAX_MISSION_WAYPOINTS) {
         send_receipt(sender, request_id, 0, "waypoint count is outside contract limit", sequence, NULL);
         return;
     }
@@ -181,7 +255,8 @@ static int state_is_valid(const FlightState_t* candidate) {
         !isfinite(candidate->vn_mps) || !isfinite(candidate->ve_mps) || !isfinite(candidate->vd_mps) ||
         !isfinite(candidate->q_w) || !isfinite(candidate->q_x) || !isfinite(candidate->q_y) ||
         !isfinite(candidate->q_z) || !isfinite(candidate->p_radps) || !isfinite(candidate->q_radps) ||
-        !isfinite(candidate->r_radps)) return 0;
+        !isfinite(candidate->r_radps) || !isfinite(candidate->ax_mps2) ||
+        !isfinite(candidate->ay_mps2) || !isfinite(candidate->az_mps2)) return 0;
     return norm > 0.0f && fabsf(norm - 1.0f) <= 0.02f && candidate->airborne <= 1;
 }
 
@@ -206,13 +281,18 @@ static void populate_state(void) {
     candidate.p_radps = MODEL_READ_p_radps(&output);
     candidate.q_radps = MODEL_READ_q_radps(&output);
     candidate.r_radps = MODEL_READ_r_radps(&output);
+    candidate.ax_mps2 = MODEL_READ_ax_mps2(&output);
+    candidate.ay_mps2 = MODEL_READ_ay_mps2(&output);
+    candidate.az_mps2 = MODEL_READ_az_mps2(&output);
     candidate.airborne = MODEL_READ_airborne(&output) ? 1 : 0;
     candidate.lifecycle = (uint8_t)lifecycle;
     if (state_is_valid(&candidate)) {
         state = candidate;
         have_valid_state = 1;
     }
-    else fprintf(stderr, "[HIL] rejected invalid generated state at sequence %llu\n", (unsigned long long)sequence);
+    else {
+        fprintf(stderr, "[HIL] rejected invalid generated state at sequence %llu\n", (unsigned long long)sequence);
+    }
 }
 
 static void queue_lifecycle(int event, const char* request_id, const struct sockaddr_in* sender) {
@@ -381,6 +461,7 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     }
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
+    else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
     else if (!strcmp(command, "load_mission")) parse_load_mission(root, request_id, sender);
     else if (!strcmp(command, "pause")) queue_lifecycle(HIL_PAUSED, request_id, sender);
     else if (!strcmp(command, "resume")) queue_lifecycle(HIL_RUNNING, request_id, sender);
@@ -430,7 +511,8 @@ int main(void) {
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
         { struct timespec now; clock_gettime(CLOCK_MONOTONIC, &now);
-          hil_realtime_record_deadline((int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec); }
+          { int64_t lateness = (int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec;
+            hil_realtime_record_deadline(lateness); } }
     }
     { HilRealtimeStats stats = hil_realtime_stats();
       fprintf(stderr, "[HIL] realtime samples=%llu p99_abs_lateness_ns=%lld max_abs_lateness_ns=%lld over_250us=%llu non_realtime=%d\n",

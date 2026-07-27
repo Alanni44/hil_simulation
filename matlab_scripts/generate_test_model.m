@@ -20,9 +20,23 @@ function generate_test_model(output_dir)
     set_param([mdl '/gain'], 'Port', '1');
     add_block('simulink/Sources/In1', [mdl '/reset_gain']);
     set_param([mdl '/reset_gain'], 'Port', '2');
-    add_block('simulink/Math Operations/Add', [mdl '/total_gain'], 'Inputs', '++');
+    contract_inputs = {'throttle','roll_cmd','pitch_cmd','yaw_cmd', ...
+        'wind_n_mps','wind_e_mps','wind_d_mps','pressure_pa','temperature_k','ground_height_m', ...
+        'gps_bias_n_m','gps_bias_e_m','gps_bias_d_m', ...
+        'imu_bias_p_radps','imu_bias_q_radps','imu_bias_r_radps', ...
+        'motor_1_failed','motor_2_failed','motor_3_failed','motor_4_failed', ...
+        'command_delay_ms','sensor_delay_ms','packet_loss_ratio'};
+    for i = 1:length(contract_inputs)
+        add_block('simulink/Sources/In1', [mdl '/' contract_inputs{i}]);
+        set_param([mdl '/' contract_inputs{i}], 'Port', num2str(i + 2));
+        if ~isempty(strfind(contract_inputs{i}, 'motor_')) && ~isempty(strfind(contract_inputs{i}, '_failed'))
+            set_param([mdl '/' contract_inputs{i}], 'OutDataTypeStr', 'boolean');
+        end
+    end
+    add_block('simulink/Math Operations/Add', [mdl '/total_gain'], 'Inputs', '+++');
     add_line(mdl, 'gain/1', 'total_gain/1');
     add_line(mdl, 'reset_gain/1', 'total_gain/2');
+    add_line(mdl, 'throttle/1', 'total_gain/3');
     add_block('simulink/Discrete/Discrete-Time Integrator', [mdl '/north_integrator']);
     set_param([mdl '/north_integrator'], 'gainval', '1', 'SampleTime', '0.001');
     add_line(mdl, 'total_gain/1', 'north_integrator/1');
@@ -35,7 +49,8 @@ function generate_test_model(output_dir)
     add_line(mdl, 'mass_kg/1', 'force_over_mass/2');
 
     outputs = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps', ...
-        'q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'};
+        'q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne', ...
+        'ax_mps2','ay_mps2','az_mps2'};
     for i = 1:length(outputs)
         add_block('simulink/Sinks/Out1', [mdl '/' outputs{i}]);
         set_param([mdl '/' outputs{i}], 'Port', num2str(i));
@@ -46,7 +61,7 @@ function generate_test_model(output_dir)
 
     constants = {'east_m','0'; 'down_m','0'; 'vd_mps','0'; ...
         'q_w','1'; 'q_x','0'; 'q_y','0'; 'q_z','0'; 'p_radps','0'; ...
-        'q_radps','0'; 'r_radps','0'};
+        'q_radps','0'; 'r_radps','0'; 'ax_mps2','0'; 'ay_mps2','0'; 'az_mps2','-9.81'};
     for i = 1:size(constants, 1)
         block = ['const_' constants{i,1}];
         add_block('simulink/Sources/Constant', [mdl '/' block], 'Value', constants{i,2});
