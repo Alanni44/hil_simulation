@@ -25,7 +25,7 @@ class V2ProtocolTests(unittest.TestCase):
         self.assertEqual(50, packet['data']['rate_hz'])
         self.assertEqual({'x': 10.0, 'y': 20.0, 'height': -30.0}, packet['data']['position'])
         self.assertEqual({'ax': 4.0, 'ay': 5.0, 'az': -6.0}, packet['data']['acceleration'])
-        self.assertNotIn('flight_state', packet['data'])
+        self.assertTrue('flight_state' not in packet['data'])
 
     def test_v2_event_maps_internal_reset_to_reset_scene(self):
         self.assertEqual('reset_scene', state_cache.v2_event_name('reset'))
