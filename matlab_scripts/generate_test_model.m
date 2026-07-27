@@ -14,7 +14,12 @@ function generate_test_model(output_dir)
 
     mass = Simulink.Parameter(5.0);
     mass.CoderInfo.StorageClass = 'ExportedGlobal';
-    assignin('base', 'uav_mass_kg', mass);
+    % The acceptance package is built by a separate MATLAB process.  Keep the
+    % exported parameter in the model workspace so its Constant expression is
+    % resolvable after loading the packaged SLX, rather than only in the
+    % generator process's base workspace.
+    model_workspace = get_param(mdl, 'ModelWorkspace');
+    assignin(model_workspace, 'uav_mass_kg', mass);
 
     add_block('simulink/Sources/In1', [mdl '/gain']);
     set_param([mdl '/gain'], 'Port', '1');
@@ -59,5 +64,4 @@ function generate_test_model(output_dir)
     add_line(mdl, 'airborne_bool/1', 'airborne/1');
     save_system(mdl, fullfile(output_dir, [mdl '.slx']));
     close_system(mdl, 0);
-    evalin('base', 'clear uav_mass_kg');
 end
