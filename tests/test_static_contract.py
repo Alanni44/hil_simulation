@@ -117,5 +117,14 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn("'inputs-atomic-reject'", source)
         self.assertIn("'contract_input_effect_at_step_boundary'", source)
 
+    def test_one_command_ubuntu_acceptance_runner_exists(self):
+        source = read('scripts/run_ubuntu_acceptance.sh')
+        self.assertIn('set -euo pipefail', source)
+        self.assertIn('Ubuntu 18.04 RT', source)
+        self.assertIn('python3 -m unittest', source)
+        self.assertIn('scripts/accept_runtime_contract.py', source)
+        self.assertIn('HIL_SKIP_REALTIME_GATE', source)
+        self.assertIn('artifacts/acceptance', source)
+
 
 if __name__ == '__main__': unittest.main()
