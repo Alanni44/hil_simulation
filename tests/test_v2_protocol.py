@@ -6,10 +6,14 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
 
 from shared import state_cache  # noqa
+from shared.flight_state import FLIGHT_STATE_SIZE  # noqa
 import bridge_tcp_client  # noqa
 
 
 class V2ProtocolTests(unittest.TestCase):
+    def test_fixed_c_to_python_state_wire_layout_includes_acceleration(self):
+        self.assertEqual(100, FLIGHT_STATE_SIZE)
+
     def test_v2_state_maps_ned_acceleration_without_runtime_lifecycle(self):
         state = {
             'sequence': 9, 'sim_time_s': 1.25,

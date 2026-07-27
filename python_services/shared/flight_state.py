@@ -14,7 +14,7 @@ import struct
 # uint32 version, uint64 sequence, double sim time and NED position,
 # float NED velocity, quaternion, body rates and acceleration.  This layout
 # is the normalized C-core to Python boundary only.
-FLIGHT_STATE_FORMAT = '=IQddddfffffffffBBH'
+FLIGHT_STATE_FORMAT = '=IQddddfffffffffffffBBH'
 FLIGHT_STATE_SIZE = struct.calcsize(FLIGHT_STATE_FORMAT)
 FLIGHT_STATE_FIELDS = (
     'version', 'sequence', 'sim_time_s',
