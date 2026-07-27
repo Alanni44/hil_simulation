@@ -383,7 +383,7 @@ end
 
 function field = find_exported_global(header_path, symbol)
     content = fileread(header_path);
-    token = regexp(content, ['extern\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+' regexptranslate('escape', symbol) '\\s*;'], 'tokens', 'once');
+    token = regexp(content, ['extern\s+([A-Za-z_][A-Za-z0-9_]*)\s+' regexptranslate('escape', symbol) '\s*;'], 'tokens', 'once');
     field = [];
     if ~isempty(token), field = struct('name', symbol, 'type', token{1}, 'dimension', 1); end
 end
