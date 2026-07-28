@@ -47,40 +47,35 @@ PYTHONPATH=python_services python3 -c \
   'import yaml, debug_main; debug_main._Runtime(); print(yaml.__version__)'
 ```
 
-The supported repository build creates the Z-mission ERT/GCC artifact and
-prints its executable path on its final output line:
+The Z debug start entry point resolves an existing successful build artifact
+from `artifacts/z_mission/logs/build_result.json`. When that manifest or its
+recorded executable is absent or invalid, it automatically runs the supported
+MATLAB/ERT/GCC build. Do not run the build manually during normal operation.
+The build remains target-only and rejects a non-Ubuntu-18.04-RT host or missing
+MATLAB R2018b executable.
 
 ```bash
-MODEL_EXECUTABLE="$(bash scripts/build_quadrotor_demo.sh | tail -n 1)"
-MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
-case "$MODEL_EXECUTABLE" in /*) ;; *) echo "not an absolute path" >&2; exit 2;; esac
-test -f "$MODEL_EXECUTABLE"
-test -x "$MODEL_EXECUTABLE"
-printf 'validated model executable: %s\n' "$MODEL_EXECUTABLE"
+chmod +x scripts/start_z_debug.sh scripts/stop_z_debug.sh
+./scripts/start_z_debug.sh
 ```
 
-`scripts/build_quadrotor_demo.sh` itself rejects a non-Ubuntu-18.04-RT host
-and a missing MATLAB R2018b executable. Do not substitute an artifact copied
-from Windows. If an already-built target artifact is supplied instead, run
-the `readlink`, absolute-path, `-f`, and `-x` validation commands above with
-its path assigned to `MODEL_EXECUTABLE`.
+For an exceptional prebuilt target artifact, an advanced override remains
+available. It must be an absolute regular executable file:
+
+```bash
+HIL_Z_MODEL_EXECUTABLE=/absolute/path/to/verified_model_rt \
+  ./scripts/start_z_debug.sh
+```
 
 Finally, `config.yaml` must resolve `debug_ue4_tcp` to exactly
 `192.168.100.172:5000`.
 
 ## 3. Start the real-target run
 
-Run one of these exact commands from the repository root:
+Run this command from the repository root:
 
 ```bash
-chmod +x scripts/start_z_debug.sh scripts/stop_z_debug.sh
-./scripts/start_z_debug.sh "$MODEL_EXECUTABLE"
-```
-
-or use the validated environment variable:
-
-```bash
-HIL_Z_MODEL_EXECUTABLE="$MODEL_EXECUTABLE" ./scripts/start_z_debug.sh
+./scripts/start_z_debug.sh
 ```
 
 The script preflights every required path and the configured target before it

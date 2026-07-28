@@ -9,36 +9,19 @@ DEBUG_MAIN="$ROOT/python_services/debug_main.py"
 CONFIG_FILE="$ROOT/config.yaml"
 MISSION_FILE="$ROOT/missions/z_mission.json"
 STOP_SCRIPT="$ROOT/scripts/stop_z_debug.sh"
+BUILD_SCRIPT="$ROOT/scripts/build_quadrotor_demo.sh"
+BUILD_RESULT="$ROOT/artifacts/z_mission/logs/build_result.json"
 EXPECTED_TARGET="192.168.100.172:5000"
 
 usage() {
-    echo "Usage: $0 /absolute/path/to/verified_model_rt" >&2
-    echo "   or: HIL_Z_MODEL_EXECUTABLE=/absolute/path/to/verified_model_rt $0" >&2
+    echo "Usage: $0" >&2
+    echo "   advanced override: HIL_Z_MODEL_EXECUTABLE=/absolute/path/to/model_rt $0" >&2
 }
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -ne 0 ]; then
     usage
     exit 2
 fi
-
-MODEL_EXECUTABLE="${1:-${HIL_Z_MODEL_EXECUTABLE:-}}"
-if [ -z "$MODEL_EXECUTABLE" ]; then
-    usage
-    exit 2
-fi
-case "$MODEL_EXECUTABLE" in
-    /*) ;;
-    *) echo "ERROR: model executable path must be absolute" >&2; exit 2 ;;
-esac
-[ -f "$MODEL_EXECUTABLE" ] || {
-    echo "ERROR: model executable does not exist: $MODEL_EXECUTABLE" >&2
-    exit 2
-}
-[ -x "$MODEL_EXECUTABLE" ] || {
-    echo "ERROR: model executable is not executable: $MODEL_EXECUTABLE" >&2
-    exit 2
-}
-MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
 
 PYTHON_COMMAND="${HIL_Z_PYTHON:-python3}"
 command -v "$PYTHON_COMMAND" >/dev/null 2>&1 || {
@@ -51,6 +34,57 @@ if ! "$PYTHON_EXECUTABLE" -c \
     echo "ERROR: target Python must be exactly 3.6.9" >&2
     exit 2
 fi
+
+valid_model_executable() {
+    candidate="$1"
+    case "$candidate" in
+        /*) ;;
+        *) return 1 ;;
+    esac
+    [ -f "$candidate" ] && [ -x "$candidate" ]
+}
+
+manifest_model_executable() {
+    [ -f "$BUILD_RESULT" ] || return 1
+    "$PYTHON_EXECUTABLE" - "$BUILD_RESULT" <<'PY'
+import json
+import os
+import sys
+
+with open(sys.argv[1]) as source:
+    result = json.load(source)
+path = result.get('exe_path')
+if result.get('code') != 0 or not isinstance(path, str) or not os.path.isabs(path):
+    raise SystemExit(1)
+print(path)
+PY
+}
+
+MODEL_EXECUTABLE="${HIL_Z_MODEL_EXECUTABLE:-}"
+if [ -n "$MODEL_EXECUTABLE" ]; then
+    valid_model_executable "$MODEL_EXECUTABLE" || {
+        echo "ERROR: HIL_Z_MODEL_EXECUTABLE is not an absolute executable file: $MODEL_EXECUTABLE" >&2
+        exit 2
+    }
+else
+    MODEL_EXECUTABLE="$(manifest_model_executable 2>/dev/null || true)"
+    if ! valid_model_executable "$MODEL_EXECUTABLE"; then
+        [ -x "$BUILD_SCRIPT" ] || {
+            echo "ERROR: model build script is missing or not executable: $BUILD_SCRIPT" >&2
+            exit 2
+        }
+        echo "No valid model artifact found; generating the real-time model..."
+        MODEL_EXECUTABLE="$(bash "$BUILD_SCRIPT")" || {
+            echo "ERROR: real-time model generation failed" >&2
+            exit 1
+        }
+        valid_model_executable "$MODEL_EXECUTABLE" || {
+            echo "ERROR: build returned an invalid executable path: $MODEL_EXECUTABLE" >&2
+            exit 1
+        }
+    fi
+fi
+MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
 
 for required_file in "$DEBUG_MAIN" "$CONFIG_FILE" "$MISSION_FILE"; do
     [ -f "$required_file" ] || {
