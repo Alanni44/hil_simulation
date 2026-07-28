@@ -101,12 +101,12 @@ CONNECT
   → mission_plan
   → 等待并校验 ack(ref_type=mission_plan, accepted=true)
   → 以 50 Hz（20 ms）发送 vehicle_state
-  → simulation_event(mission_end)
-  → 等待并校验 ack(ref_type=simulation_event, accepted=true)
+  → [可选] simulation_event(mission_end)
+  → [仅发送时] 等待并校验 ack(ref_type=simulation_event, accepted=true)
   → END
 ```
 
-收到 `error`、`accepted=false`、ACK 超时或 TCP 断连时，不进入下一状态；记录原因并停止任务。断连后的恢复方式为重新连接并从 `hello` 开始会话。`vehicle_state` 不等待逐帧 ACK，只在收到 `error` 时处理异常。
+`simulation_event` 不是任务结束的必经消息。默认情况下，四旋翼完成降落后停止发布状态并正常关闭会话；如运行配置显式启用 `mission_end` 通知，才发送该事件并等待相应 ACK。收到 `error`、`accepted=false`、ACK 超时或 TCP 断连时，不进入下一状态；记录原因并停止任务。断连后的恢复方式为重新连接并从 `hello` 开始会话。`vehicle_state` 不等待逐帧 ACK，只在收到 `error` 时处理异常。
 
 发送给 UE4 的消息**仅**为协议列出的 `hello`、`mission_plan`、`vehicle_state`、`simulation_event`。不会发送加速度、模型参数、执行时间、故障诊断或任何私有字段。
 
@@ -128,7 +128,7 @@ CONNECT
 - 启动脚本以任务 JSON 为输入，且不启动或连接 WebSocket。
 - 成功连接真实 UE4 地址，完成 `hello` 与 `mission_plan` 的 ACK 校验。
 - UE4 先显示任务规划；随后在 50 Hz 下仅接收合规的 V2.0 `vehicle_state`。
-- 无人机先达到 20 m，再完成指定 Z 字航线，最后降落并收到 `mission_end` ACK。
+- 无人机先达到 20 m，再完成指定 Z 字航线并降落；若显式启用 `mission_end`，则收到其 ACK 后结束会话。
 - 终端可显示状态并成功调整至少质量、阻力系数、风速和电机效率；非法修改被拒绝。
 - 任意 ACK 异常、协议错误或断连均停止向后推进任务，并保留可诊断日志。
 - 不向 UE4 发送协议外字段或消息类型。

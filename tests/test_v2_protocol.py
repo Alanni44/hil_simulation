@@ -6,10 +6,14 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
 
 from shared import state_cache  # noqa
+from shared.flight_state import FLIGHT_STATE_SIZE  # noqa
 import bridge_tcp_client  # noqa
 
 
 class V2ProtocolTests(unittest.TestCase):
+    def test_fixed_c_to_python_state_wire_layout_includes_acceleration(self):
+        self.assertEqual(100, FLIGHT_STATE_SIZE)
+
     def test_v2_state_maps_ned_acceleration_without_runtime_lifecycle(self):
         state = {
             'sequence': 9, 'sim_time_s': 1.25,
@@ -25,7 +29,7 @@ class V2ProtocolTests(unittest.TestCase):
         self.assertEqual(50, packet['data']['rate_hz'])
         self.assertEqual({'x': 10.0, 'y': 20.0, 'height': -30.0}, packet['data']['position'])
         self.assertEqual({'ax': 4.0, 'ay': 5.0, 'az': -6.0}, packet['data']['acceleration'])
-        self.assertNotIn('flight_state', packet['data'])
+        self.assertTrue('flight_state' not in packet['data'])
 
     def test_v2_event_maps_internal_reset_to_reset_scene(self):
         self.assertEqual('reset_scene', state_cache.v2_event_name('reset'))

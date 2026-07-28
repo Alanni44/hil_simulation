@@ -260,10 +260,11 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
         fprintf(fid, '#define MODEL_READ_%s(y) ((y)->%s)\n', key, name);
     end
     acceleration = contract.outputs.ue4_state.acceleration;
-    for i = 1:length({'ax_mps2','ay_mps2','az_mps2'})
-        key = {'ax_mps2','ay_mps2','az_mps2'}; name = acceleration.(key{i}).field;
-        fprintf(fid, '#define MODEL_READ_%s(y) ((y)->%s)\n', key{i}, name);
-    end
+    % Keep the three V2.0 acceleration bindings explicit in the generated
+    % header so their ABI names remain directly auditable in build sources.
+    fprintf(fid, '#define MODEL_READ_ax_mps2(y) ((y)->%s)\n', acceleration.ax_mps2.field);
+    fprintf(fid, '#define MODEL_READ_ay_mps2(y) ((y)->%s)\n', acceleration.ay_mps2.field);
+    fprintf(fid, '#define MODEL_READ_az_mps2(y) ((y)->%s)\n', acceleration.az_mps2.field);
     input_descriptors = contract_input_descriptors(contract);
     fprintf(fid, '#define HIL_INPUT_COUNT %d\n', length(input_descriptors));
     fprintf(fid, 'typedef struct { const char* name; int is_bool; unsigned dimension; double min_value; double max_value; } HilInputSpec;\n');
@@ -382,7 +383,7 @@ end
 
 function field = find_exported_global(header_path, symbol)
     content = fileread(header_path);
-    token = regexp(content, ['extern\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+' regexptranslate('escape', symbol) '\\s*;'], 'tokens', 'once');
+    token = regexp(content, ['extern\s+([A-Za-z_][A-Za-z0-9_]*)\s+' regexptranslate('escape', symbol) '\s*;'], 'tokens', 'once');
     field = [];
     if ~isempty(token), field = struct('name', symbol, 'type', token{1}, 'dimension', 1); end
 end
