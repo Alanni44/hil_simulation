@@ -29,8 +29,8 @@ def _validate_mission(mission):
     _require_positive_number(mission, 'completion_radius_m')
 
     waypoints = mission.get('waypoints')
-    if not isinstance(waypoints, list) or len(waypoints) < 2:
-        raise ValueError('mission must contain at least two waypoints')
+    if not isinstance(waypoints, list) or len(waypoints) < 3:
+        raise ValueError('mission must contain takeoff and at least two cruise waypoints')
     for waypoint in waypoints:
         _validate_waypoint(waypoint)
     _validate_waypoint(mission.get('landing'))

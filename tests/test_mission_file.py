@@ -31,9 +31,9 @@ class MissionFileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._load_json(mission)
 
-    def test_load_mission_rejects_fewer_than_two_waypoints(self):
+    def test_load_mission_rejects_takeoff_with_only_one_cruise_point(self):
         mission = self._valid_mission()
-        mission['waypoints'] = mission['waypoints'][:1]
+        mission['waypoints'] = mission['waypoints'][:2]
         with self.assertRaises(ValueError):
             self._load_json(mission)
 
@@ -52,6 +52,8 @@ class MissionFileTests(unittest.TestCase):
                 {'id': 'TAKEOFF', 'north_m': 0.0, 'east_m': 0.0,
                  'down_m': -20.0, 'speed_mps': 2.0},
                 {'id': 'Z1', 'north_m': 40.0, 'east_m': 0.0,
+                 'down_m': -20.0, 'speed_mps': 5.0},
+                {'id': 'Z2', 'north_m': 0.0, 'east_m': 20.0,
                  'down_m': -20.0, 'speed_mps': 5.0},
             ],
             'landing': {'id': 'LAND', 'north_m': 40.0, 'east_m': 0.0,
