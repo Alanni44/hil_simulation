@@ -71,6 +71,31 @@ class BridgeTcpClientTests(unittest.TestCase):
             bridge_tcp_client._event_queue[:] = []
             bridge_tcp_client._event_reservations.clear()
 
+    def test_start_bridge_accepts_explicit_debug_target_and_returns_worker(self):
+        worker = mock.Mock()
+        with mock.patch.object(bridge_tcp_client.threading, 'Thread',
+                               return_value=worker) as thread_factory:
+            result = bridge_tcp_client.start_bridge(
+                '192.168.100.172', 5000)
+
+        self.assertIs(worker, result)
+        thread_factory.assert_called_once_with(
+            target=bridge_tcp_client._run,
+            args=('192.168.100.172', 5000),
+            daemon=True,
+            name='bridge_v2')
+        worker.start.assert_called_once_with()
+
+    def test_status_snapshot_exposes_operator_session_phase_and_error(self):
+        bridge_tcp_client._set_session_status(
+            'hello acknowledged', 'previous connection refused')
+
+        status = bridge_tcp_client.get_status()
+
+        self.assertEqual('hello acknowledged', status['phase'])
+        self.assertEqual('previous connection refused', status['last_error'])
+        self.assertFalse(status['connected'])
+
     def test_ws_mission_end_reserves_delivery_before_calling_core(self):
         bridge_tcp_client._connected.set()
         receipt = {

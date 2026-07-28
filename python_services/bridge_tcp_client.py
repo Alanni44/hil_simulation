@@ -32,8 +32,14 @@ _sock_lock = threading.Lock()
 _send_lock = threading.Lock()
 _connected = threading.Event()
 _running = True
+_stop_event = threading.Event()
 _seq = 0
 _seq_lock = threading.Lock()
+
+_status_lock = threading.Lock()
+_session_phase = 'connecting'
+_last_error = None
+_STATUS_UNCHANGED = object()
 
 _current_mission_id = None
 _pending_waypoints = None
@@ -49,6 +55,29 @@ MAX_FRAME_BYTES = 1048576
 
 class ProtocolFrameError(ValueError):
     pass
+
+
+def _set_session_status(phase=None, last_error=_STATUS_UNCHANGED):
+    global _session_phase, _last_error
+    with _status_lock:
+        if phase is not None:
+            _session_phase = phase
+        if last_error is not _STATUS_UNCHANGED:
+            _last_error = last_error
+
+
+def get_status():
+    with _status_lock:
+        phase = _session_phase
+        last_error = _last_error
+    with _queue_lock:
+        mission_id = _current_mission_id
+    return {
+        'phase': phase,
+        'connected': _connected.is_set(),
+        'mission_id': mission_id,
+        'last_error': last_error,
+    }
 
 
 def _next_seq():
@@ -224,6 +253,7 @@ def _vehicle_state_sender(sock, mission_id, stop_event, max_frames=None,
             stale_warned = False
             state_message['seq'] = _next_seq()
             _frame_send(sock, state_message)
+            _set_session_status('state streaming', None)
             sent += 1
         else:
             age = state_cache.state_age_s()
@@ -313,6 +343,7 @@ def _build_and_send_mission_plan(sock, mission_id, waypoints):
     message = _mission_plan_message(mission_id, waypoints)
     accepted = _send_and_wait_for_ack(sock, message, 10.0)
     if accepted:
+        _set_session_status('mission plan acknowledged', None)
         logger.info('mission_plan acked: {} waypoints'.format(
             len(message['data']['waypoints'])))
     else:
@@ -378,8 +409,10 @@ def _finish_mission_if_no_queued_end(mission_id):
 def _run_connected_session(sock):
     hello = _hello_message()
     if not _send_and_wait_for_ack(sock, hello, 5.0):
+        _set_session_status(last_error='hello acknowledgement failed')
         logger.warning('hello acknowledgement failed')
         return False
+    _set_session_status('hello acknowledged', None)
     logger.info('hello acked')
 
     # A mission can arrive after the TCP connection.  Expose handshake
@@ -389,6 +422,7 @@ def _run_connected_session(sock):
     while _running and _connected.is_set() and pending_mission is None:
         response = _frame_recv(sock, timeout=0.1)
         if response and response.get('type') == 'error':
+            _set_session_status(last_error='UE4 error while waiting for mission_plan')
             logger.warning('UE4 error while waiting for mission_plan')
             return False
         pending_mission = _snapshot_pending_mission()
@@ -411,6 +445,7 @@ def _run_connected_session(sock):
             try:
                 _vehicle_state_sender(sock, active_mission_id, publisher_stop)
             except Exception as exc:
+                _set_session_status(last_error='vehicle_state send failed: {}'.format(exc))
                 logger.warning('vehicle_state send failed: {}'.format(exc))
                 publisher_stop.set()
                 _connected.clear()
@@ -425,6 +460,7 @@ def _run_connected_session(sock):
                and not publisher_stop.is_set()):
             response = _frame_recv(sock, timeout=0.1)
             if response and response.get('type') == 'error':
+                _set_session_status(last_error='UE4 protocol error: {}'.format(response))
                 logger.warning('UE4 protocol error: {}'.format(response))
                 return False
 
@@ -450,6 +486,7 @@ def _run_connected_session(sock):
                 logger.info('simulation_event acked: {}'.format(event_name))
                 if event_name == 'mission_end':
                     _finish_mission(event_mission_id or mission_id)
+                    _set_session_status('mission ended', None)
                     return True
 
             current_state = state_cache.get_state_dict()
@@ -458,6 +495,7 @@ def _run_connected_session(sock):
                          or current_state.get('sequence')
                          > state_sequence_before_mission)):
                 if _finish_mission_if_no_queued_end(mission_id):
+                    _set_session_status('mission ended', None)
                     return True
     finally:
         publisher_stop.set()
@@ -467,25 +505,30 @@ def _run_connected_session(sock):
     return False
 
 
-def _run():
+def _run(host=None, port=None):
     global _sock
-    logger.info("V2.0 bridge starting -> {}:{}".format(UE4_HOST, UE4_PORT))
+    host = UE4_HOST if host is None else host
+    port = UE4_PORT if port is None else port
+    logger.info("V2.0 bridge starting -> {}:{}".format(host, port))
 
-    while _running:
+    while _running and not _stop_event.is_set():
+        _set_session_status('connecting', None)
         _connected.clear()
         s = None
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
-            s.connect((UE4_HOST, UE4_PORT))
+            s.connect((host, port))
             with _sock_lock:
                 _sock = s
             logger.info("V2.0 bridge connected to {}:{}".format(
-                UE4_HOST, UE4_PORT))
+                host, port))
             _run_connected_session(s)
         except (ConnectionRefusedError, OSError) as e:
+            _set_session_status(last_error=str(e))
             logger.warning("Bridge connect failed: {}".format(e))
         except Exception as e:
+            _set_session_status(last_error=str(e))
             logger.error("Bridge error: {}".format(e))
         finally:
             _connected.clear()
@@ -498,18 +541,26 @@ def _run():
                 _sock = None
             logger.info('V2.0 bridge disconnected')
 
-        time.sleep(3)
+        _stop_event.wait(3.0)
 
 
-def start_bridge():
-    t = threading.Thread(target=_run, daemon=True, name='bridge_v2')
+def start_bridge(host=None, port=None):
+    global _running
+    host = UE4_HOST if host is None else host
+    port = UE4_PORT if port is None else port
+    _running = True
+    _stop_event.clear()
+    t = threading.Thread(target=_run, args=(host, port), daemon=True,
+                         name='bridge_v2')
     t.start()
     logger.info("V2.0 bridge started")
+    return t
 
 
 def stop_bridge():
     global _running, _sock
     _running = False
+    _stop_event.set()
     _connected.clear()
     with _sock_lock:
         if _sock:
