@@ -48,6 +48,25 @@ def send_fragmented_ack(sock, message, accepted=True, ref_type=None,
 
 
 class BridgeTcpClientTests(unittest.TestCase):
+    def setUp(self):
+        self.original_running = bridge_tcp_client._running
+        bridge_tcp_client._running = True
+        bridge_tcp_client._connected.clear()
+        with bridge_tcp_client._queue_lock:
+            bridge_tcp_client._current_mission_id = None
+            bridge_tcp_client._pending_waypoints = None
+            bridge_tcp_client._mission_queue[:] = []
+            bridge_tcp_client._event_queue[:] = []
+
+    def tearDown(self):
+        bridge_tcp_client._running = self.original_running
+        bridge_tcp_client._connected.clear()
+        with bridge_tcp_client._queue_lock:
+            bridge_tcp_client._current_mission_id = None
+            bridge_tcp_client._pending_waypoints = None
+            bridge_tcp_client._mission_queue[:] = []
+            bridge_tcp_client._event_queue[:] = []
+
     def test_json_line_fragment_survives_a_receive_timeout(self):
         client, peer = socket.socketpair()
         message = {
@@ -63,6 +82,104 @@ class BridgeTcpClientTests(unittest.TestCase):
         finally:
             client.close()
             peer.close()
+
+    def test_oversized_json_line_is_a_protocol_failure(self):
+        client, peer = socket.socketpair()
+        try:
+            peer.sendall(json.dumps('x' * 40).encode('utf-8') + b'\n')
+            with mock.patch.object(bridge_tcp_client, 'MAX_FRAME_BYTES', 32):
+                with self.assertRaises(Exception) as caught:
+                    bridge_tcp_client._frame_recv(client, 0.1)
+            self.assertEqual('ProtocolFrameError',
+                             type(caught.exception).__name__)
+        finally:
+            client.close()
+            peer.close()
+
+    def test_connected_session_rejects_malformed_ack_then_reconnects_from_hello(self):
+        bridge_tcp_client.send_mission_plan('mission-a', WAYPOINTS)
+
+        client, peer = socket.socketpair()
+        first_outcome = []
+
+        def first_session():
+            try:
+                first_outcome.append(
+                    ('return', bridge_tcp_client._run_connected_session(client)))
+            except Exception as exc:
+                first_outcome.append(('error', exc))
+
+        thread = threading.Thread(target=first_session)
+        thread.start()
+        try:
+            hello = recv_json_line(peer)
+            peer.sendall(b'{malformed-json}\n')
+            send_fragmented_ack(peer, hello)
+            thread.join(0.5)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual('error', first_outcome[0][0])
+            self.assertEqual('ProtocolFrameError',
+                             type(first_outcome[0][1]).__name__)
+            peer.settimeout(0.03)
+            with self.assertRaises(socket.timeout):
+                peer.recv(1)
+        finally:
+            client.close()
+            peer.close()
+            thread.join(1.0)
+
+        running_state = {'sequence': 1, 'lifecycle': 'RUNNING'}
+        ended_state = {'sequence': 2, 'lifecycle': 'ENDED'}
+        client, peer = socket.socketpair()
+        second_outcome = []
+        with mock.patch.object(
+                bridge_tcp_client.state_cache, 'get_state_dict',
+                side_effect=[running_state, ended_state]), \
+                mock.patch.object(bridge_tcp_client.state_cache,
+                                  'get_vehicle_state_v2', return_value=None), \
+                mock.patch.object(bridge_tcp_client.state_cache,
+                                  'state_age_s', return_value=None):
+            thread = threading.Thread(target=lambda: second_outcome.append(
+                bridge_tcp_client._run_connected_session(client)))
+            thread.start()
+            try:
+                hello = recv_json_line(peer)
+                self.assertEqual('hello', hello['type'])
+                send_fragmented_ack(peer, hello)
+                mission = recv_json_line(peer)
+                self.assertEqual('mission_plan', mission['type'])
+                self.assertEqual('mission-a', mission['data']['mission_id'])
+                send_fragmented_ack(peer, mission)
+                thread.join(1.0)
+                self.assertEqual([True], second_outcome)
+            finally:
+                client.close()
+                peer.close()
+                thread.join(1.0)
+
+    def test_pending_mission_snapshot_is_atomic_under_queue_lock(self):
+        self.assertTrue(hasattr(bridge_tcp_client,
+                                '_snapshot_pending_mission'))
+        snapshot = []
+        finished = threading.Event()
+
+        def read_snapshot():
+            snapshot.append(bridge_tcp_client._snapshot_pending_mission())
+            finished.set()
+
+        with bridge_tcp_client._queue_lock:
+            bridge_tcp_client._current_mission_id = 'mission-old'
+            bridge_tcp_client._pending_waypoints = WAYPOINTS
+            thread = threading.Thread(target=read_snapshot)
+            thread.start()
+            self.assertFalse(finished.wait(0.03))
+            replacement = [dict(waypoint, x=waypoint['x'] + 1.0)
+                           for waypoint in WAYPOINTS]
+            bridge_tcp_client._current_mission_id = 'mission-new'
+            bridge_tcp_client._pending_waypoints = replacement
+
+        thread.join(1.0)
+        self.assertEqual([('mission-new', replacement)], snapshot)
 
     def test_hello_and_mission_acknowledgements_gate_state_publication(self):
         self.assertTrue(hasattr(bridge_tcp_client, '_perform_handshake'))
@@ -218,6 +335,52 @@ class BridgeTcpClientTests(unittest.TestCase):
             client.close()
             peer.close()
             if 'thread' in locals():
+                thread.join(1.0)
+
+    def test_connected_session_sends_mission_end_queued_during_ended_check(self):
+        bridge_tcp_client.send_mission_plan('mission-a', WAYPOINTS)
+        running_state = {'sequence': 1, 'lifecycle': 'RUNNING'}
+        ended_state = {'sequence': 2, 'lifecycle': 'ENDED'}
+        state_reads = []
+
+        def get_state():
+            state_reads.append(True)
+            if len(state_reads) == 1:
+                return running_state
+            if len(state_reads) == 2:
+                bridge_tcp_client.send_simulation_event(
+                    'mission_end', 'mission-a')
+            return ended_state
+
+        client, peer = socket.socketpair()
+        outcome = []
+        with mock.patch.object(bridge_tcp_client.state_cache,
+                               'get_state_dict', side_effect=get_state), \
+                mock.patch.object(bridge_tcp_client.state_cache,
+                                  'get_vehicle_state_v2', return_value=None), \
+                mock.patch.object(bridge_tcp_client.state_cache,
+                                  'state_age_s', return_value=None):
+            thread = threading.Thread(target=lambda: outcome.append(
+                bridge_tcp_client._run_connected_session(client)))
+            thread.start()
+            try:
+                hello = recv_json_line(peer)
+                send_fragmented_ack(peer, hello)
+                mission = recv_json_line(peer)
+                send_fragmented_ack(peer, mission)
+
+                peer.settimeout(1.0)
+                event = recv_json_line(peer)
+                self.assertEqual('simulation_event', event['type'])
+                self.assertEqual(
+                    {'event': 'mission_end', 'mission_id': 'mission-a'},
+                    event['data'])
+                send_fragmented_ack(peer, event)
+                thread.join(1.0)
+                self.assertEqual([True], outcome)
+            finally:
+                client.close()
+                peer.close()
                 thread.join(1.0)
 
 

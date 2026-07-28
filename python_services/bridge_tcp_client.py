@@ -46,6 +46,10 @@ _recv_buffers = weakref.WeakKeyDictionary()
 MAX_FRAME_BYTES = 1048576
 
 
+class ProtocolFrameError(ValueError):
+    pass
+
+
 def _next_seq():
     global _seq
     with _seq_lock:
@@ -105,22 +109,24 @@ def _frame_recv(sock, timeout=0.5):
         while True:
             newline = body.find(b'\n')
             if newline >= 0:
+                if newline > MAX_FRAME_BYTES:
+                    del body[:newline + 1]
+                    raise ProtocolFrameError('JSON line exceeds frame limit')
                 line = bytes(body[:newline])
                 del body[:newline + 1]
-                return json.loads(line.decode('utf-8'))
+                try:
+                    return json.loads(line.decode('utf-8'))
+                except (UnicodeDecodeError, ValueError) as exc:
+                    raise ProtocolFrameError(
+                        'invalid UTF-8 JSON line: {}'.format(exc))
             chunk = sock.recv(4096)
             if not chunk:
                 raise ConnectionError('TCP peer closed')
             body.extend(chunk)
             if len(body) > MAX_FRAME_BYTES:
                 body[:] = []
-                return None
+                raise ProtocolFrameError('JSON line exceeds frame limit')
     except socket.timeout:
-        return None
-    except ConnectionError:
-        raise
-    except Exception as e:
-        logger.warning("Frame recv error: {}".format(e))
         return None
 
 
@@ -300,6 +306,13 @@ def _discard_queued_mission(mission_id, waypoints):
             if queued != (mission_id, waypoints)]
 
 
+def _snapshot_pending_mission():
+    with _queue_lock:
+        if _current_mission_id is None or _pending_waypoints is None:
+            return None
+        return _current_mission_id, _pending_waypoints
+
+
 def _drain_queues():
     with _queue_lock:
         missions = list(_mission_queue)
@@ -322,6 +335,21 @@ def _finish_mission(mission_id):
             _pending_waypoints = None
 
 
+def _finish_mission_if_no_queued_end(mission_id):
+    global _current_mission_id, _pending_waypoints
+    with _queue_lock:
+        pending_end = any(
+            event_name == 'mission_end'
+            and (not event_mission_id or event_mission_id == mission_id)
+            for event_name, event_mission_id in _event_queue)
+        if pending_end:
+            return False
+        if _current_mission_id == mission_id:
+            _current_mission_id = None
+            _pending_waypoints = None
+        return True
+
+
 def _run_connected_session(sock):
     hello = _hello_message()
     if not _send_and_wait_for_ack(sock, hello, 5.0):
@@ -332,16 +360,17 @@ def _run_connected_session(sock):
     # A mission can arrive after the TCP connection.  Expose handshake
     # readiness to the local command path, but never publish state yet.
     _connected.set()
-    while _running and _connected.is_set() and _pending_waypoints is None:
+    pending_mission = _snapshot_pending_mission()
+    while _running and _connected.is_set() and pending_mission is None:
         response = _frame_recv(sock, timeout=0.1)
         if response and response.get('type') == 'error':
             logger.warning('UE4 error while waiting for mission_plan')
             return False
+        pending_mission = _snapshot_pending_mission()
     if not _running or not _connected.is_set():
         return False
 
-    mission_id = _current_mission_id
-    waypoints = _pending_waypoints
+    mission_id, waypoints = pending_mission
     state_before_mission = state_cache.get_state_dict()
     state_sequence_before_mission = (
         state_before_mission.get('sequence') if state_before_mission else None)
@@ -402,10 +431,9 @@ def _run_connected_session(sock):
             if (current_state and current_state.get('lifecycle') == 'ENDED'
                     and (state_sequence_before_mission is None
                          or current_state.get('sequence')
-                         > state_sequence_before_mission)
-                    and not any(event[0] == 'mission_end' for event in events)):
-                _finish_mission(mission_id)
-                return True
+                         > state_sequence_before_mission)):
+                if _finish_mission_if_no_queued_end(mission_id):
+                    return True
     finally:
         publisher_stop.set()
         if publisher is not None:
