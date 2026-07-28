@@ -1,0 +1,11 @@
+{
+  "mission_id": "z_mission_001",
+  "completion_radius_m": 1.0,
+  "waypoints": [
+    {"id": "TAKEOFF", "north_m": 0.0, "east_m": 0.0, "down_m": -20.0, "speed_mps": 2.0},
+    {"id": "Z1", "north_m": 40.0, "east_m": 0.0, "down_m": -20.0, "speed_mps": 5.0},
+    {"id": "Z2", "north_m": 0.0, "east_m": 20.0, "down_m": -20.0, "speed_mps": 5.0},
+    {"id": "Z3", "north_m": 40.0, "east_m": 20.0, "down_m": -20.0, "speed_mps": 5.0}
+  ],
+  "landing": {"id": "LAND", "north_m": 40.0, "east_m": 20.0, "down_m": 0.0, "speed_mps": 1.5}
+}
