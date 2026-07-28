@@ -2,6 +2,7 @@ __pycache__/
 artifacts/acceptance/
 /artifacts/z_mission/
 /runtime/
+/runtime/z_debug/
 /logs/
 *.pyc
 *.pyo

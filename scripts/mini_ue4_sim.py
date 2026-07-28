@@ -1,73 +1,121 @@
 #!/usr/bin/env python3
-# Minimal V2.0 ACK responder for UE4 bridge handshake during integration tests.
-import json, socket, struct, sys
+"""Local-only strict Mini-UE4 simulator for the no-WebSocket V2 session."""
+from __future__ import print_function
 
-HOST, PORT = '0.0.0.0', 5000
-print('Mini-UE4 (V2.0) :{}'.format(PORT))
+import argparse
+import json
+import os
+import socket
+import sys
+import time
 
-srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-srv.bind((HOST, PORT))
-srv.listen(1)
-srv.settimeout(60)
+from z_protocol import (ProtocolSequenceValidator, ProtocolViolation,
+                        build_self_test_session)
 
-try:    cli, addr = srv.accept(); print('connected {}'.format(addr))
-except socket.timeout: print('timeout'); srv.close(); sys.exit(1)
 
-def recv(s, t=0.5):
-    s.settimeout(t)
+MAX_FRAME_BYTES = 1048576
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_TRANSCRIPT = os.path.join(
+    ROOT, 'runtime', 'z_debug', 'mini_ue4_transcript.json')
+
+
+def receive_frame(stream):
+    wire = stream.readline(MAX_FRAME_BYTES + 2)
+    if not wire:
+        return None
+    if len(wire) > MAX_FRAME_BYTES + 1 or not wire.endswith(b'\n'):
+        raise ProtocolViolation('newline JSON frame exceeds 1 MiB or is incomplete')
     try:
-        h = b''
-        while len(h) < 4:
-            c = s.recv(4 - len(h))
-            if not c: return None
-            h += c
-        n = struct.unpack('>I', h)[0]
-        if n > 1048576: return None
-        b = b''
-        while len(b) < n:
-            c = s.recv(n - len(b))
-            if not c: return None
-            b += c
-        return json.loads(b.decode('utf-8'))
-    except socket.timeout: return None
-    except: return None
+        message = json.loads(wire.decode('utf-8'))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ProtocolViolation('invalid UTF-8 JSON frame: {}'.format(exc))
+    return message
 
-def send(s, d):
-    body = json.dumps(d).encode()
-    s.sendall(struct.pack('>I', len(body)) + body)
 
-nst = 0
-try:
-    while True:
-        m = recv(cli, 1.0)
-        if not m: nst = 0; continue
-        tp = m.get('type',''); sq = m.get('seq', 0)
-        if tp == 'hello':
-            print('[HELLO] role={} rate={}hz'.format(
-                m.get('data',{}).get('role','?'),
-                m.get('data',{}).get('state_rate_hz','?')))
-            send(cli, {'protocol_version':'2.0','type':'ack','seq':1,'vehicle_id':'Drone1',
-                       'data':{'ref_seq':sq,'ref_type':'hello','accepted':True}})
-        elif tp == 'mission_plan':
-            wps = m.get('data',{}).get('waypoints',[])
-            print('[MISSION_PLAN] id={} n={}'.format(m.get('data',{}).get('mission_id','?'), len(wps)))
-            send(cli, {'protocol_version':'2.0','type':'ack','seq':sq+1,'vehicle_id':'Drone1',
-                       'data':{'ref_seq':sq,'ref_type':'mission_plan','accepted':True}})
-        elif tp == 'vehicle_state':
-            nst += 1
-            if nst <= 3:
-                p = m.get('data',{}).get('position',{})
-                print('[STATE#{}] t={:.2f} pos=({:.1f},{:.1f},{:.1f}) fs={}'.format(
-                    nst, m.get('data',{}).get('sim_time',0),
-                    p.get('x',0), p.get('y',0), p.get('height',0),
-                    m.get('data',{}).get('flight_state','?')))
-            elif nst == 4: print('[STATE] ...')
-            elif nst % 200 == 0: print('[STATE] ... {}'.format(nst))
-        elif tp == 'simulation_event':
-            print('[EVENT] {}'.format(m.get('data',{}).get('event','?')))
-            send(cli, {'protocol_version':'2.0','type':'ack','seq':sq+1,'vehicle_id':'Drone1',
-                       'data':{'ref_seq':sq,'ref_type':'simulation_event','accepted':True}})
-except KeyboardInterrupt: pass
-except Exception as e: print('err: {}'.format(e))
-finally: cli.close(); srv.close()
+def send_frame(connection, message):
+    wire = json.dumps(message, separators=(',', ':')).encode('utf-8') + b'\n'
+    connection.sendall(wire)
+
+
+def write_result(validator, summary, transcript_path):
+    parent = os.path.dirname(os.path.abspath(transcript_path))
+    if not os.path.isdir(parent):
+        os.makedirs(parent)
+    validator.write_transcript(transcript_path, summary)
+
+
+def run_self_test(transcript_path):
+    validator, summary = build_self_test_session()
+    write_result(validator, summary, transcript_path)
+    print('LOCAL SIMULATOR PASSED: strict V2 sequence and 50 Hz fixture validated.')
+    print('No real UE4 target was contacted. Transcript: {}'.format(
+        transcript_path))
+    return 0
+
+
+def serve(host, port, transcript_path, timeout_s):
+    validator = ProtocolSequenceValidator()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((host, port))
+    server.listen(1)
+    server.settimeout(timeout_s)
+    print('LOCAL Mini-UE4 simulator listening on {}:{}'.format(host, port))
+    print('This simulator does not contact the real UE4 target.')
+    connection = None
+    try:
+        connection, address = server.accept()
+        connection.settimeout(timeout_s)
+        stream = connection.makefile('rb')
+        print('Local client connected from {}:{}'.format(*address))
+        while True:
+            message = receive_frame(stream)
+            if message is None:
+                break
+            ack = validator.observe(message, time.monotonic())
+            if ack is not None:
+                send_frame(connection, ack)
+        summary = validator.finish()
+        write_result(validator, summary, transcript_path)
+        print('LOCAL SIMULATOR PASSED: recorded strict V2 session at {:.3f} Hz.'.format(
+            summary['average_state_rate_hz']))
+        print('No real UE4 target was contacted. Transcript: {}'.format(
+            transcript_path))
+        return 0
+    except (socket.timeout, OSError, ProtocolViolation) as exc:
+        print('LOCAL SIMULATOR FAILED: {}'.format(exc), file=sys.stderr)
+        return 1
+    finally:
+        if connection is not None:
+            connection.close()
+        server.close()
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description='Local-only strict Mini-UE4 V2 validator')
+    parser.add_argument('--self-test', action='store_true',
+                        help='validate a deterministic local fixture without networking')
+    parser.add_argument('--host', default='127.0.0.1',
+                        help='local listen address (default: 127.0.0.1)')
+    parser.add_argument('--port', type=int, default=5000,
+                        help='local listen port (default: 5000)')
+    parser.add_argument('--timeout', type=float, default=60.0,
+                        help='accept/read timeout in seconds')
+    parser.add_argument('--transcript', default=DEFAULT_TRANSCRIPT,
+                        help='scoped JSON transcript path')
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    if args.self_test:
+        return run_self_test(args.transcript)
+    if not 1 <= args.port <= 65535:
+        print('LOCAL SIMULATOR FAILED: port must be 1..65535', file=sys.stderr)
+        return 2
+    return serve(args.host, args.port, args.transcript, args.timeout)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
