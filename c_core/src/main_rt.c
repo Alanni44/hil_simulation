@@ -12,6 +12,7 @@
 
 #include "flight_state.h"
 #include "local_udp.h"
+#include "mission_controller.h"
 #include "model_rt_wrapper.h"
 #include "model_contract.h"
 #include "realtime.h"
@@ -22,7 +23,6 @@
 #define SEND_INTERVAL 20U
 #define REQUEST_ID_MAX 96
 #define MISSION_ID_MAX 128
-#define MAX_MISSION_WAYPOINTS 50U
 #define MAX_INPUT_VALUE_COUNT 16U
 
 static volatile sig_atomic_t running = 1;
@@ -59,10 +59,14 @@ static PendingResetReceipt pending_reset_receipt;
 
 typedef struct {
     int active;
+    MissionWaypoint waypoints[MISSION_CONTROLLER_MAX_WAYPOINTS];
     unsigned waypoint_count;
+    double completion_radius_m;
+    unsigned generation;
     char mission_id[MISSION_ID_MAX];
 } MissionMetadata;
 static MissionMetadata mission;
+static unsigned applied_mission_generation = 0;
 
 typedef struct {
     int pending;
@@ -190,54 +194,81 @@ static void parse_set_inputs(struct json_object* root, const char* request_id,
                  ok && seen ? sequence + 1U : sequence, results);
 }
 
-static int mission_waypoint_is_valid(struct json_object* waypoint) {
+static int parse_mission_waypoint(struct json_object* waypoint,
+                                  MissionWaypoint* parsed) {
     const char* required[] = {"north_m", "east_m", "down_m", "speed_mps"};
+    double values[4];
     unsigned index;
-    if (!waypoint || json_object_get_type(waypoint) != json_type_object) return 0;
+    if (!waypoint || !parsed || json_object_get_type(waypoint) != json_type_object) return 0;
     for (index = 0; index < sizeof(required) / sizeof(required[0]); ++index) {
         struct json_object* value = NULL;
-        double number;
+        int was_bool = 0;
         if (!json_object_object_get_ex(waypoint, required[index], &value) ||
-            !valid_number(value, &number, NULL)) return 0;
+            !valid_number(value, &values[index], &was_bool) || was_bool) return 0;
     }
+    if (values[3] <= 0.0) return 0;
+    parsed->north_m = values[0];
+    parsed->east_m = values[1];
+    parsed->down_m = values[2];
+    parsed->speed_mps = values[3];
     return 1;
 }
 
-/* Mission geometry is a fixed external NED request contract, not a model
- * port inference mechanism. Models consume mission targets only through
- * separately declared contract parameters. */
+/* Mission geometry is a fixed external NED request contract.  The C
+ * controller turns it into the model's declared motor input; it is never a
+ * model-port inference mechanism or a UE4 protocol payload. */
 static void parse_load_mission(struct json_object* root, const char* request_id,
                                const struct sockaddr_in* sender) {
     struct json_object *params = NULL, *mission_id = NULL, *waypoints = NULL;
+    struct json_object *landing = NULL, *completion_radius = NULL;
+    MissionWaypoint parsed[MISSION_CONTROLLER_MAX_WAYPOINTS];
+    double radius;
+    int radius_was_bool = 0;
     size_t count, index;
     if (!json_object_object_get_ex(root, "params", &params) ||
         json_object_get_type(params) != json_type_object ||
         !json_object_object_get_ex(params, "mission_id", &mission_id) ||
         json_object_get_type(mission_id) != json_type_string ||
         !json_object_object_get_ex(params, "waypoints", &waypoints) ||
-        json_object_get_type(waypoints) != json_type_array) {
-        send_receipt(sender, request_id, 0, "mission_id and NED waypoints are required", sequence, NULL);
+        json_object_get_type(waypoints) != json_type_array ||
+        !json_object_object_get_ex(params, "landing", &landing) ||
+        !json_object_object_get_ex(params, "completion_radius_m", &completion_radius) ||
+        !valid_number(completion_radius, &radius, &radius_was_bool) ||
+        radius_was_bool || radius <= 0.0) {
+        send_receipt(sender, request_id, 0,
+                     "mission_id, positive completion radius, NED route and landing are required",
+                     sequence, NULL);
         return;
     }
     count = json_object_array_length(waypoints);
-    if (count < 2 || count > MAX_MISSION_WAYPOINTS) {
+    if (count < 3 || count + 1U > MISSION_CONTROLLER_MAX_WAYPOINTS) {
         send_receipt(sender, request_id, 0, "waypoint count is outside contract limit", sequence, NULL);
         return;
     }
     for (index = 0; index < count; ++index) {
-        if (!mission_waypoint_is_valid(json_object_array_get_idx(waypoints, index))) {
+        if (!parse_mission_waypoint(json_object_array_get_idx(waypoints, index), &parsed[index])) {
             send_receipt(sender, request_id, 0,
-                         "waypoint must contain finite north_m/east_m/down_m/speed_mps", sequence, NULL);
+                         "waypoint must contain finite north_m/east_m/down_m/speed_mps and positive speed_mps",
+                         sequence, NULL);
             return;
         }
     }
+    if (!parse_mission_waypoint(landing, &parsed[count])) {
+        send_receipt(sender, request_id, 0,
+                     "landing must contain finite NED coordinates and positive speed_mps",
+                     sequence, NULL);
+        return;
+    }
     pthread_mutex_lock(&command_lock);
     mission.active = 1;
-    mission.waypoint_count = (unsigned)count;
+    memcpy(mission.waypoints, parsed, (count + 1U) * sizeof(parsed[0]));
+    mission.waypoint_count = (unsigned)count + 1U;
+    mission.completion_radius_m = radius;
+    mission.generation++;
     strncpy(mission.mission_id, json_object_get_string(mission_id), sizeof(mission.mission_id) - 1);
     mission.mission_id[sizeof(mission.mission_id) - 1] = '\0';
     pthread_mutex_unlock(&command_lock);
-    send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence, NULL);
+    send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence + 1U, NULL);
 }
 
 static const HilParameterSpec* find_parameter(const char* name) {
@@ -338,12 +369,23 @@ static void apply_lifecycle_request(void) {
     pthread_mutex_unlock(&command_lock);
 
     if (request.event == HIL_PAUSED) {
-        if (lifecycle != HIL_RUNNING) valid = 0; else lifecycle = HIL_PAUSED;
+        if (lifecycle != HIL_RUNNING) valid = 0;
+        else lifecycle = HIL_PAUSED;
     } else if (request.event == HIL_RUNNING) {
         if (lifecycle != HIL_PAUSED) valid = 0; else lifecycle = HIL_RUNNING;
     } else if (request.event == HIL_ENDED) {
         if (lifecycle != HIL_RUNNING && lifecycle != HIL_PAUSED) valid = 0;
-        else { lifecycle = HIL_ENDED; mission.active = 0; }
+        else {
+            lifecycle = HIL_ENDED;
+            pthread_mutex_lock(&command_lock);
+            mission.active = 0;
+            mission.waypoint_count = 0;
+            mission.mission_id[0] = '\0';
+            mission.generation++;
+            applied_mission_generation = mission.generation;
+            pthread_mutex_unlock(&command_lock);
+            mission_controller_reset();
+        }
     } else if (request.event == HIL_RESETTING) {
         if (lifecycle != HIL_PAUSED && lifecycle != HIL_ENDED && lifecycle != HIL_RUNNING) valid = 0;
         else {
@@ -363,9 +405,14 @@ static void apply_lifecycle_request(void) {
             pending_live.parameters = active_parameters;
             pending_live.generation++;
             pending_reset.generation = 0;
+            pthread_mutex_lock(&command_lock);
             mission.active = 0;
             mission.waypoint_count = 0;
             mission.mission_id[0] = '\0';
+            mission.generation++;
+            applied_mission_generation = mission.generation;
+            pthread_mutex_unlock(&command_lock);
+            mission_controller_reset();
             lifecycle = HIL_RUNNING;
             populate_state();
             /* The reset call occurs before this loop's model_step(); that
@@ -389,6 +436,40 @@ static void apply_live_update(void) {
         hil_contract_apply_exported_globals(&active_parameters);
         applied_live_generation = snapshot.generation;
     }
+}
+
+static void apply_mission_update(void) {
+    MissionMetadata snapshot;
+    pthread_mutex_lock(&command_lock);
+    snapshot = mission;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.generation == applied_mission_generation) return;
+    if (snapshot.active) {
+        if (!mission_controller_load(snapshot.waypoints, snapshot.waypoint_count,
+                                     snapshot.completion_radius_m)) {
+            fprintf(stderr, "[HIL] rejected invalid pending mission snapshot\n");
+        }
+    } else {
+        mission_controller_reset();
+    }
+    applied_mission_generation = snapshot.generation;
+}
+
+static void write_motor_command(const float motor[4]) {
+    double values[4];
+    unsigned index;
+    for (index = 0; index < 4; ++index) values[index] = motor[index];
+    if (!hil_contract_set_input(&active_input, "flight_control.motor_command", values, 4U)) {
+        fprintf(stderr, "[HIL] generated motor command setter unavailable\n");
+        running = 0;
+        return;
+    }
+    *model_get_input() = active_input;
+}
+
+static void zero_motor_command(void) {
+    const float motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    write_motor_command(motor);
 }
 
 /* Reset restores all ordinary model inputs to their contract defaults, while
@@ -501,6 +582,7 @@ static void* command_thread(void* ignored) {
 
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
+    float mission_motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
     if (hil_realtime_init(90) != 0) {
         fprintf(stderr, "[HIL] SCHED_FIFO/locked memory unavailable; refusing production start\n");
@@ -525,8 +607,15 @@ int main(void) {
         apply_lifecycle_request();
         if (lifecycle == HIL_RUNNING) {
             apply_live_update();
+            apply_mission_update();
+            mission_controller_step(have_valid_state ? &state : NULL, 0.001,
+                                    mission_motor);
+            write_motor_command(mission_motor);
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
-        } else if (have_valid_state) { state.lifecycle = (uint8_t)lifecycle; }
+        } else {
+            zero_motor_command();
+            if (have_valid_state) state.lifecycle = (uint8_t)lifecycle;
+        }
         if (++send_counter >= SEND_INTERVAL) {
             if (have_valid_state) { udp_send_status(&state); udp_send_monitor(&state); }
             send_counter = 0;
