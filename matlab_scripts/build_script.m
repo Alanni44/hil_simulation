@@ -83,9 +83,9 @@ function build_script(task_file, result_file)
         exe_path = fullfile(executable_dir, [model_name '_rt']);
         cmd = sprintf(['gcc -O2 -Wall -pthread -I"%s" -I"%s" ' ...
             '-DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h %s ' ...
-            '"%s/main_rt.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
+            '"%s/main_rt.c" "%s/mission_controller.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
             '"%s/hal_stub.c" "%s/realtime.c" -lm -lrt -ljson-c -o "%s"'], ...
-            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
+            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
         [status, output] = system(cmd);
         % ``system`` captures GCC output, so explicitly relay both the exact
         % invocation and its output into MATLAB stdout for build.log audit.
@@ -166,7 +166,7 @@ function exported_globals = validate_contract_abi(contract, y_fields, u_fields, 
             error('state output %s has unsupported generated type %s', key, field.type);
         end
     end
-    validate_ue4_acceleration_abi(contract, y_fields);
+    validate_internal_acceleration_abi(contract, y_fields);
     validate_input_contract_abi(contract, u_fields);
     if ~isfield(contract, 'parameters') || ~iscell_or_struct_array(contract.parameters)
         error('Contract parameters must be an array');
@@ -178,18 +178,21 @@ function exported_globals = validate_contract_abi(contract, y_fields, u_fields, 
         for j = 1:length(required_param_fields)
             if ~isfield(p, required_param_fields{j}), error('Parameter lacks %s', required_param_fields{j}); end
         end
+        if ~ischar(p.generated_field) || isempty(p.generated_field)
+            error('Missing declared generated parameter ABI: %s.generated_field', p.name);
+        end
         if strcmp(p.class, 'readonly')
             f = lookup_field(y_fields, p.generated_field);
-            if isempty(f), error('Readonly generated_field does not exist in ExtY: %s', p.generated_field); end
+            if isempty(f), error('Missing declared generated parameter ABI: ExtY.%s', p.generated_field); end
         else
             binding = parameter_binding(p);
         if strcmp(binding.kind, 'extu')
             if ~strcmp(binding.field, p.generated_field), error('ExtU binding field must match generated_field'); end
             f = lookup_field(u_fields, binding.field);
-            if isempty(f), error('Writable generated_field does not exist in ExtU: %s', binding.field); end
+            if isempty(f), error('Missing declared generated parameter ABI: ExtU.%s', binding.field); end
         elseif strcmp(binding.kind, 'exported_global')
             f = find_exported_global(model_header, binding.symbol);
-            if isempty(f), error('ExportedGlobal symbol not declared in generated header: %s', binding.symbol); end
+            if isempty(f), error('Missing declared generated parameter ABI: ExportedGlobal %s', binding.symbol); end
             exported_globals(end+1).name = binding.symbol; %#ok<AGROW>
             exported_globals(end).type = f.type;
         else
@@ -205,24 +208,24 @@ function exported_globals = validate_contract_abi(contract, y_fields, u_fields, 
     end
 end
 
-function validate_ue4_acceleration_abi(contract, y_fields)
-    if ~isfield(contract, 'outputs') || ~isfield(contract.outputs, 'ue4_state') || ...
-            ~isfield(contract.outputs.ue4_state, 'rate_hz') || contract.outputs.ue4_state.rate_hz ~= 50 || ...
-            ~isfield(contract.outputs.ue4_state, 'acceleration')
-        error('UE4 50Hz acceleration contract is required');
+function validate_internal_acceleration_abi(contract, y_fields)
+    declaration = internal_output_declaration(contract);
+    if ~isfield(declaration, 'rate_hz') || declaration.rate_hz ~= 50 || ...
+            ~isfield(declaration, 'acceleration')
+        error('Internal 50Hz acceleration contract is required');
     end
-    acceleration = contract.outputs.ue4_state.acceleration;
+    acceleration = declaration.acceleration;
     for key = {'ax_mps2','ay_mps2','az_mps2'}
         name = key{1};
-        if ~isfield(acceleration, name), error('UE4 acceleration lacks %s', name); end
+        if ~isfield(acceleration, name), error('Internal acceleration lacks %s', name); end
         descriptor = acceleration.(name);
         if ~isfield(descriptor, 'field') || ~isfield(descriptor, 'unit') || ...
                 ~strcmp(descriptor.unit, 'm/s2')
-            error('UE4 acceleration descriptor %s is invalid', name);
+            error('Internal acceleration descriptor %s is invalid', name);
         end
         f = lookup_field(y_fields, descriptor.field);
         if isempty(f) || f.dimension ~= 1 || ~is_numeric_type(f.type)
-            error('UE4 acceleration output %s must be a numeric scalar ExtY field', descriptor.field);
+            error('Internal acceleration output %s must be a numeric scalar ExtY field', descriptor.field);
         end
     end
 end
@@ -246,6 +249,13 @@ function validate_input_contract_abi(contract, u_fields)
         elseif ~is_numeric_type(f.type)
             error('Declared numeric input mismatches ExtU: %s', descriptor.field);
         end
+        if descriptor.has_default
+            if descriptor.dimension ~= 1 || ~isnumeric(descriptor.default) || ...
+                    ~isscalar(descriptor.default) || ~isfinite(descriptor.default) || ...
+                    descriptor.default < descriptor.min || descriptor.default > descriptor.max
+                error('Declared input default is invalid: %s', descriptor.field);
+            end
+        end
         names{end+1} = descriptor.field; %#ok<AGROW>
     end
     if length(unique(names)) ~= length(names), error('Declared inputs must map to distinct ExtU fields'); end
@@ -259,9 +269,10 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
         key = required{i}; name = contract.state.outputs.(key);
         fprintf(fid, '#define MODEL_READ_%s(y) ((y)->%s)\n', key, name);
     end
-    acceleration = contract.outputs.ue4_state.acceleration;
-    % Keep the three V2.0 acceleration bindings explicit in the generated
-    % header so their ABI names remain directly auditable in build sources.
+    declaration = internal_output_declaration(contract);
+    acceleration = declaration.acceleration;
+    % Acceleration stays in the C/Python model-state ABI.  The TCP bridge
+    % separately projects only protocol V2.0 fields into UE4 JSON.
     fprintf(fid, '#define MODEL_READ_ax_mps2(y) ((y)->%s)\n', acceleration.ax_mps2.field);
     fprintf(fid, '#define MODEL_READ_ay_mps2(y) ((y)->%s)\n', acceleration.ay_mps2.field);
     fprintf(fid, '#define MODEL_READ_az_mps2(y) ((y)->%s)\n', acceleration.az_mps2.field);
@@ -309,6 +320,15 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     end
     fprintf(fid, 'static unsigned hil_contract_phase_mask(const char* name) { unsigned i; for (i=0; i<HIL_PARAMETER_COUNT; ++i) if (!strcmp(HIL_PARAMETER_SPECS[i].name,name)) return HIL_PARAMETER_SPECS[i].phase_mask; return 0; }\n');
     fprintf(fid, 'static void hil_contract_apply_defaults(ModelU_t* u, HilParameterValues* values) {\n');
+    for i = 1:length(input_descriptors)
+        d = input_descriptors(i);
+        if ~d.has_default, continue; end
+        if strcmp(d.type, 'bool')
+            fprintf(fid, 'u->%s = %d;\n', d.field, logical(d.default));
+        else
+            fprintf(fid, 'u->%s = (%s)%.17g;\n', d.field, c_cast_type(d.type), d.default);
+        end
+    end
     for i = 1:length(params)
         p = params{i};
         if strcmp(p.class, 'readonly')
@@ -387,7 +407,22 @@ function field = find_exported_global(header_path, symbol)
     field = [];
     if ~isempty(token), field = struct('name', symbol, 'type', token{1}, 'dimension', 1); end
 end
-function binding = parameter_binding(parameter), if ~isfield(parameter, 'binding'), error('Writable parameter binding is required'); end, binding = parameter.binding; end
+function binding = parameter_binding(parameter)
+    if ~isfield(parameter, 'binding') || ~isstruct(parameter.binding) || ...
+            ~isfield(parameter.binding, 'kind') || isempty(parameter.binding.kind)
+        error('Missing declared generated parameter ABI: %s.binding', parameter.name);
+    end
+    binding = parameter.binding;
+    if strcmp(binding.kind, 'extu')
+        if ~isfield(binding, 'field') || isempty(binding.field)
+            error('Missing declared generated parameter ABI: %s.binding.field', parameter.name);
+        end
+    elseif strcmp(binding.kind, 'exported_global')
+        if ~isfield(binding, 'symbol') || isempty(binding.symbol)
+            error('Missing declared generated parameter ABI: %s.binding.symbol', parameter.name);
+        end
+    end
+end
 function value = numeric_parameter_default(parameter), if islogical(parameter.default), value = double(parameter.default); else, value = parameter.default; end, end
 
 function yes = is_numeric_type(type)
@@ -400,7 +435,7 @@ function cells = as_cell(value), if iscell(value), cells = value; else, cells = 
 function t = c_cast_type(type), if strcmp(type,'float'), t='float'; else, t='double'; end, end
 
 function descriptors = contract_input_descriptors(contract)
-    descriptors = struct('group', {}, 'name', {}, 'field', {}, 'type', {}, 'dimension', {}, 'unit', {}, 'min', {}, 'max', {});
+    descriptors = struct('group', {}, 'name', {}, 'field', {}, 'type', {}, 'dimension', {}, 'unit', {}, 'min', {}, 'max', {}, 'has_default', {}, 'default', {});
     groups = {'flight_control','environment','fault'};
     for i = 1:length(groups)
         group = groups{i}; ports = contract.inputs.(group).ports; names = fieldnames(ports);
@@ -414,6 +449,12 @@ function descriptors = contract_input_descriptors(contract)
             descriptors(end).unit = descriptor.unit;
             descriptors(end).min = descriptor.min;
             descriptors(end).max = descriptor.max;
+            descriptors(end).has_default = isfield(descriptor, 'default');
+            if isfield(descriptor, 'default')
+                descriptors(end).default = descriptor.default;
+            else
+                descriptors(end).default = 0.0;
+            end
         end
     end
 end
@@ -436,4 +477,12 @@ function remove_paths(paths), for i = 1:length(paths), if exist(paths{i}, 'dir')
 function fields = required_state_fields(), fields = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps','q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'}; end
 function unit = required_unit(field)
     units = struct('north_m','m','east_m','m','down_m','m','vn_mps','m/s','ve_mps','m/s','vd_mps','m/s','q_w','1','q_x','1','q_y','1','q_z','1','p_radps','rad/s','q_radps','rad/s','r_radps','rad/s','airborne','bool'); unit = units.(field);
+end
+
+function declaration = internal_output_declaration(contract)
+    if ~isfield(contract, 'outputs') || ...
+            ~isfield(contract.outputs, 'internal_state')
+        error('Contract internal_state output declaration is required');
+    end
+    declaration = contract.outputs.internal_state;
 end

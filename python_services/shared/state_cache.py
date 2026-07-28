@@ -47,8 +47,6 @@ def ned_to_ue4(state):
         'attitude': {'roll': roll, 'pitch': pitch, 'yaw': yaw},
         'velocity': {'vx': state['vn_mps'], 'vy': state['ve_mps'],
                      'vz': -state['vd_mps']},
-        'acceleration': {'ax': state['ax_mps2'], 'ay': state['ay_mps2'],
-                         'az': -state['az_mps2']},
     }
 
 
@@ -112,9 +110,8 @@ def vehicle_state_v2_from_state(state, mission_id):
     converted = ned_to_ue4(state)
     return {'protocol_version': '2.0', 'type': 'vehicle_state', 'vehicle_id': 'Drone1',
             'data': {'mission_id': mission_id, 'sim_time': state['sim_time_s'],
-                     'sequence': state['sequence'], 'rate_hz': 50,
                      'position': converted['position'], 'attitude': converted['attitude'],
-                     'velocity': converted['velocity'], 'acceleration': converted['acceleration'],
+                     'velocity': converted['velocity'],
                      'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
                                           'r': state['r_radps']}}}
 

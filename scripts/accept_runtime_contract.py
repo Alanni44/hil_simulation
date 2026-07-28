@@ -28,6 +28,10 @@ from shared.model_package import package_sha256, sha256_file  # noqa
 from shared import state_cache  # noqa
 import ws_server  # noqa
 
+V2_VEHICLE_STATE_FIELDS = frozenset((
+    'mission_id', 'sim_time', 'position', 'attitude', 'velocity',
+    'angular_velocity', 'flight_state'))
+
 
 def write_json(path, value):
     with open(path, 'w') as output:
@@ -233,7 +237,7 @@ def malformed_copy(source, destination, defect, update_manifest=True):
     elif defect == 'missing_speed': del contract['state']['outputs']['vd_mps']
     elif defect == 'changed_unit': contract['state']['units']['north_m'] = 'ft'
     elif defect == 'missing_wind_d': del contract['inputs']['environment']['ports']['wind_d_mps']
-    elif defect == 'missing_acceleration': del contract['outputs']['ue4_state']['acceleration']['az_mps2']
+    elif defect == 'missing_acceleration': del contract['outputs']['internal_state']['acceleration']['az_mps2']
     elif defect == 'reset_only_running':
         for parameter in contract['parameters']:
             if parameter['name'] == 'reset_gain':
@@ -357,9 +361,17 @@ def main():
                     record(assertions, 'normalized_ned_state', first['sequence'] > 0 and first['q_w'] == 1.0 and first['airborne'] == 1, first)
                     mission = core_command(command, packet_log, 'mission-ned', 'load_mission', {
                         'mission_id': 'acceptance-route', 'waypoints': [
+                            {'north_m': 0.0, 'east_m': 0.0, 'down_m': -20.0, 'speed_mps': 2.0},
                             {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0},
-                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}]})
-                    record(assertions, 'ned_mission_receipt', mission.get('accepted'), mission)
+                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}],
+                        'landing': {
+                            'north_m': 150.0, 'east_m': 220.0,
+                            'down_m': 0.0, 'speed_mps': 1.5},
+                        'completion_radius_m': 1.0})
+                    record(assertions, 'ned_mission_receipt',
+                           mission.get('accepted') and
+                           mission.get('effective_sequence', 0) > first['sequence'],
+                           mission)
                     tune = core_command(command, packet_log, 'gain-live', 'tune', {'gain': 2.0})
                     record(assertions, 'live_parameter_receipt', tune.get('accepted') and tune['effective_sequence'] >= first['sequence'], tune)
                     readonly = core_command(command, packet_log, 'readonly', 'tune', {'north_diagnostic': 1.0})
@@ -431,9 +443,9 @@ def main():
                            ue4_mission['data']['waypoints'][0]['height'] == 30.0,
                            ue4_mission)
                     record(assertions, 'ue4_protocol_ned_axes_and_90_yaw', ue4['position'] == {'x':10.0,'y':20.0,'height':-30.0} and abs(ue4['attitude']['yaw'] - 1.57079632679) < 1e-6 and ue4['velocity']['vz'] == -6.0, vehicle)
-                    record(assertions, 'ue4_protocol_acceleration_and_semantics',
-                           ue4['acceleration'] == {'ax':4.0,'ay':5.0,'az':-6.0} and
-                           'flight_state' not in ue4 and ue4['rate_hz'] == 50, vehicle)
+                    record(assertions, 'ue4_protocol_v2_fields_and_semantics',
+                           {'mission_id', 'sim_time', 'position', 'attitude'}.issubset(ue4) and
+                           set(ue4).issubset(V2_VEHICLE_STATE_FIELDS), vehicle)
                     record(assertions, 'ue4_10_second_rate_and_sequence',
                            49.0 <= stream['average_hz'] <= 51.0 and
                            stream['seq_strictly_increasing'], stream)

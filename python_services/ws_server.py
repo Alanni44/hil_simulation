@@ -22,6 +22,7 @@ from shared.model_package import PackageError, controlled_path, sha256_file, val
 from shared.ws_framing import FrameError, read_frame, write_frame
 from shared.flight_state import parse_flight_state
 import bridge_tcp_client as bridge
+from core_client import core_request as _core_request
 import dev_runner
 
 logger = get_logger('ws_v2')
@@ -31,8 +32,6 @@ CONTROLLED_PACKAGE_ROOT = os.environ.get('HIL_CONTROLLED_PACKAGE_ROOT',
 WORK_ROOT = os.environ.get('HIL_WORK_ROOT', os.path.join(PROJECT_ROOT, 'runtime', 'work'))
 ACCEPTANCE_ROOT = os.environ.get('HIL_ACCEPTANCE_ROOT',
                                  os.path.join(PROJECT_ROOT, 'artifacts', 'acceptance'))
-CMD_HOST = '127.0.0.1'
-CMD_PORT = CONFIG['local_udp']['command_port']
 ACTIVE_CORE = None
 DEPLOY_MODE = os.environ.get('HIL_DEPLOY_MODE', 'development')
 
@@ -48,24 +47,6 @@ async def ws_pong(writer, data):
 
 async def ws_send(writer, payload):
     await write_frame(writer, 0x1, payload.encode('utf-8'), masked=False)
-
-
-def _core_request(command):
-    """Send one local command and wait for its C-core receipt."""
-    request_id = command.setdefault('request_id', secrets.token_hex(12))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.bind(('127.0.0.1', 0)); sock.settimeout(2.0)
-        sock.sendto(json.dumps(command, separators=(',', ':')).encode('utf-8'), (CMD_HOST, CMD_PORT))
-        while True:
-            payload, _ = sock.recvfrom(65536)
-            receipt = json.loads(payload.decode('utf-8'))
-            if receipt.get('request_id') == request_id:
-                return receipt
-    except (OSError, ValueError) as exc:
-        return {'request_id': request_id, 'accepted': False, 'reason': 'C core receipt failed: {}'.format(exc)}
-    finally:
-        sock.close()
 
 
 def _matlab_binary():
@@ -226,9 +207,22 @@ def _build_or_deploy(request):
 
 async def _handle_core_command(cmd, params, writer, lifecycle_event=None):
     request_id = params.pop('request_id', secrets.token_hex(12))
-    receipt = _core_request({'request_id': request_id, 'cmd': cmd, 'params': params})
-    if lifecycle_event and receipt.get('accepted') and bridge.is_connected():
-        bridge.send_simulation_event(lifecycle_event, params.get('mission_id', ''))
+    reservation = None
+    if lifecycle_event and bridge.is_connected():
+        reservation = bridge.reserve_simulation_event(
+            lifecycle_event, params.get('mission_id', ''))
+    try:
+        receipt = _core_request(
+            {'request_id': request_id, 'cmd': cmd, 'params': params})
+    except Exception:
+        if reservation is not None:
+            bridge.resolve_simulation_event(reservation, accepted=False)
+        raise
+    if lifecycle_event and receipt.get('accepted'):
+        if reservation is not None:
+            bridge.resolve_simulation_event(reservation, accepted=True)
+    elif reservation is not None:
+        bridge.resolve_simulation_event(reservation, accepted=False)
     await ws_send(writer, json.dumps(receipt))
 
 
