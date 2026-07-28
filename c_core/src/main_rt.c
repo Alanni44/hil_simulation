@@ -241,7 +241,7 @@ static void parse_load_mission(struct json_object* root, const char* request_id,
         return;
     }
     count = json_object_array_length(waypoints);
-    if (count < 3 || count + 1U > MISSION_CONTROLLER_MAX_WAYPOINTS) {
+    if (count < 3 || count > MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS) {
         send_receipt(sender, request_id, 0, "waypoint count is outside contract limit", sequence, NULL);
         return;
     }

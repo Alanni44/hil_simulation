@@ -42,7 +42,9 @@ int main(void)
         {40.0, 20.0, 0.0, 1.5}
     };
     FlightState_t state = state_at(0.0, 0.0, 0.0);
+    MissionWaypoint maximum_mission[MISSION_CONTROLLER_MAX_WAYPOINTS];
     float motor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    unsigned index;
 
     mission_controller_reset();
     mission_controller_step(&state, 0.001, motor);
@@ -89,6 +91,17 @@ int main(void)
     mission_controller_step(&state, 0.001, motor);
     assert(mission_controller_phase() == MISSION_LANDED);
     assert_zero(motor);
+
+    for (index = 0; index < MISSION_CONTROLLER_MAX_WAYPOINTS; ++index) {
+        maximum_mission[index].north_m = (double)index;
+        maximum_mission[index].east_m = 0.0;
+        maximum_mission[index].down_m =
+            index == MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS ? 0.0 : -20.0;
+        maximum_mission[index].speed_mps = 2.0;
+    }
+    assert(mission_controller_load(maximum_mission,
+                                   MISSION_CONTROLLER_MAX_WAYPOINTS, 1.0));
+    assert(mission_controller_phase() == MISSION_TAKEOFF);
 
     puts("mission_controller: all tests passed");
     return 0;

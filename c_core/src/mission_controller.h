@@ -3,7 +3,9 @@
 
 #include "flight_state.h"
 
-#define MISSION_CONTROLLER_MAX_WAYPOINTS 50U
+#define MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS 50U
+#define MISSION_CONTROLLER_MAX_WAYPOINTS \
+    (MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS + 1U)
 
 typedef struct {
     double north_m;

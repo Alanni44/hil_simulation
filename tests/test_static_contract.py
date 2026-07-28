@@ -1,11 +1,48 @@
+import ast
 import pathlib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 def read(path): return (ROOT / path).read_text(encoding='utf-8')
+def string_literal(node):
+    if hasattr(node, 'value'):
+        return node.value
+    return node.s if isinstance(node, ast.Str) else None
 
 
 class RuntimeContractStaticTests(unittest.TestCase):
+    def test_acceptance_submits_complete_task_4_mission_schema(self):
+        tree = ast.parse(read('scripts/accept_runtime_contract.py'))
+        mission_params = None
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and
+                    isinstance(node.func, ast.Name) and
+                    node.func.id == 'core_command' and
+                    len(node.args) >= 5 and
+                    string_literal(node.args[2]) == 'mission-ned'):
+                mission_params = ast.literal_eval(node.args[4])
+                break
+
+        self.assertIsNotNone(mission_params)
+        self.assertGreaterEqual(len(mission_params['waypoints']), 3)
+        self.assertEqual(
+            {'north_m', 'east_m', 'down_m', 'speed_mps'},
+            set(mission_params['landing']))
+        self.assertGreater(mission_params['landing']['speed_mps'], 0.0)
+        self.assertGreater(mission_params['completion_radius_m'], 0.0)
+
+    def test_core_reserves_capacity_for_50_route_points_plus_landing(self):
+        header = read('c_core/src/mission_controller.h')
+        source = read('c_core/src/main_rt.c')
+        self.assertIn('#define MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS 50U', header)
+        self.assertIn('#define MISSION_CONTROLLER_MAX_WAYPOINTS', header)
+        self.assertIn(
+            '(MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS + 1U)', header)
+        self.assertIn(
+            'count > MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS', source)
+        self.assertNotIn(
+            'count + 1U > MISSION_CONTROLLER_MAX_WAYPOINTS', source)
+
     def test_no_model_registry_or_hot_reload_implementation(self):
         combined = '\n'.join(read(path) for path in (
             'python_services/ws_server.py', 'c_core/src/model_rt_wrapper.c',

@@ -361,9 +361,17 @@ def main():
                     record(assertions, 'normalized_ned_state', first['sequence'] > 0 and first['q_w'] == 1.0 and first['airborne'] == 1, first)
                     mission = core_command(command, packet_log, 'mission-ned', 'load_mission', {
                         'mission_id': 'acceptance-route', 'waypoints': [
+                            {'north_m': 0.0, 'east_m': 0.0, 'down_m': -20.0, 'speed_mps': 2.0},
                             {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0},
-                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}]})
-                    record(assertions, 'ned_mission_receipt', mission.get('accepted'), mission)
+                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}],
+                        'landing': {
+                            'north_m': 150.0, 'east_m': 220.0,
+                            'down_m': 0.0, 'speed_mps': 1.5},
+                        'completion_radius_m': 1.0})
+                    record(assertions, 'ned_mission_receipt',
+                           mission.get('accepted') and
+                           mission.get('effective_sequence', 0) > first['sequence'],
+                           mission)
                     tune = core_command(command, packet_log, 'gain-live', 'tune', {'gain': 2.0})
                     record(assertions, 'live_parameter_receipt', tune.get('accepted') and tune['effective_sequence'] >= first['sequence'], tune)
                     readonly = core_command(command, packet_log, 'readonly', 'tune', {'north_diagnostic': 1.0})
