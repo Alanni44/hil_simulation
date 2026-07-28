@@ -1,4 +1,5 @@
 import json
+import asyncio
 import pathlib
 import socket
 import sys
@@ -11,6 +12,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
 
 import bridge_tcp_client  # noqa: E402
+import ws_server  # noqa: E402
 
 
 WAYPOINTS = [
@@ -57,6 +59,7 @@ class BridgeTcpClientTests(unittest.TestCase):
             bridge_tcp_client._pending_waypoints = None
             bridge_tcp_client._mission_queue[:] = []
             bridge_tcp_client._event_queue[:] = []
+            bridge_tcp_client._event_reservations.clear()
 
     def tearDown(self):
         bridge_tcp_client._running = self.original_running
@@ -66,6 +69,44 @@ class BridgeTcpClientTests(unittest.TestCase):
             bridge_tcp_client._pending_waypoints = None
             bridge_tcp_client._mission_queue[:] = []
             bridge_tcp_client._event_queue[:] = []
+            bridge_tcp_client._event_reservations.clear()
+
+    def test_ws_mission_end_reserves_delivery_before_calling_core(self):
+        bridge_tcp_client._connected.set()
+        receipt = {
+            'request_id': 'request-a',
+            'accepted': True,
+            'reason': 'mission ended',
+        }
+
+        def core_request(_command):
+            with bridge_tcp_client._queue_lock:
+                self.assertEqual(
+                    [('mission_end', 'mission-a')],
+                    list(bridge_tcp_client._event_reservations.values()))
+                self.assertEqual([], bridge_tcp_client._event_queue)
+            return receipt
+
+        responses = []
+
+        async def capture_response(_writer, payload):
+            responses.append(json.loads(payload))
+
+        with mock.patch.object(ws_server, '_core_request',
+                               side_effect=core_request), \
+                mock.patch.object(ws_server, 'ws_send',
+                                  side_effect=capture_response):
+            asyncio.run(ws_server._handle_core_command(
+                'mission_end',
+                {'request_id': 'request-a', 'mission_id': 'mission-a'},
+                object(), lifecycle_event='mission_end'))
+
+        with bridge_tcp_client._queue_lock:
+            self.assertEqual({}, bridge_tcp_client._event_reservations)
+            self.assertEqual(
+                [('mission_end', 'mission-a')],
+                bridge_tcp_client._event_queue)
+        self.assertEqual([receipt], responses)
 
     def test_json_line_fragment_survives_a_receive_timeout(self):
         client, peer = socket.socketpair()
@@ -382,6 +423,65 @@ class BridgeTcpClientTests(unittest.TestCase):
                 client.close()
                 peer.close()
                 thread.join(1.0)
+
+    def test_connected_session_keeps_mission_for_reserved_late_mission_end(self):
+        finish_checked = threading.Event()
+
+        class ObservedReservations(dict):
+            def values(self):
+                # _finish_mission_if_no_queued_end reaches reservations only
+                # after it has observed that the event queue has no matching
+                # mission_end.  Resolution then blocks on _queue_lock until
+                # the finish decision has retained the mission.
+                finish_checked.set()
+                return super().values()
+
+        reservations = ObservedReservations()
+        with mock.patch.object(bridge_tcp_client, '_event_reservations',
+                               reservations):
+            bridge_tcp_client.send_mission_plan('mission-a', WAYPOINTS)
+            reservation = bridge_tcp_client.reserve_simulation_event(
+                'mission_end', 'mission-a')
+            running_state = {'sequence': 1, 'lifecycle': 'RUNNING'}
+            ended_state = {'sequence': 2, 'lifecycle': 'ENDED'}
+
+            client, peer = socket.socketpair()
+            outcome = []
+            with mock.patch.object(
+                    bridge_tcp_client.state_cache, 'get_state_dict',
+                    side_effect=[running_state, ended_state, ended_state]), \
+                    mock.patch.object(bridge_tcp_client.state_cache,
+                                      'get_vehicle_state_v2', return_value=None), \
+                    mock.patch.object(bridge_tcp_client.state_cache,
+                                      'state_age_s', return_value=None):
+                thread = threading.Thread(target=lambda: outcome.append(
+                    bridge_tcp_client._run_connected_session(client)))
+                thread.start()
+                try:
+                    hello = recv_json_line(peer)
+                    send_fragmented_ack(peer, hello)
+                    mission = recv_json_line(peer)
+                    send_fragmented_ack(peer, mission)
+
+                    self.assertTrue(finish_checked.wait(1.0))
+                    with bridge_tcp_client._queue_lock:
+                        self.assertEqual([], bridge_tcp_client._event_queue)
+                    bridge_tcp_client.resolve_simulation_event(
+                        reservation, accepted=True)
+
+                    peer.settimeout(1.0)
+                    event = recv_json_line(peer)
+                    self.assertEqual('simulation_event', event['type'])
+                    self.assertEqual(
+                        {'event': 'mission_end', 'mission_id': 'mission-a'},
+                        event['data'])
+                    send_fragmented_ack(peer, event)
+                    thread.join(1.0)
+                    self.assertEqual([True], outcome)
+                finally:
+                    client.close()
+                    peer.close()
+                    thread.join(1.0)
 
 
 if __name__ == '__main__':

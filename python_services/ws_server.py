@@ -226,9 +226,22 @@ def _build_or_deploy(request):
 
 async def _handle_core_command(cmd, params, writer, lifecycle_event=None):
     request_id = params.pop('request_id', secrets.token_hex(12))
-    receipt = _core_request({'request_id': request_id, 'cmd': cmd, 'params': params})
-    if lifecycle_event and receipt.get('accepted') and bridge.is_connected():
-        bridge.send_simulation_event(lifecycle_event, params.get('mission_id', ''))
+    reservation = None
+    if lifecycle_event and bridge.is_connected():
+        reservation = bridge.reserve_simulation_event(
+            lifecycle_event, params.get('mission_id', ''))
+    try:
+        receipt = _core_request(
+            {'request_id': request_id, 'cmd': cmd, 'params': params})
+    except Exception:
+        if reservation is not None:
+            bridge.resolve_simulation_event(reservation, accepted=False)
+        raise
+    if lifecycle_event and receipt.get('accepted'):
+        if reservation is not None:
+            bridge.resolve_simulation_event(reservation, accepted=True)
+    elif reservation is not None:
+        bridge.resolve_simulation_event(reservation, accepted=False)
     await ws_send(writer, json.dumps(receipt))
 
 

@@ -39,6 +39,7 @@ _current_mission_id = None
 _pending_waypoints = None
 _mission_queue = []
 _event_queue = []
+_event_reservations = {}
 _queue_lock = threading.Lock()
 _recv_buffer_lock = threading.Lock()
 _recv_buffers = weakref.WeakKeyDictionary()
@@ -284,6 +285,26 @@ def send_simulation_event(event_name, mission_id=''):
         _event_queue.append((event_name, mission_id))
 
 
+def reserve_simulation_event(event_name, mission_id=''):
+    """Mark a lifecycle producer as in flight before its C-core request."""
+    event_name = state_cache.v2_event_name(event_name)
+    reservation = object()
+    with _queue_lock:
+        _event_reservations[reservation] = (event_name, mission_id)
+    return reservation
+
+
+def resolve_simulation_event(reservation, accepted):
+    """Atomically cancel or enqueue a previously reserved lifecycle event."""
+    with _queue_lock:
+        event = _event_reservations.pop(reservation, None)
+        if event is None:
+            return False
+        if accepted is True:
+            _event_queue.append(event)
+        return True
+
+
 def is_connected():
     return _connected.is_set()
 
@@ -342,7 +363,11 @@ def _finish_mission_if_no_queued_end(mission_id):
             event_name == 'mission_end'
             and (not event_mission_id or event_mission_id == mission_id)
             for event_name, event_mission_id in _event_queue)
-        if pending_end:
+        reserved_end = any(
+            event_name == 'mission_end'
+            and (not event_mission_id or event_mission_id == mission_id)
+            for event_name, event_mission_id in _event_reservations.values())
+        if pending_end or reserved_end:
             return False
         if _current_mission_id == mission_id:
             _current_mission_id = None
