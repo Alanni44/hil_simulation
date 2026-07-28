@@ -74,7 +74,7 @@ class RuntimeContractStaticTests(unittest.TestCase):
         cache = read('python_services/shared/state_cache.py')
         self.assertIn("unsupported state version", parser)
         self.assertIn("state simulation time regressed", cache)
-        self.assertIn("'acceleration'", cache)
+        self.assertNotIn("'acceleration'", cache)
         self.assertIn("'flight_state' not", read('tests/test_v2_protocol.py'))
 
     def test_bridge_does_not_fabricate_default_mission_or_nonfinite_values(self):

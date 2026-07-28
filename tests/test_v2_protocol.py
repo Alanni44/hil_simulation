@@ -14,7 +14,7 @@ class V2ProtocolTests(unittest.TestCase):
     def test_fixed_c_to_python_state_wire_layout_includes_acceleration(self):
         self.assertEqual(100, FLIGHT_STATE_SIZE)
 
-    def test_v2_state_maps_ned_acceleration_without_runtime_lifecycle(self):
+    def test_v2_state_excludes_internal_acceleration_and_uses_only_allowed_fields(self):
         state = {
             'sequence': 9, 'sim_time_s': 1.25,
             'north_m': 10.0, 'east_m': 20.0, 'down_m': 30.0,
@@ -26,9 +26,12 @@ class V2ProtocolTests(unittest.TestCase):
             'airborne': 1, 'lifecycle': 0,
         }
         packet = state_cache.vehicle_state_v2_from_state(state, 'mission-a')
-        self.assertEqual(50, packet['data']['rate_hz'])
+        self.assertNotIn('acceleration', packet['data'])
+        self.assertEqual(
+            {'mission_id', 'sim_time', 'position', 'attitude', 'velocity',
+             'angular_velocity'},
+            set(packet['data']))
         self.assertEqual({'x': 10.0, 'y': 20.0, 'height': -30.0}, packet['data']['position'])
-        self.assertEqual({'ax': 4.0, 'ay': 5.0, 'az': -6.0}, packet['data']['acceleration'])
         self.assertTrue('flight_state' not in packet['data'])
 
     def test_v2_event_maps_internal_reset_to_reset_scene(self):
