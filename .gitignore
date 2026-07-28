@@ -1,5 +1,8 @@
 __pycache__/
 artifacts/acceptance/
+/artifacts/z_mission/
+/runtime/
+/logs/
 *.pyc
 *.pyo
 
