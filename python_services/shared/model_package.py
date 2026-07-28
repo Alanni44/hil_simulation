@@ -182,20 +182,22 @@ def _validate_inputs(contract):
 
 def _validate_outputs(contract):
     outputs = contract.get('outputs')
-    if not isinstance(outputs, dict) or not isinstance(outputs.get('ue4_state'), dict):
-        raise PackageError('contract.outputs.ue4_state must be an object')
-    ue4 = outputs['ue4_state']
-    if ue4.get('rate_hz') != 50:
-        raise PackageError('contract.outputs.ue4_state.rate_hz must equal 50')
-    acceleration = ue4.get('acceleration')
+    if not isinstance(outputs, dict) or not isinstance(outputs.get('internal_state'), dict):
+        raise PackageError('contract.outputs.internal_state must be an object')
+    internal = outputs['internal_state']
+    if internal.get('rate_hz') != 50:
+        raise PackageError('contract.outputs.internal_state.rate_hz must equal 50')
+    if internal.get('include_in_ue4_json') is not False:
+        raise PackageError('internal acceleration must be excluded from UE4 JSON')
+    acceleration = internal.get('acceleration')
     if not isinstance(acceleration, dict):
-        raise PackageError('contract.outputs.ue4_state.acceleration must be an object')
+        raise PackageError('contract.outputs.internal_state.acceleration must be an object')
     fields = []
     for name in REQUIRED_ACCELERATION_PORTS:
         if name not in acceleration:
-            raise PackageError('contract.outputs.ue4_state.acceleration missing {}'.format(name))
+            raise PackageError('contract.outputs.internal_state.acceleration missing {}'.format(name))
         descriptor = _validate_port_descriptor(
-            acceleration[name], 'contract.outputs.ue4_state.acceleration.{}'.format(name),
+            acceleration[name], 'contract.outputs.internal_state.acceleration.{}'.format(name),
             'm/s2', 'double')
         fields.append(descriptor['field'])
     if len(set(fields)) != len(fields):

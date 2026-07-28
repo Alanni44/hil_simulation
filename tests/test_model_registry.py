@@ -71,11 +71,13 @@ class ModelPackageTests(unittest.TestCase):
                     'state': {'frame': 'NED', 'orientation': 'FRD_TO_NED_QUATERNION',
                               'outputs': {field: field for field in FIELDS}, 'units': UNITS},
                     'inputs': required_inputs(),
-                    'outputs': {'ue4_state': {'rate_hz': 50,
-                                               'acceleration': {
-                                                   'ax_mps2': input_descriptor('ax_mps2', 'm/s2'),
-                                                   'ay_mps2': input_descriptor('ay_mps2', 'm/s2'),
-                                                   'az_mps2': input_descriptor('az_mps2', 'm/s2')}}},
+                    'outputs': {'internal_state': {
+                        'rate_hz': 50, 'consumer': 'c_python_only',
+                        'include_in_ue4_json': False,
+                        'acceleration': {
+                            'ax_mps2': input_descriptor('ax_mps2', 'm/s2'),
+                            'ay_mps2': input_descriptor('ay_mps2', 'm/s2'),
+                            'az_mps2': input_descriptor('az_mps2', 'm/s2')}}},
                     'execution': {'step_s': 0.001,
                                   'locked_configuration': ['solver_step_s', 'model_topology',
                                                            'port_schema', 'communication_endpoint']},
@@ -102,6 +104,22 @@ class ModelPackageTests(unittest.TestCase):
         result = validate_package(self.package, self.root, package_sha256(self.package))
         self.assertEqual('example', result['contract']['model_name'])
         self.assertEqual(64, len(result['contract_sha256']))
+
+    def test_internal_acceleration_declaration_is_accepted(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        result = validate_package(self.package, self.root, package_sha256(self.package))
+        self.assertEqual(50, result['contract']['outputs']['internal_state']['rate_hz'])
+
+    def test_legacy_ue4_acceleration_declaration_is_rejected(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract['outputs']['ue4_state'] = contract['outputs'].pop('internal_state')
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root, package_sha256(self.package))
 
     def test_missing_attitude_speed_or_units_is_rejected(self):
         for field, remove_unit in (('q_z', False), ('vd_mps', False), ('north_m', True)):

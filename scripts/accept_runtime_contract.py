@@ -233,7 +233,7 @@ def malformed_copy(source, destination, defect, update_manifest=True):
     elif defect == 'missing_speed': del contract['state']['outputs']['vd_mps']
     elif defect == 'changed_unit': contract['state']['units']['north_m'] = 'ft'
     elif defect == 'missing_wind_d': del contract['inputs']['environment']['ports']['wind_d_mps']
-    elif defect == 'missing_acceleration': del contract['outputs']['ue4_state']['acceleration']['az_mps2']
+    elif defect == 'missing_acceleration': del contract['outputs']['internal_state']['acceleration']['az_mps2']
     elif defect == 'reset_only_running':
         for parameter in contract['parameters']:
             if parameter['name'] == 'reset_gain':

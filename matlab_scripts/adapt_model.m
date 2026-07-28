@@ -49,7 +49,7 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
         error('each required state key must map to a distinct root Outport');
     end
     validate_declared_inputs(contract, root_port_names(info.root_inports));
-    validate_ue4_acceleration_outputs(contract, root_names);
+    validate_internal_acceleration_outputs(contract, root_names);
 
     % No topology mutation is permitted.  Copy only so codegen has its own
     % isolated work path; the copy preserves the exact customer model.
@@ -137,13 +137,13 @@ function validate_declared_inputs(contract, root_names)
     if length(unique(fields)) ~= length(fields), error('each required input must map to a distinct root Inport'); end
 end
 
-function validate_ue4_acceleration_outputs(contract, root_names)
-    if ~isfield(contract, 'outputs') || ~isfield(contract.outputs, 'ue4_state') || ...
-            ~isfield(contract.outputs.ue4_state, 'rate_hz') || contract.outputs.ue4_state.rate_hz ~= 50 || ...
-            ~isfield(contract.outputs.ue4_state, 'acceleration')
-        error('contract.outputs.ue4_state with fixed 50Hz acceleration is required');
+function validate_internal_acceleration_outputs(contract, root_names)
+    declaration = internal_output_declaration(contract);
+    if ~isfield(declaration, 'rate_hz') || declaration.rate_hz ~= 50 || ...
+            ~isfield(declaration, 'acceleration')
+        error('contract.outputs.internal_state with fixed 50Hz acceleration is required');
     end
-    acceleration = contract.outputs.ue4_state.acceleration;
+    acceleration = declaration.acceleration;
     fields = {};
     for key = {'ax_mps2','ay_mps2','az_mps2'}
         name = key{1};
@@ -156,6 +156,14 @@ function validate_ue4_acceleration_outputs(contract, root_names)
         fields{end+1} = declared; %#ok<AGROW>
     end
     if length(unique(fields)) ~= length(fields), error('acceleration outputs must be distinct'); end
+end
+
+function declaration = internal_output_declaration(contract)
+    if ~isfield(contract, 'outputs') || ...
+            ~isfield(contract.outputs, 'internal_state')
+        error('contract.outputs.internal_state is required');
+    end
+    declaration = contract.outputs.internal_state;
 end
 
 function unit = required_unit(field)

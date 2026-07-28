@@ -55,7 +55,8 @@ contract = {'contract_version': 2, 'model_name': model,
             'state': {'frame': 'NED', 'orientation': 'FRD_TO_NED_QUATERNION',
                       'outputs': {name: name for name in fields}, 'units': units},
             'inputs': inputs,
-            'outputs': {'ue4_state': {'rate_hz': 50, 'acceleration': {
+            'outputs': {'internal_state': {'rate_hz': 50, 'consumer': 'c_python_only',
+                'include_in_ue4_json': False, 'acceleration': {
                 'ax_mps2': descriptor('ax_mps2', 'm/s2'),
                 'ay_mps2': descriptor('ay_mps2', 'm/s2'),
                 'az_mps2': descriptor('az_mps2', 'm/s2')}}},
