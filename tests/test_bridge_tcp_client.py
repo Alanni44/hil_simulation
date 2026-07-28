@@ -52,7 +52,9 @@ def send_fragmented_ack(sock, message, accepted=True, ref_type=None,
 class BridgeTcpClientTests(unittest.TestCase):
     def setUp(self):
         self.original_running = bridge_tcp_client._running
+        self.original_seq = bridge_tcp_client._seq
         bridge_tcp_client._running = True
+        bridge_tcp_client._stop_event.clear()
         bridge_tcp_client._connected.clear()
         with bridge_tcp_client._queue_lock:
             bridge_tcp_client._current_mission_id = None
@@ -63,6 +65,8 @@ class BridgeTcpClientTests(unittest.TestCase):
 
     def tearDown(self):
         bridge_tcp_client._running = self.original_running
+        bridge_tcp_client._seq = self.original_seq
+        bridge_tcp_client._stop_event.clear()
         bridge_tcp_client._connected.clear()
         with bridge_tcp_client._queue_lock:
             bridge_tcp_client._current_mission_id = None
@@ -222,6 +226,105 @@ class BridgeTcpClientTests(unittest.TestCase):
                 client.close()
                 peer.close()
                 thread.join(1.0)
+
+    def test_actual_tcp_reconnect_starts_each_session_with_hello_sequence_one(self):
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(('127.0.0.1', 0))
+        listener.listen(2)
+        host, port = listener.getsockname()
+        hello_sequences = []
+        server_errors = []
+
+        def serve_two_failed_sessions():
+            try:
+                for _ in range(2):
+                    connection, _address = listener.accept()
+                    try:
+                        hello_sequences.append(
+                            recv_json_line(connection)['seq'])
+                    finally:
+                        connection.close()
+                bridge_tcp_client._running = False
+            except Exception as exc:
+                server_errors.append(exc)
+
+        bridge_tcp_client._seq = 41
+        server = threading.Thread(target=serve_two_failed_sessions)
+        server.start()
+        try:
+            with mock.patch.object(
+                    bridge_tcp_client._stop_event, 'wait', return_value=False):
+                bridge_tcp_client._run(host, port)
+            server.join(1.0)
+        finally:
+            listener.close()
+            bridge_tcp_client._running = False
+            server.join(1.0)
+
+        self.assertEqual([], server_errors)
+        self.assertEqual([1, 1], hello_sequences)
+
+    def test_successful_mission_end_ack_exits_run_without_second_connector(self):
+        class FakeConnector(object):
+            def __init__(self, connected_socket):
+                self.connected_socket = connected_socket
+                self.connect_calls = []
+
+            def connect(self, target):
+                self.connect_calls.append(target)
+
+            def __getattr__(self, name):
+                return getattr(self.connected_socket, name)
+
+        bridge_tcp_client.send_mission_plan('mission-a', WAYPOINTS)
+        bridge_tcp_client.send_simulation_event('mission_end', 'mission-a')
+        client, peer = socket.socketpair()
+        connector = FakeConnector(client)
+        peer_errors = []
+
+        def acknowledge_successful_session():
+            try:
+                hello = recv_json_line(peer)
+                send_fragmented_ack(peer, hello)
+                mission = recv_json_line(peer)
+                send_fragmented_ack(peer, mission)
+                event = recv_json_line(peer)
+                self.assertEqual('simulation_event', event['type'])
+                self.assertEqual('mission_end', event['data']['event'])
+                send_fragmented_ack(peer, event)
+            except Exception as exc:
+                peer_errors.append(exc)
+
+        peer_thread = threading.Thread(target=acknowledge_successful_session)
+        peer_thread.start()
+        socket_factory = mock.Mock(return_value=connector)
+        running_state = {'sequence': 1, 'lifecycle': 'RUNNING'}
+        try:
+            with mock.patch.object(bridge_tcp_client.socket, 'socket',
+                                   socket_factory), \
+                    mock.patch.object(
+                        bridge_tcp_client._stop_event, 'wait',
+                        side_effect=AssertionError(
+                            'successful mission scheduled a reconnect')), \
+                    mock.patch.object(
+                        bridge_tcp_client.state_cache, 'get_state_dict',
+                        return_value=running_state), \
+                    mock.patch.object(
+                        bridge_tcp_client.state_cache, 'get_vehicle_state_v2',
+                        return_value=None), \
+                    mock.patch.object(
+                        bridge_tcp_client.state_cache, 'state_age_s',
+                        return_value=None):
+                bridge_tcp_client._run('debug-host', 5000)
+            peer_thread.join(1.0)
+        finally:
+            peer.close()
+            client.close()
+            peer_thread.join(1.0)
+
+        self.assertEqual([], peer_errors)
+        self.assertEqual([('debug-host', 5000)], connector.connect_calls)
+        self.assertEqual(1, socket_factory.call_count)
 
     def test_pending_mission_snapshot_is_atomic_under_queue_lock(self):
         self.assertTrue(hasattr(bridge_tcp_client,

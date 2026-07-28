@@ -21,9 +21,11 @@ DEFAULT_MISSION_PATH = os.path.join(ROOT, 'missions', 'z_mission.json')
 class _Runtime(object):
     def __init__(self):
         import bridge_tcp_client as bridge
+        from core_client import core_request
         import udp_forwarder
         from shared import state_cache
 
+        self.core_request = core_request
         self.start_udp_forwarder = udp_forwarder.start_udp_forwarder
         self.stop_udp_forwarder = udp_forwarder.stop_udp_forwarder
         self.send_mission_plan = bridge.send_mission_plan
@@ -93,6 +95,16 @@ def run_debug(config=None, mission_path=DEFAULT_MISSION_PATH, runtime=None,
     bridge_started = False
     udp_started = False
 
+    command = {
+        'request_id': 'debug-load-{}'.format(mission['mission_id']),
+        'cmd': 'load_mission',
+        'params': mission,
+    }
+    receipt = runtime.core_request(command)
+    if receipt.get('accepted') is not True:
+        raise RuntimeError(
+            'C core rejected Z mission {}: {}'.format(
+                mission['mission_id'], receipt.get('reason', 'unknown reason')))
     runtime.send_mission_plan(
         mission['mission_id'], _bridge_waypoints(mission))
     try:

@@ -10,6 +10,8 @@ import math
 OUTER_FIELDS = {'protocol_version', 'type', 'seq', 'vehicle_id', 'data'}
 STATE_REQUIRED_FIELDS = {'mission_id', 'sim_time', 'position', 'attitude'}
 STATE_OPTIONAL_FIELDS = {'velocity', 'angular_velocity', 'flight_state'}
+STATE_PERIOD_S = 0.02
+STATE_INTERVAL_TOLERANCE_S = 0.002
 
 
 class ProtocolViolation(ValueError):
@@ -212,6 +214,19 @@ class ProtocolSequenceValidator(object):
                 'at least two vehicle_state frames are required to verify 50 Hz')
         elapsed = self.state_times[-1] - self.state_times[0]
         rate_hz = (len(self.state_times) - 1) / elapsed
+        intervals = [
+            current - previous
+            for previous, current in zip(
+                self.state_times[:-1], self.state_times[1:])]
+        interval_errors = [
+            abs(interval - STATE_PERIOD_S) for interval in intervals]
+        if any(error > STATE_INTERVAL_TOLERANCE_S
+               for error in interval_errors):
+            raise ProtocolViolation(
+                'individual vehicle_state intervals must match 50 Hz within '
+                '+/-{:.3f} s; observed {}'.format(
+                    STATE_INTERVAL_TOLERANCE_S,
+                    [round(interval, 6) for interval in intervals]))
         if not 49.0 <= rate_hz <= 51.0:
             raise ProtocolViolation(
                 'vehicle_state stream must average 50 Hz; observed {:.3f} Hz'.format(
@@ -220,6 +235,7 @@ class ProtocolSequenceValidator(object):
             'local_simulator_only': True,
             'vehicle_state_count': len(self.state_times),
             'average_state_rate_hz': round(rate_hz, 6),
+            'state_interval_tolerance_s': STATE_INTERVAL_TOLERANCE_S,
             'mission_end_acknowledged': self._mission_end_acknowledged,
         }
 

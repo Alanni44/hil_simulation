@@ -249,6 +249,13 @@ function validate_input_contract_abi(contract, u_fields)
         elseif ~is_numeric_type(f.type)
             error('Declared numeric input mismatches ExtU: %s', descriptor.field);
         end
+        if descriptor.has_default
+            if descriptor.dimension ~= 1 || ~isnumeric(descriptor.default) || ...
+                    ~isscalar(descriptor.default) || ~isfinite(descriptor.default) || ...
+                    descriptor.default < descriptor.min || descriptor.default > descriptor.max
+                error('Declared input default is invalid: %s', descriptor.field);
+            end
+        end
         names{end+1} = descriptor.field; %#ok<AGROW>
     end
     if length(unique(names)) ~= length(names), error('Declared inputs must map to distinct ExtU fields'); end
@@ -313,6 +320,15 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     end
     fprintf(fid, 'static unsigned hil_contract_phase_mask(const char* name) { unsigned i; for (i=0; i<HIL_PARAMETER_COUNT; ++i) if (!strcmp(HIL_PARAMETER_SPECS[i].name,name)) return HIL_PARAMETER_SPECS[i].phase_mask; return 0; }\n');
     fprintf(fid, 'static void hil_contract_apply_defaults(ModelU_t* u, HilParameterValues* values) {\n');
+    for i = 1:length(input_descriptors)
+        d = input_descriptors(i);
+        if ~d.has_default, continue; end
+        if strcmp(d.type, 'bool')
+            fprintf(fid, 'u->%s = %d;\n', d.field, logical(d.default));
+        else
+            fprintf(fid, 'u->%s = (%s)%.17g;\n', d.field, c_cast_type(d.type), d.default);
+        end
+    end
     for i = 1:length(params)
         p = params{i};
         if strcmp(p.class, 'readonly')
@@ -419,7 +435,7 @@ function cells = as_cell(value), if iscell(value), cells = value; else, cells = 
 function t = c_cast_type(type), if strcmp(type,'float'), t='float'; else, t='double'; end, end
 
 function descriptors = contract_input_descriptors(contract)
-    descriptors = struct('group', {}, 'name', {}, 'field', {}, 'type', {}, 'dimension', {}, 'unit', {}, 'min', {}, 'max', {});
+    descriptors = struct('group', {}, 'name', {}, 'field', {}, 'type', {}, 'dimension', {}, 'unit', {}, 'min', {}, 'max', {}, 'has_default', {}, 'default', {});
     groups = {'flight_control','environment','fault'};
     for i = 1:length(groups)
         group = groups{i}; ports = contract.inputs.(group).ports; names = fieldnames(ports);
@@ -433,6 +449,12 @@ function descriptors = contract_input_descriptors(contract)
             descriptors(end).unit = descriptor.unit;
             descriptors(end).min = descriptor.min;
             descriptors(end).max = descriptor.max;
+            descriptors(end).has_default = isfield(descriptor, 'default');
+            if isfield(descriptor, 'default')
+                descriptors(end).default = descriptor.default;
+            else
+                descriptors(end).default = 0.0;
+            end
         end
     end
 end

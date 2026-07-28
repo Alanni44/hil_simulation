@@ -1,4 +1,5 @@
 import pathlib
+import re
 import unittest
 
 
@@ -66,6 +67,43 @@ class QuadrotorModelContractTests(unittest.TestCase):
         for physics in ('relative_wind_ned', 'gravity_ned', 'motor_thrust',
                         'x_frame_moment'):
             self.assertIn(physics, source)
+
+    def test_environment_defaults_reach_generated_external_inputs_and_takeoff(self):
+        contract_source = read('matlab_scripts/create_quadrotor_contract.m')
+        build_source = read('matlab_scripts/build_script.m')
+        plant_source = read('matlab_scripts/generate_quadrotor_model.m')
+
+        expected_defaults = {
+            'wind_n_mps': 0.0,
+            'wind_e_mps': 0.0,
+            'wind_d_mps': 0.0,
+            'pressure_pa': 101325.0,
+            'temperature_k': 288.15,
+            'ground_height_m': 0.0,
+        }
+        for name, default in expected_defaults.items():
+            self.assertRegex(
+                contract_source,
+                r"environment\.ports\.%s\s*=\s*defaulted_descriptor\([^\n]*,\s*%s\s*\)" %
+                (name, re.escape(str(default))))
+
+        self.assertIn("isfield(descriptor, 'default')", build_source)
+        self.assertIn('descriptors(end).default = descriptor.default',
+                      build_source)
+        self.assertRegex(
+            build_source,
+            r"fprintf\(fid, 'u->%s = \(%s\)%.17g;\\n',\s*"
+            r"d\.field, c_cast_type\(d\.type\), d\.default\)")
+
+        pressure_pa = expected_defaults['pressure_pa']
+        temperature_k = expected_defaults['temperature_k']
+        density_scale = pressure_pa / (287.05 * temperature_k) / 1.225
+        available_thrust_n = 4.0 * 4.2 * density_scale
+        weight_n = 1.5 * 9.80665
+        self.assertGreater(available_thrust_n, weight_n)
+        self.assertIn(
+            'motor_thrust = uav_thrust_coefficient_n .* motor_response.^2 .* density_scale;',
+            plant_source)
 
     def test_builder_rejects_missing_generated_parameter_and_confines_artifacts(self):
         matlab_source = read('matlab_scripts/build_script.m')

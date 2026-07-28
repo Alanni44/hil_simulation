@@ -35,12 +35,12 @@ function contract_path = create_quadrotor_contract(output_dir)
     flight_control.mode = 'motor_command';
     flight_control.ports.motor_command = descriptor('motor_command', '1', 'double', 4, 0.0, 1.0);
     contract.inputs.flight_control = flight_control;
-    environment.ports.wind_n_mps = descriptor('wind_n_mps', 'm/s', 'double', 1, -50.0, 50.0);
-    environment.ports.wind_e_mps = descriptor('wind_e_mps', 'm/s', 'double', 1, -50.0, 50.0);
-    environment.ports.wind_d_mps = descriptor('wind_d_mps', 'm/s', 'double', 1, -50.0, 50.0);
-    environment.ports.pressure_pa = descriptor('pressure_pa', 'Pa', 'double', 1, 1000.0, 120000.0);
-    environment.ports.temperature_k = descriptor('temperature_k', 'K', 'double', 1, 150.0, 350.0);
-    environment.ports.ground_height_m = descriptor('ground_height_m', 'm', 'double', 1, -1000.0, 10000.0);
+    environment.ports.wind_n_mps = defaulted_descriptor('wind_n_mps', 'm/s', 'double', 1, -50.0, 50.0, 0.0);
+    environment.ports.wind_e_mps = defaulted_descriptor('wind_e_mps', 'm/s', 'double', 1, -50.0, 50.0, 0.0);
+    environment.ports.wind_d_mps = defaulted_descriptor('wind_d_mps', 'm/s', 'double', 1, -50.0, 50.0, 0.0);
+    environment.ports.pressure_pa = defaulted_descriptor('pressure_pa', 'Pa', 'double', 1, 1000.0, 120000.0, 101325.0);
+    environment.ports.temperature_k = defaulted_descriptor('temperature_k', 'K', 'double', 1, 150.0, 350.0, 288.15);
+    environment.ports.ground_height_m = defaulted_descriptor('ground_height_m', 'm', 'double', 1, -1000.0, 10000.0, 0.0);
     contract.inputs.environment = environment;
     fault.ports.gps_bias_n_m = descriptor('gps_bias_n_m', 'm', 'double', 1, -1000.0, 1000.0);
     fault.ports.gps_bias_e_m = descriptor('gps_bias_e_m', 'm', 'double', 1, -1000.0, 1000.0);
@@ -93,6 +93,11 @@ end
 function value = descriptor(field, unit, value_type, dimension, minimum, maximum)
     value = struct('field', field, 'unit', unit, 'type', value_type, ...
         'dimension', dimension, 'min', minimum, 'max', maximum);
+end
+
+function value = defaulted_descriptor(field, unit, value_type, dimension, minimum, maximum, default_value)
+    value = descriptor(field, unit, value_type, dimension, minimum, maximum);
+    value.default = default_value;
 end
 
 function value = parameter(name, generated_symbol, unit, default_value, minimum, maximum, parameter_class)

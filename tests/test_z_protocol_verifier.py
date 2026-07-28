@@ -112,6 +112,17 @@ class ProtocolSequenceValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ProtocolViolation, '50 Hz'):
             validator.finish()
 
+    def test_rejects_irregular_intervals_even_when_average_is_50_hz(self):
+        validator = ProtocolSequenceValidator()
+        validator.observe(hello(), 1.0)
+        validator.observe(mission(), 1.01)
+        validator.observe(state(3, 0.0), 1.02)
+        validator.observe(state(4, 0.02), 1.03)
+        validator.observe(state(5, 0.04), 1.06)
+
+        with self.assertRaisesRegex(ProtocolViolation, 'individual.*50 Hz'):
+            validator.finish()
+
     def test_mission_end_is_optional_but_state_is_required(self):
         validator = ProtocolSequenceValidator()
         validator.observe(hello(), 2.0)

@@ -87,6 +87,12 @@ def _next_seq():
         return _seq
 
 
+def _reset_session_sequence():
+    global _seq
+    with _seq_lock:
+        _seq = 0
+
+
 def _sanitize(obj):
     if isinstance(obj, float):
         import math
@@ -407,6 +413,7 @@ def _finish_mission_if_no_queued_end(mission_id):
 
 
 def _run_connected_session(sock):
+    _reset_session_sequence()
     hello = _hello_message()
     if not _send_and_wait_for_ack(sock, hello, 5.0):
         _set_session_status(last_error='hello acknowledgement failed')
@@ -515,6 +522,7 @@ def _run(host=None, port=None):
         _set_session_status('connecting', None)
         _connected.clear()
         s = None
+        mission_completed = False
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.2)
@@ -523,7 +531,7 @@ def _run(host=None, port=None):
                 _sock = s
             logger.info("V2.0 bridge connected to {}:{}".format(
                 host, port))
-            _run_connected_session(s)
+            mission_completed = _run_connected_session(s)
         except (ConnectionRefusedError, OSError) as e:
             _set_session_status(last_error=str(e))
             logger.warning("Bridge connect failed: {}".format(e))
@@ -541,6 +549,8 @@ def _run(host=None, port=None):
                 _sock = None
             logger.info('V2.0 bridge disconnected')
 
+        if mission_completed:
+            return
         _stop_event.wait(3.0)
 
 

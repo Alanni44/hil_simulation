@@ -610,6 +610,9 @@ int main(void) {
             apply_mission_update();
             mission_controller_step(have_valid_state ? &state : NULL, 0.001,
                                     mission_motor);
+            if (mission_controller_take_landed_event()) {
+                lifecycle = HIL_ENDED;
+            }
             write_motor_command(mission_motor);
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
         } else {

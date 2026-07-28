@@ -40,6 +40,17 @@ class FakeRuntime(object):
         self.udp_worker = FakeWorker()
         self.bridge_worker = FakeWorker()
         self.submitted = None
+        self.core_receipt = {
+            'request_id': 'debug-load-z_mission_001',
+            'accepted': True,
+            'reason': 'mission accepted as explicit NED route',
+            'effective_sequence': 1,
+            'lifecycle': 'RUNNING',
+        }
+
+    def core_request(self, command):
+        self.calls.append(('core_request', command))
+        return dict(self.core_receipt)
 
     def start_udp_forwarder(self):
         self.calls.append('start_udp')
@@ -99,8 +110,15 @@ class DebugMainTests(unittest.TestCase):
             max_updates=1)
 
         self.assertEqual(0, result)
+        expected_mission = debug_main.load_mission(
+            str(ROOT / 'missions' / 'z_mission.json'))
         self.assertEqual(
-            ['submit_mission', 'start_udp',
+            [('core_request', {
+                'request_id': 'debug-load-z_mission_001',
+                'cmd': 'load_mission',
+                'params': expected_mission,
+            }),
+             'submit_mission', 'start_udp',
              ('start_bridge', '192.168.100.172', 5000),
              'stop_bridge', 'stop_udp'],
             runtime.calls)
@@ -115,6 +133,32 @@ class DebugMainTests(unittest.TestCase):
              for item in waypoints])
         self.assertEqual([2.0], runtime.bridge_worker.join_timeouts)
         self.assertEqual([2.0], runtime.udp_worker.join_timeouts)
+
+    def test_rejected_core_mission_aborts_before_ue4_or_udp_start(self):
+        runtime = FakeRuntime()
+        runtime.core_receipt.update({
+            'accepted': False,
+            'reason': 'waypoint count is outside contract limit',
+            'effective_sequence': 0,
+        })
+
+        with self.assertRaisesRegex(
+                RuntimeError, 'C core rejected Z mission.*waypoint count'):
+            debug_main.run_debug(
+                config=self.config,
+                runtime=runtime,
+                output_fn=lambda _line: None,
+                sleep_fn=lambda _seconds: None,
+                max_updates=1)
+
+        self.assertEqual(1, len(runtime.calls))
+        command = runtime.calls[0][1]
+        self.assertEqual('load_mission', command['cmd'])
+        self.assertEqual('z_mission_001', command['params']['mission_id'])
+        self.assertEqual(1.0, command['params']['completion_radius_m'])
+        self.assertEqual('TAKEOFF', command['params']['waypoints'][0]['id'])
+        self.assertEqual('LAND', command['params']['landing']['id'])
+        self.assertIsNone(runtime.submitted)
 
     def test_dashboard_snapshot_formats_target_v2_state_pose_and_error(self):
         rendered = debug_main.format_dashboard_snapshot(

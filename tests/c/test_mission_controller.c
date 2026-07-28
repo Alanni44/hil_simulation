@@ -45,6 +45,8 @@ int main(void)
     MissionWaypoint maximum_mission[MISSION_CONTROLLER_MAX_WAYPOINTS];
     float motor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     unsigned index;
+    int runtime_lifecycle = HIL_RUNNING;
+    unsigned ended_transitions = 0U;
 
     mission_controller_reset();
     mission_controller_step(&state, 0.001, motor);
@@ -86,6 +88,16 @@ int main(void)
     mission_controller_step(&state, 0.001, motor);
     assert(mission_controller_phase() == MISSION_LANDED);
     assert_zero(motor);
+    if (mission_controller_take_landed_event()) {
+        runtime_lifecycle = HIL_ENDED;
+        ++ended_transitions;
+    }
+    if (mission_controller_take_landed_event()) {
+        runtime_lifecycle = HIL_ENDED;
+        ++ended_transitions;
+    }
+    assert(runtime_lifecycle == HIL_ENDED);
+    assert(ended_transitions == 1U);
 
     mission_controller_reset();
     mission_controller_step(&state, 0.001, motor);

@@ -26,6 +26,7 @@ int mission_controller_load(const MissionWaypoint* waypoints, unsigned count,
 void mission_controller_step(const FlightState_t* state, double dt_s,
                              float motor[4]);
 MissionPhase mission_controller_phase(void);
+int mission_controller_take_landed_event(void);
 void mission_controller_reset(void);
 
 #endif

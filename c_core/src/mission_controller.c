@@ -18,6 +18,7 @@ typedef struct {
     double completion_radius_m;
     MissionPhase phase;
     int loaded;
+    int landed_event_pending;
 } MissionController;
 
 static MissionController controller;
@@ -99,6 +100,7 @@ static void advance_phase_if_complete(const FlightState_t* state)
         }
     } else if (controller.phase == MISSION_LANDING) {
         controller.phase = MISSION_LANDED;
+        controller.landed_event_pending = 1;
     }
 }
 
@@ -210,6 +212,7 @@ int mission_controller_load(const MissionWaypoint* waypoints, unsigned count,
     controller.completion_radius_m = completion_radius_m;
     controller.phase = MISSION_TAKEOFF;
     controller.loaded = 1;
+    controller.landed_event_pending = 0;
     return 1;
 }
 
@@ -227,6 +230,13 @@ void mission_controller_step(const FlightState_t* state, double dt_s,
 MissionPhase mission_controller_phase(void)
 {
     return controller.loaded ? controller.phase : MISSION_LANDED;
+}
+
+int mission_controller_take_landed_event(void)
+{
+    const int pending = controller.landed_event_pending;
+    controller.landed_event_pending = 0;
+    return pending;
 }
 
 void mission_controller_reset(void)

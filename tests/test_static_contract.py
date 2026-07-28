@@ -11,6 +11,15 @@ def string_literal(node):
 
 
 class RuntimeContractStaticTests(unittest.TestCase):
+    def test_runtime_ends_once_when_controller_reports_landed(self):
+        runtime = read('c_core/src/main_rt.c')
+
+        self.assertIn('mission_controller_take_landed_event()', runtime)
+        self.assertRegex(
+            runtime,
+            r"if \(mission_controller_take_landed_event\(\)\)\s*\{\s*"
+            r"lifecycle = HIL_ENDED;")
+
     def test_acceptance_submits_complete_task_4_mission_schema(self):
         tree = ast.parse(read('scripts/accept_runtime_contract.py'))
         mission_params = None
