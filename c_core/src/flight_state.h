@@ -23,6 +23,9 @@ typedef struct {
     float p_radps;
     float q_radps;
     float r_radps;
+    float ax_mps2;
+    float ay_mps2;
+    float az_mps2;
     uint8_t airborne;
     uint8_t lifecycle;
     uint16_t reserved;
@@ -36,7 +39,7 @@ enum {
     HIL_ENDED = 3
 };
 
-#define FLIGHT_STATE_VERSION 1U
+#define FLIGHT_STATE_VERSION 2U
 #define FLIGHT_STATE_SIZE sizeof(FlightState_t)
 
 #endif

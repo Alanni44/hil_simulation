@@ -12,8 +12,9 @@ import struct
 
 
 # uint32 version, uint64 sequence, double sim time and NED position,
-# float NED velocity, quaternion, body rates, airborne, lifecycle, padding.
-FLIGHT_STATE_FORMAT = '=IQddddffffffffffBBH'
+# float NED velocity, quaternion, body rates and acceleration.  This layout
+# is the normalized C-core to Python boundary only.
+FLIGHT_STATE_FORMAT = '=IQddddfffffffffffffBBH'
 FLIGHT_STATE_SIZE = struct.calcsize(FLIGHT_STATE_FORMAT)
 FLIGHT_STATE_FIELDS = (
     'version', 'sequence', 'sim_time_s',
@@ -21,6 +22,7 @@ FLIGHT_STATE_FIELDS = (
     'vn_mps', 've_mps', 'vd_mps',
     'q_w', 'q_x', 'q_y', 'q_z',
     'p_radps', 'q_radps', 'r_radps',
+    'ax_mps2', 'ay_mps2', 'az_mps2',
     'airborne', 'lifecycle', 'reserved',
 )
 
@@ -36,10 +38,11 @@ def parse_flight_state(data):
 
 
 def validate_flight_state(state):
-    if state['version'] != 1:
+    if state['version'] != 2:
         raise ValueError('unsupported state version {}'.format(state['version']))
     for field in ('sim_time_s', 'north_m', 'east_m', 'down_m', 'vn_mps', 've_mps',
-                  'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z', 'p_radps', 'q_radps', 'r_radps'):
+                  'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z', 'p_radps', 'q_radps', 'r_radps',
+                  'ax_mps2', 'ay_mps2', 'az_mps2'):
         if not math.isfinite(state[field]):
             raise ValueError('non-finite {}'.format(field))
     norm = math.sqrt(sum(state[field] * state[field]

@@ -6,6 +6,7 @@ the evidence layout required by the design document and exits non-zero unless
 every build, packet, adapter, lifecycle and deployment check succeeds.
 """
 from __future__ import print_function
+import asyncio
 import datetime
 import hashlib
 import json
@@ -26,6 +27,10 @@ from shared.flight_state import FLIGHT_STATE_FORMAT, FLIGHT_STATE_SIZE, parse_fl
 from shared.model_package import package_sha256, sha256_file  # noqa
 from shared import state_cache  # noqa
 import ws_server  # noqa
+
+V2_VEHICLE_STATE_FIELDS = frozenset((
+    'mission_id', 'sim_time', 'position', 'attitude', 'velocity',
+    'angular_velocity', 'flight_state'))
 
 
 def write_json(path, value):
@@ -107,18 +112,35 @@ def _tcp_send_frame(sock, value):
     sock.sendall(struct.pack('>I', len(body)) + body)
 
 
-def receive_ue4_vehicle_packet(packet_log, runtime_log_path, source_state):
-    """Run a TCP UE4 protocol peer and capture an actual bridge vehicle_state."""
+class _ReceiptWriter(object):
+    """Minimal async writer used to exercise the real WebSocket command path."""
+    def __init__(self):
+        self.payloads = []
+
+    def write(self, payload):
+        self.payloads.append(payload)
+
+    async def drain(self):
+        return None
+
+
+def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
+    """Capture a 10-second V2 stream and an actual reset-scene event."""
     known = dict(source_state)
-    known.update({'sequence': 999, 'sim_time_s': 1.0, 'north_m': 10.0, 'east_m': 20.0,
+    known.update({'sequence': source_state['sequence'] + 1000000,
+                  'sim_time_s': source_state['sim_time_s'] + 1.0,
+                  'north_m': 10.0, 'east_m': 20.0,
                   'down_m': 30.0, 'vn_mps': 4.0, 've_mps': 5.0, 'vd_mps': 6.0,
                   'q_w': 0.7071067811865476, 'q_x': 0.0, 'q_y': 0.0,
                   'q_z': 0.7071067811865476, 'p_radps': 0.0, 'q_radps': 0.0,
-                  'r_radps': 0.0, 'airborne': 1, 'lifecycle': 0, 'reserved': 0})
-    state_cache.update(struct.pack(FLIGHT_STATE_FORMAT, *[
+                  'r_radps': 0.0, 'ax_mps2': 4.0, 'ay_mps2': 5.0, 'az_mps2': 6.0,
+                  'airborne': 1, 'lifecycle': 0, 'reserved': 0})
+    known_state_raw = struct.pack(FLIGHT_STATE_FORMAT, *[
         known[key] for key in ('version', 'sequence', 'sim_time_s', 'north_m', 'east_m', 'down_m',
                                'vn_mps', 've_mps', 'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z',
-                               'p_radps', 'q_radps', 'r_radps', 'airborne', 'lifecycle', 'reserved')]))
+                               'p_radps', 'q_radps', 'r_radps', 'ax_mps2', 'ay_mps2', 'az_mps2',
+                               'airborne', 'lifecycle', 'reserved')])
+    state_cache.update(known_state_raw)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(('127.0.0.1', 5001)); server.listen(1); server.settimeout(8)
@@ -127,21 +149,64 @@ def receive_ue4_vehicle_packet(packet_log, runtime_log_path, source_state):
     bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', 5001, True
     try:
         bridge.send_mission_plan('acceptance-route', [
-            {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0}])
+            {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0},
+            {'x': 150.0, 'y': 220.0, 'height': 35.0, 'speed': 7.0}])
         bridge.start_bridge()
         peer, _ = server.accept(); peer.settimeout(5)
         hello = _tcp_recv_frame(peer)
         _tcp_send_frame(peer, {'type': 'ack', 'data': {'accepted': True, 'ref_type': 'hello'}})
         mission = _tcp_recv_frame(peer)
         _tcp_send_frame(peer, {'type': 'ack', 'data': {'accepted': True, 'ref_type': 'mission_plan'}})
-        vehicle = _tcp_recv_frame(peer)
+        connected_deadline = time.monotonic() + 2.0
+        while not bridge.is_connected() and time.monotonic() < connected_deadline:
+            time.sleep(0.01)
+        if not bridge.is_connected():
+            raise AssertionError('UE4 bridge did not complete the acknowledged handshake')
+        stream_started = time.monotonic()
+        stream_deadline = stream_started + 10.0
+        vehicle_states, reset_event, reset_writer = [], None, _ReceiptWriter()
+        # Route an accepted core reset through the production WebSocket
+        # command handler; that is the only allowed path to notify UE4.
+        event_loop = asyncio.new_event_loop()
+        try:
+            event_loop.run_until_complete(ws_server._handle_core_command(
+                'reset', {'request_id': 'ue4-reset-event'}, reset_writer,
+                lifecycle_event='reset'))
+        finally:
+            event_loop.close()
+        while time.monotonic() < stream_deadline:
+            # The production forwarder continually refreshes this cache.  The
+            # acceptance peer supplies the same valid source state at the
+            # requested 50 Hz so it exercises the sender rather than its
+            # intentional stale-state safety cutoff.
+            state_cache.update(known_state_raw)
+            frame = _tcp_recv_frame(peer)
+            if frame.get('type') == 'vehicle_state':
+                vehicle_states.append(frame)
+            elif frame.get('type') == 'simulation_event':
+                reset_event = frame
+                _tcp_send_frame(peer, {'type': 'ack', 'data': {
+                    'accepted': True, 'ref_type': 'simulation_event',
+                    'ref_seq': frame.get('seq')}})
+        elapsed = time.monotonic() - stream_started
+        if not vehicle_states:
+            raise AssertionError('UE4 bridge did not send vehicle_state')
+        vehicle = vehicle_states[0]
         packet(packet_log, 'ue4_protocol_hello', hello)
         packet(packet_log, 'ue4_protocol_mission_plan', mission)
-        packet(packet_log, 'ue4_protocol_vehicle_state', vehicle)
+        for frame in vehicle_states:
+            packet(packet_log, 'ue4_protocol_vehicle_state', frame)
+        packet(packet_log, 'ue4_protocol_reset_event', reset_event)
         with open(runtime_log_path, 'a') as runtime_log:
-            runtime_log.write('[Python UE4 Bridge] connected test peer; hello, mission_plan and vehicle_state acknowledged\n')
+            runtime_log.write('[Python UE4 Bridge] connected test peer; 10-second vehicle_state stream and reset_scene acknowledged\n')
         peer.close()
-        return mission, vehicle
+        return mission, vehicle, reset_event, {
+            'frames': len(vehicle_states), 'elapsed_s': elapsed,
+            'average_hz': len(vehicle_states) / elapsed,
+            'seq_strictly_increasing': all(
+                vehicle_states[index]['seq'] < vehicle_states[index + 1]['seq']
+                for index in range(len(vehicle_states) - 1)),
+            'reset_receipt_count': len(reset_writer.payloads)}
     finally:
         bridge.stop_bridge()
         bridge.UE4_HOST, bridge.UE4_PORT = old_host, old_port
@@ -164,13 +229,24 @@ def submit(package_root, package_path, request_id, operation):
         'package_path': package_path, 'package_sha256': package_sha256(package_path)})
 
 
-def malformed_copy(source, destination, output_to_remove=None, unit_to_remove=None):
+def malformed_copy(source, destination, defect, update_manifest=True):
     shutil.copytree(source, destination)
     contract_path = os.path.join(destination, 'hil_contract.json')
     contract = json.load(open(contract_path))
-    if output_to_remove: del contract['state']['outputs'][output_to_remove]
-    if unit_to_remove: del contract['state']['units'][unit_to_remove]
+    if defect == 'missing_attitude': del contract['state']['outputs']['q_z']
+    elif defect == 'missing_speed': del contract['state']['outputs']['vd_mps']
+    elif defect == 'changed_unit': contract['state']['units']['north_m'] = 'ft'
+    elif defect == 'missing_wind_d': del contract['inputs']['environment']['ports']['wind_d_mps']
+    elif defect == 'missing_acceleration': del contract['outputs']['internal_state']['acceleration']['az_mps2']
+    elif defect == 'reset_only_running':
+        for parameter in contract['parameters']:
+            if parameter['name'] == 'reset_gain':
+                parameter['allowed_phases'] = ['RUNNING']
+                break
+    elif defect == 'integrity_tamper': contract['state']['outputs']['q_z'] = 'tampered_q_z'
+    else: raise AssertionError('unknown malformed contract defect {}'.format(defect))
     with open(contract_path, 'w') as target: json.dump(contract, target)
+    if not update_manifest: return
     subprocess.check_call([sys.executable, os.path.join(ROOT, 'scripts', 'create_acceptance_package.py'), destination])
     # restore the intentional defect after manifest regeneration.
     with open(contract_path, 'w') as target: json.dump(contract, target)
@@ -246,11 +322,17 @@ def main():
             ws_server.WORK_ROOT = os.path.join(temporary, 'work')
             ws_server.ACCEPTANCE_ROOT = evidence
             try:
-                for label, output, unit in (('missing_attitude', 'q_z', None),
-                                            ('missing_speed', 'vd_mps', None),
-                                            ('missing_unit', None, 'north_m')):
+                malformed_cases = (
+                    ('contract_integrity_tamper', 'integrity_tamper', False),
+                    ('missing_attitude', 'missing_attitude', True),
+                    ('missing_speed', 'missing_speed', True),
+                    ('changed_unit', 'changed_unit', True),
+                    ('missing_wind_d', 'missing_wind_d', True),
+                    ('missing_acceleration', 'missing_acceleration', True),
+                    ('reset_only_running', 'reset_only_running', True))
+                for label, defect, update_manifest in malformed_cases:
                     bad = os.path.join(package_root, label)
-                    malformed_copy(package_dir, bad, output, unit)
+                    malformed_copy(package_dir, bad, defect, update_manifest)
                     response = submit(package_root, bad, label, 'build'); responses[label] = response
                     record(assertions, label, response['status'] == 'FAILED' and response['failed_stage'] == 'VALIDATING', response)
                 response = submit(package_root, package_dir, 'valid-deploy', 'deploy'); responses['valid'] = response
@@ -279,14 +361,56 @@ def main():
                     record(assertions, 'normalized_ned_state', first['sequence'] > 0 and first['q_w'] == 1.0 and first['airborne'] == 1, first)
                     mission = core_command(command, packet_log, 'mission-ned', 'load_mission', {
                         'mission_id': 'acceptance-route', 'waypoints': [
-                            {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0}]})
-                    record(assertions, 'ned_mission_receipt', mission.get('accepted'), mission)
+                            {'north_m': 0.0, 'east_m': 0.0, 'down_m': -20.0, 'speed_mps': 2.0},
+                            {'north_m': 100.0, 'east_m': 200.0, 'down_m': -30.0, 'speed_mps': 7.0},
+                            {'north_m': 150.0, 'east_m': 220.0, 'down_m': -35.0, 'speed_mps': 7.0}],
+                        'landing': {
+                            'north_m': 150.0, 'east_m': 220.0,
+                            'down_m': 0.0, 'speed_mps': 1.5},
+                        'completion_radius_m': 1.0})
+                    record(assertions, 'ned_mission_receipt',
+                           mission.get('accepted') and
+                           mission.get('effective_sequence', 0) > first['sequence'],
+                           mission)
                     tune = core_command(command, packet_log, 'gain-live', 'tune', {'gain': 2.0})
                     record(assertions, 'live_parameter_receipt', tune.get('accepted') and tune['effective_sequence'] >= first['sequence'], tune)
                     readonly = core_command(command, packet_log, 'readonly', 'tune', {'north_diagnostic': 1.0})
                     record(assertions, 'readonly_parameter_rejected', not readonly.get('accepted') and readonly.get('fields', {}).get('north_diagnostic', {}).get('reason') == 'readonly', readonly)
                     changed = recv_matching(status, packet_log, lambda state: state['sequence'] > tune['effective_sequence'])
                     record(assertions, 'live_gain_effect', changed['vn_mps'] == 2.0 and changed['sequence'] > tune['effective_sequence'], changed)
+                    inputs = core_command(command, packet_log, 'inputs-live', 'set_inputs', {
+                        'flight_control': {'throttle': 0.5, 'roll_cmd': 0.1},
+                        'environment': {'wind_n_mps': 3.0},
+                        'fault': {'packet_loss_ratio': 0.02}})
+                    record(assertions, 'contract_inputs_receipt', inputs.get('accepted') and
+                           inputs['effective_sequence'] >= changed['sequence'], inputs)
+                    after_inputs = recv_matching(status, packet_log,
+                                                 lambda state: state['sequence'] > inputs['effective_sequence'])
+                    record(assertions, 'contract_input_effect_at_step_boundary',
+                           after_inputs['vn_mps'] == 2.5, after_inputs)
+                    rejected_inputs = core_command(command, packet_log, 'inputs-atomic-reject', 'set_inputs', {
+                        'flight_control': {'throttle': 0.7},
+                        'fault': {'packet_loss_ratio': 1.2}})
+                    record(assertions, 'contract_input_atomic_rejection',
+                           not rejected_inputs.get('accepted') and
+                           rejected_inputs.get('reason') == 'atomic input group rejected', rejected_inputs)
+                    unchanged = recv_matching(status, packet_log,
+                                              lambda state: state['sequence'] > rejected_inputs['effective_sequence'])
+                    record(assertions, 'contract_input_rejection_leaves_model_unchanged',
+                           unchanged['vn_mps'] == 2.5, unchanged)
+                    for request_id, params in (
+                            ('inputs-unknown-group', {'unknown_group': {'throttle': 0.5}}),
+                            ('inputs-unknown-field', {'flight_control': {'unknown_field': 0.5}}),
+                            ('inputs-bool-as-number', {'fault': {'motor_1_failed': 1}}),
+                            ('inputs-scalar-as-array', {'flight_control': {'throttle': [0.5]}})):
+                        rejected = core_command(command, packet_log, request_id, 'set_inputs', params)
+                        record(assertions, request_id,
+                               not rejected.get('accepted') and
+                               rejected.get('reason') == 'atomic input group rejected', rejected)
+                        unchanged = recv_matching(status, packet_log,
+                                                  lambda state: state['sequence'] > rejected['effective_sequence'])
+                        record(assertions, request_id + '-unchanged',
+                               unchanged['vn_mps'] == 2.5, unchanged)
                     paused = core_command(command, packet_log, 'pause', 'pause', {})
                     record(assertions, 'pause_receipt', paused.get('accepted'), paused)
                     p1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 1)
@@ -310,12 +434,7 @@ def main():
                            final_reset_parameter)
                     after_reset = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 0 and state['sequence'] > reset['effective_sequence'])
                     record(assertions, 'reset_reinitializes_and_applies_queued_parameter', after_reset['north_m'] < after_resume['north_m'] and after_reset['vn_mps'] == 3.0 and after_reset['ve_mps'] == 2.0, after_reset)
-                    ended = core_command(command, packet_log, 'end', 'mission_end', {})
-                    record(assertions, 'mission_end_receipt', ended.get('accepted'), ended)
-                    e1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 3)
-                    e2 = recv_state(status, packet_log)
-                    record(assertions, 'ended_freezes_sequence', e1['sequence'] == e2['sequence'] and e2['lifecycle'] == 3, [e1, e2])
-                    ue4_mission, vehicle = receive_ue4_vehicle_packet(packet_log, runtime_log_path, first)
+                    ue4_mission, vehicle, reset_event, stream = receive_ue4_vehicle_stream(packet_log, runtime_log_path, first)
                     ue4 = vehicle['data']
                     record(assertions, 'ue4_mission_route_axes',
                            ue4_mission['data']['mission_id'] == 'acceptance-route' and
@@ -324,6 +443,21 @@ def main():
                            ue4_mission['data']['waypoints'][0]['height'] == 30.0,
                            ue4_mission)
                     record(assertions, 'ue4_protocol_ned_axes_and_90_yaw', ue4['position'] == {'x':10.0,'y':20.0,'height':-30.0} and abs(ue4['attitude']['yaw'] - 1.57079632679) < 1e-6 and ue4['velocity']['vz'] == -6.0, vehicle)
+                    record(assertions, 'ue4_protocol_v2_fields_and_semantics',
+                           {'mission_id', 'sim_time', 'position', 'attitude'}.issubset(ue4) and
+                           set(ue4).issubset(V2_VEHICLE_STATE_FIELDS), vehicle)
+                    record(assertions, 'ue4_10_second_rate_and_sequence',
+                           49.0 <= stream['average_hz'] <= 51.0 and
+                           stream['seq_strictly_increasing'], stream)
+                    record(assertions, 'reset_emits_only_reset_scene',
+                           reset_event is not None and
+                           reset_event.get('data', {}).get('event') == 'reset_scene' and
+                           stream['reset_receipt_count'] == 1, reset_event)
+                    ended = core_command(command, packet_log, 'end', 'mission_end', {})
+                    record(assertions, 'mission_end_receipt', ended.get('accepted'), ended)
+                    e1 = recv_matching(status, packet_log, lambda state: state['lifecycle'] == 3)
+                    e2 = recv_state(status, packet_log)
+                    record(assertions, 'ended_freezes_sequence', e1['sequence'] == e2['sequence'] and e2['lifecycle'] == 3, [e1, e2])
                 old_process = ws_server.ACTIVE_CORE
                 old = old_process.pid
                 second = submit(package_root, package_dir, 'second-deploy', 'deploy'); responses['second'] = second

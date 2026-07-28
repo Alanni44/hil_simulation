@@ -10,8 +10,8 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
     info = read_json_object(interface_json_path, 'interface JSON');
     contract = read_json_object(contract_path, 'hil_contract.json');
 
-    if ~isfield(contract, 'contract_version') || contract.contract_version ~= 1
-        error('hil_contract.json contract_version must equal 1');
+    if ~isfield(contract, 'contract_version') || contract.contract_version ~= 2
+        error('hil_contract.json contract_version must equal 2');
     end
     if ~isfield(contract, 'model_name') || ~strcmp(contract.model_name, info.model_name)
         error('contract.model_name must exactly match the top-level model name');
@@ -48,6 +48,8 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
     if length(unique(declared_names)) ~= length(declared_names)
         error('each required state key must map to a distinct root Outport');
     end
+    validate_declared_inputs(contract, root_port_names(info.root_inports));
+    validate_internal_acceleration_outputs(contract, root_names);
 
     % No topology mutation is permitted.  Copy only so codegen has its own
     % isolated work path; the copy preserves the exact customer model.
@@ -83,6 +85,85 @@ end
 function fields = required_state_fields()
     fields = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps', ...
         'q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'};
+end
+
+function validate_declared_inputs(contract, root_names)
+    if ~isfield(contract, 'inputs') || ~isstruct(contract.inputs)
+        error('contract.inputs is required');
+    end
+    inputs = contract.inputs;
+    for group = {'flight_control','environment','fault'}
+        name = group{1};
+        if ~isfield(inputs, name) || ~isfield(inputs.(name), 'ports') || ~isstruct(inputs.(name).ports)
+            error('contract.inputs.%s.ports is required', name);
+        end
+    end
+    control = inputs.flight_control;
+    if ~isfield(control, 'mode') || ~ischar(control.mode)
+        error('contract.inputs.flight_control.mode is required');
+    end
+    if strcmp(control.mode, 'axis_command')
+        expected = {'throttle','roll_cmd','pitch_cmd','yaw_cmd'};
+        if isfield(control.ports, 'motor_command'), error('flight control modes are mutually exclusive'); end
+    elseif strcmp(control.mode, 'motor_command')
+        expected = {'motor_command'};
+        if any(isfield(control.ports, {'throttle','roll_cmd','pitch_cmd','yaw_cmd'}))
+            error('flight control modes are mutually exclusive');
+        end
+    else
+        error('unsupported flight control mode');
+    end
+    required = [expected, {'wind_n_mps','wind_e_mps','wind_d_mps','pressure_pa','temperature_k','ground_height_m'}, ...
+        {'gps_bias_n_m','gps_bias_e_m','gps_bias_d_m','imu_bias_p_radps','imu_bias_q_radps','imu_bias_r_radps', ...
+         'motor_1_failed','motor_2_failed','motor_3_failed','motor_4_failed','command_delay_ms','sensor_delay_ms','packet_loss_ratio'}];
+    ports = control.ports;
+    environment_names = fieldnames(inputs.environment.ports);
+    for i = 1:length(environment_names), ports.(environment_names{i}) = inputs.environment.ports.(environment_names{i}); end
+    fault_names = fieldnames(inputs.fault.ports);
+    for i = 1:length(fault_names), ports.(fault_names{i}) = inputs.fault.ports.(fault_names{i}); end
+    fields = {};
+    for i = 1:length(required)
+        key = required{i};
+        if ~isfield(ports, key), error('contract input %s is not declared', key); end
+        descriptor = ports.(key);
+        if ~isstruct(descriptor) || ~isfield(descriptor, 'field')
+            error('contract input %s lacks a field mapping', key);
+        end
+        if ~any(strcmp(root_names, descriptor.field))
+            error('contract input %s maps to nonexistent root Inport %s', key, descriptor.field);
+        end
+        fields{end+1} = descriptor.field; %#ok<AGROW>
+    end
+    if length(unique(fields)) ~= length(fields), error('each required input must map to a distinct root Inport'); end
+end
+
+function validate_internal_acceleration_outputs(contract, root_names)
+    declaration = internal_output_declaration(contract);
+    if ~isfield(declaration, 'rate_hz') || declaration.rate_hz ~= 50 || ...
+            ~isfield(declaration, 'acceleration')
+        error('contract.outputs.internal_state with fixed 50Hz acceleration is required');
+    end
+    acceleration = declaration.acceleration;
+    fields = {};
+    for key = {'ax_mps2','ay_mps2','az_mps2'}
+        name = key{1};
+        if ~isfield(acceleration, name) || ~isstruct(acceleration.(name)) || ...
+                ~isfield(acceleration.(name), 'field') || ~strcmp(acceleration.(name).unit, 'm/s2')
+            error('contract acceleration descriptor %s is invalid', name);
+        end
+        declared = acceleration.(name).field;
+        if ~any(strcmp(root_names, declared)), error('acceleration output %s is not a root Outport', declared); end
+        fields{end+1} = declared; %#ok<AGROW>
+    end
+    if length(unique(fields)) ~= length(fields), error('acceleration outputs must be distinct'); end
+end
+
+function declaration = internal_output_declaration(contract)
+    if ~isfield(contract, 'outputs') || ...
+            ~isfield(contract.outputs, 'internal_state')
+        error('contract.outputs.internal_state is required');
+    end
+    declaration = contract.outputs.internal_state;
 end
 
 function unit = required_unit(field)

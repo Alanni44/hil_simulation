@@ -1,11 +1,57 @@
+import ast
 import pathlib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 def read(path): return (ROOT / path).read_text(encoding='utf-8')
+def string_literal(node):
+    if hasattr(node, 'value'):
+        return node.value
+    return node.s if isinstance(node, ast.Str) else None
 
 
 class RuntimeContractStaticTests(unittest.TestCase):
+    def test_runtime_ends_once_when_controller_reports_landed(self):
+        runtime = read('c_core/src/main_rt.c')
+
+        self.assertIn('mission_controller_take_landed_event()', runtime)
+        self.assertRegex(
+            runtime,
+            r"if \(mission_controller_take_landed_event\(\)\)\s*\{\s*"
+            r"lifecycle = HIL_ENDED;")
+
+    def test_acceptance_submits_complete_task_4_mission_schema(self):
+        tree = ast.parse(read('scripts/accept_runtime_contract.py'))
+        mission_params = None
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and
+                    isinstance(node.func, ast.Name) and
+                    node.func.id == 'core_command' and
+                    len(node.args) >= 5 and
+                    string_literal(node.args[2]) == 'mission-ned'):
+                mission_params = ast.literal_eval(node.args[4])
+                break
+
+        self.assertIsNotNone(mission_params)
+        self.assertGreaterEqual(len(mission_params['waypoints']), 3)
+        self.assertEqual(
+            {'north_m', 'east_m', 'down_m', 'speed_mps'},
+            set(mission_params['landing']))
+        self.assertGreater(mission_params['landing']['speed_mps'], 0.0)
+        self.assertGreater(mission_params['completion_radius_m'], 0.0)
+
+    def test_core_reserves_capacity_for_50_route_points_plus_landing(self):
+        header = read('c_core/src/mission_controller.h')
+        source = read('c_core/src/main_rt.c')
+        self.assertIn('#define MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS 50U', header)
+        self.assertIn('#define MISSION_CONTROLLER_MAX_WAYPOINTS', header)
+        self.assertIn(
+            '(MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS + 1U)', header)
+        self.assertIn(
+            'count > MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS', source)
+        self.assertNotIn(
+            'count + 1U > MISSION_CONTROLLER_MAX_WAYPOINTS', source)
+
     def test_no_model_registry_or_hot_reload_implementation(self):
         combined = '\n'.join(read(path) for path in (
             'python_services/ws_server.py', 'c_core/src/model_rt_wrapper.c',
@@ -28,6 +74,9 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('Generated ExtY field missing', source)
         self.assertIn('model_contract.h', source)
         self.assertIn('[HIL] GCC command:', source)
+        self.assertIn('validate_input_contract_abi(contract, u_fields)', source)
+        self.assertIn('hil_contract_set_input', source)
+        self.assertIn('MODEL_READ_ax_mps2', source)
         self.assertNotIn('MODEL_DEFAULT_', source)
 
     def test_core_has_fixed_state_receipts_and_lifecycle(self):
@@ -44,6 +93,9 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('if (have_valid_state)', source)
         self.assertIn('parse_load_mission', source)
         self.assertIn('finite north_m/east_m/down_m/speed_mps', source)
+        self.assertIn('parse_set_inputs', source)
+        self.assertIn('atomic input group rejected', source)
+        self.assertIn('MODEL_READ_az_mps2', source)
 
     def test_core_enables_realtime_scheduler_and_memory_lock(self):
         source = read('c_core/src/realtime.c')
@@ -68,12 +120,17 @@ class RuntimeContractStaticTests(unittest.TestCase):
         cache = read('python_services/shared/state_cache.py')
         self.assertIn("unsupported state version", parser)
         self.assertIn("state simulation time regressed", cache)
+        self.assertNotIn("'acceleration'", cache)
+        self.assertIn("'flight_state' not", read('tests/test_v2_protocol.py'))
 
     def test_bridge_does_not_fabricate_default_mission_or_nonfinite_values(self):
         source = read('python_services/bridge_tcp_client.py')
         self.assertNotIn('_DEFAULT_WAYPOINTS', source)
         self.assertIn("raise ValueError('refusing non-finite value for UE4 protocol')", source)
         self.assertIn('_mission_queue.append', source)
+        self.assertIn('validate_mission_plan', source)
+        self.assertIn("state_rate_hz': 50", source)
+        self.assertIn("state_cache.v2_event_name", source)
 
     def test_build_request_is_controlled_and_auditable(self):
         source = read('python_services/ws_server.py')
@@ -102,6 +159,27 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn("'skipped': []", source)
         ws = read('python_services/ws_server.py')
         self.assertIn("if lifecycle_event and receipt.get('accepted')", ws)
+        self.assertIn("elif cmd == 'set_inputs'", ws)
+        self.assertIn("'inputs-atomic-reject'", source)
+        self.assertIn("'contract_input_effect_at_step_boundary'", source)
+
+    def test_ue4_acceptance_contract_excludes_internal_acceleration_and_rate(self):
+        source = read('scripts/accept_runtime_contract.py')
+        docs = read('docs/ubuntu-interface-acceptance.md')
+        self.assertNotIn("ue4['acceleration']", source)
+        self.assertNotIn("ue4['rate_hz']", source)
+        self.assertNotIn('"acceleration":', docs)
+        self.assertIn('不得要求或发送 `acceleration`、`rate_hz`', docs)
+        self.assertIn('`state_rate_hz`', docs)
+
+    def test_one_command_ubuntu_acceptance_runner_exists(self):
+        source = read('scripts/run_ubuntu_acceptance.sh')
+        self.assertIn('set -euo pipefail', source)
+        self.assertIn('Ubuntu 18.04 RT', source)
+        self.assertIn('python3 -m unittest', source)
+        self.assertIn('scripts/accept_runtime_contract.py', source)
+        self.assertIn('HIL_SKIP_REALTIME_GATE', source)
+        self.assertIn('artifacts/acceptance', source)
 
 
 if __name__ == '__main__': unittest.main()

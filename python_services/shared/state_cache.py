@@ -4,11 +4,13 @@ from __future__ import print_function
 
 import math
 import threading
+import time
 from datetime import datetime
 
 from .flight_state import LIFECYCLE_NAMES, parse_flight_state
 
 _latest_raw = None
+_latest_received_monotonic = None
 _lock = threading.Lock()
 
 
@@ -49,7 +51,7 @@ def ned_to_ue4(state):
 
 
 def update(data):
-    global _latest_raw
+    global _latest_raw, _latest_received_monotonic
     state = parse_flight_state(data)
     with _lock:
         previous = _latest_raw
@@ -58,6 +60,18 @@ def update(data):
         if previous and state['sim_time_s'] < previous['sim_time_s']:
             raise ValueError('state simulation time regressed')
         _latest_raw = state
+        _latest_received_monotonic = time.monotonic()
+
+
+def state_age_s():
+    with _lock:
+        received = _latest_received_monotonic
+    return None if received is None else time.monotonic() - received
+
+
+def is_stale(max_age_s=0.5):
+    age = state_age_s()
+    return age is None or age > max_age_s
 
 
 def get_flight_data():
@@ -90,19 +104,34 @@ def get_state_dict():
             'lifecycle': LIFECYCLE_NAMES[state['lifecycle']]}
 
 
-def get_vehicle_state_v2(mission_id='mission_001', rate_hz=50):
-    with _lock:
-        state = _latest_raw
-    if not state:
-        return None
+def vehicle_state_v2_from_state(state, mission_id):
+    if not isinstance(mission_id, str) or not mission_id:
+        raise ValueError('mission_id is required for V2 vehicle_state')
     converted = ned_to_ue4(state)
     return {'protocol_version': '2.0', 'type': 'vehicle_state', 'vehicle_id': 'Drone1',
             'data': {'mission_id': mission_id, 'sim_time': state['sim_time_s'],
-                     'sequence': state['sequence'], 'position': converted['position'],
-                     'attitude': converted['attitude'], 'velocity': converted['velocity'],
+                     'position': converted['position'], 'attitude': converted['attitude'],
+                     'velocity': converted['velocity'],
                      'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
-                                          'r': state['r_radps']},
-                     'flight_state': LIFECYCLE_NAMES[state['lifecycle']]}}
+                                          'r': state['r_radps']}}}
+
+
+def v2_event_name(event_name):
+    mapping = {'pause': 'pause', 'resume': 'resume', 'reset': 'reset_scene',
+               'mission_end': 'mission_end'}
+    if event_name not in mapping:
+        raise ValueError('unsupported V2 simulation event {}'.format(event_name))
+    return mapping[event_name]
+
+
+def get_vehicle_state_v2(mission_id, rate_hz=50):
+    if rate_hz != 50:
+        raise ValueError('V2 vehicle_state rate is fixed at 50 Hz')
+    with _lock:
+        state = _latest_raw
+    if not state or is_stale():
+        return None
+    return vehicle_state_v2_from_state(state, mission_id)
 
 
 def get_mission_waypoints_from_cache():

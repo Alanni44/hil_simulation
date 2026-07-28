@@ -14,6 +14,11 @@ ue4_tcp:
   host: "127.0.0.1"
   port: 5000
 
+# Dedicated terminal debug target; normal services keep ue4_tcp above.
+debug_ue4_tcp:
+  host: "192.168.100.172"
+  port: 5000
+
 logging:
   level: "INFO"
   file: "logs/hil.log"

@@ -30,7 +30,7 @@ def main():
         '127.0.0.1', CONFIG['local_udp']['command_port']))
     print("  UDP status receiver          <- {}:{}".format(
         '0.0.0.0', CONFIG['local_udp']['status_port']))
-    print("  vehicle_state push          @20Hz")
+    print("  vehicle_state push          @50Hz")
     print("  MATLAB builder               on demand")
     print("=" * 60)
 

@@ -12,6 +12,7 @@
 
 #include "flight_state.h"
 #include "local_udp.h"
+#include "mission_controller.h"
 #include "model_rt_wrapper.h"
 #include "model_contract.h"
 #include "realtime.h"
@@ -22,7 +23,7 @@
 #define SEND_INTERVAL 20U
 #define REQUEST_ID_MAX 96
 #define MISSION_ID_MAX 128
-#define MAX_MISSION_WAYPOINTS 50U
+#define MAX_INPUT_VALUE_COUNT 16U
 
 static volatile sig_atomic_t running = 1;
 static volatile int lifecycle = HIL_RUNNING;
@@ -58,10 +59,14 @@ static PendingResetReceipt pending_reset_receipt;
 
 typedef struct {
     int active;
+    MissionWaypoint waypoints[MISSION_CONTROLLER_MAX_WAYPOINTS];
     unsigned waypoint_count;
+    double completion_radius_m;
+    unsigned generation;
     char mission_id[MISSION_ID_MAX];
 } MissionMetadata;
 static MissionMetadata mission;
+static unsigned applied_mission_generation = 0;
 
 typedef struct {
     int pending;
@@ -116,54 +121,154 @@ static int valid_number(struct json_object* value, double* number, int* bool_val
     return isfinite(*number);
 }
 
-static int mission_waypoint_is_valid(struct json_object* waypoint) {
-    const char* required[] = {"north_m", "east_m", "down_m", "speed_mps"};
+static void add_input_result(struct json_object* results, const char* name,
+                             int accepted, const char* reason) {
+    struct json_object* detail = json_object_new_object();
+    json_object_object_add(detail, "accepted", json_object_new_boolean(accepted));
+    json_object_object_add(detail, "reason", json_object_new_string(reason));
+    json_object_object_add(results, name, detail);
+}
+
+static int parse_input_value(struct json_object* value, const HilInputSpec* spec,
+                             double* values) {
     unsigned index;
-    if (!waypoint || json_object_get_type(waypoint) != json_type_object) return 0;
-    for (index = 0; index < sizeof(required) / sizeof(required[0]); ++index) {
-        struct json_object* value = NULL;
-        double number;
-        if (!json_object_object_get_ex(waypoint, required[index], &value) ||
-            !valid_number(value, &number, NULL)) return 0;
+    if (spec->dimension > MAX_INPUT_VALUE_COUNT) return 0;
+    if (spec->dimension == 1) {
+        int was_bool = 0;
+        if (!valid_number(value, &values[0], &was_bool) || was_bool != spec->is_bool) return 0;
+    } else {
+        if (!value || json_object_get_type(value) != json_type_array ||
+            json_object_array_length(value) != spec->dimension) return 0;
+        for (index = 0; index < spec->dimension; ++index) {
+            int was_bool = 0;
+            if (!valid_number(json_object_array_get_idx(value, index), &values[index], &was_bool) ||
+                was_bool != spec->is_bool) return 0;
+        }
     }
+    for (index = 0; index < spec->dimension; ++index)
+        if (values[index] < spec->min_value || values[index] > spec->max_value) return 0;
     return 1;
 }
 
-/* Mission geometry is a fixed external NED request contract, not a model
- * port inference mechanism. Models consume mission targets only through
- * separately declared contract parameters. */
+static void parse_set_inputs(struct json_object* root, const char* request_id,
+                             const struct sockaddr_in* sender) {
+    struct json_object* params = NULL;
+    struct json_object* results = json_object_new_object();
+    ModelU_t candidate;
+    int ok = 1;
+    int seen = 0;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object || json_object_object_length(params) == 0) {
+        send_receipt(sender, request_id, 0, "params must be a non-empty input-group object", sequence, results);
+        return;
+    }
+    pthread_mutex_lock(&command_lock);
+    candidate = pending_live.input;
+    json_object_object_foreach(params, group_name, group_value) {
+        if (strcmp(group_name, "flight_control") && strcmp(group_name, "environment") && strcmp(group_name, "fault")) {
+            add_input_result(results, group_name, 0, "unknown input group"); ok = 0; continue;
+        }
+        if (json_object_get_type(group_value) != json_type_object || json_object_object_length(group_value) == 0) {
+            add_input_result(results, group_name, 0, "input group must be a non-empty object"); ok = 0; continue;
+        }
+        json_object_object_foreach(group_value, input_name, input_value) {
+            char full_name[256];
+            const HilInputSpec* spec;
+            double values[MAX_INPUT_VALUE_COUNT];
+            snprintf(full_name, sizeof(full_name), "%s.%s", group_name, input_name);
+            spec = hil_contract_find_input(full_name);
+            if (!spec) { add_input_result(results, full_name, 0, "undeclared input"); ok = 0; continue; }
+            if (!parse_input_value(input_value, spec, values)) {
+                add_input_result(results, full_name, 0, "type, dimension or range violates contract"); ok = 0; continue;
+            }
+            if (!hil_contract_set_input(&candidate, full_name, values, spec->dimension)) {
+                add_input_result(results, full_name, 0, "generated input setter unavailable"); ok = 0; continue;
+            }
+            add_input_result(results, full_name, 1, "accepted"); seen = 1;
+        }
+    }
+    if (ok && seen) { pending_live.input = candidate; pending_live.generation++; }
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, ok && seen,
+                 ok && seen ? "accepted" : "atomic input group rejected",
+                 ok && seen ? sequence + 1U : sequence, results);
+}
+
+static int parse_mission_waypoint(struct json_object* waypoint,
+                                  MissionWaypoint* parsed) {
+    const char* required[] = {"north_m", "east_m", "down_m", "speed_mps"};
+    double values[4];
+    unsigned index;
+    if (!waypoint || !parsed || json_object_get_type(waypoint) != json_type_object) return 0;
+    for (index = 0; index < sizeof(required) / sizeof(required[0]); ++index) {
+        struct json_object* value = NULL;
+        int was_bool = 0;
+        if (!json_object_object_get_ex(waypoint, required[index], &value) ||
+            !valid_number(value, &values[index], &was_bool) || was_bool) return 0;
+    }
+    if (values[3] <= 0.0) return 0;
+    parsed->north_m = values[0];
+    parsed->east_m = values[1];
+    parsed->down_m = values[2];
+    parsed->speed_mps = values[3];
+    return 1;
+}
+
+/* Mission geometry is a fixed external NED request contract.  The C
+ * controller turns it into the model's declared motor input; it is never a
+ * model-port inference mechanism or a UE4 protocol payload. */
 static void parse_load_mission(struct json_object* root, const char* request_id,
                                const struct sockaddr_in* sender) {
     struct json_object *params = NULL, *mission_id = NULL, *waypoints = NULL;
+    struct json_object *landing = NULL, *completion_radius = NULL;
+    MissionWaypoint parsed[MISSION_CONTROLLER_MAX_WAYPOINTS];
+    double radius;
+    int radius_was_bool = 0;
     size_t count, index;
     if (!json_object_object_get_ex(root, "params", &params) ||
         json_object_get_type(params) != json_type_object ||
         !json_object_object_get_ex(params, "mission_id", &mission_id) ||
         json_object_get_type(mission_id) != json_type_string ||
         !json_object_object_get_ex(params, "waypoints", &waypoints) ||
-        json_object_get_type(waypoints) != json_type_array) {
-        send_receipt(sender, request_id, 0, "mission_id and NED waypoints are required", sequence, NULL);
+        json_object_get_type(waypoints) != json_type_array ||
+        !json_object_object_get_ex(params, "landing", &landing) ||
+        !json_object_object_get_ex(params, "completion_radius_m", &completion_radius) ||
+        !valid_number(completion_radius, &radius, &radius_was_bool) ||
+        radius_was_bool || radius <= 0.0) {
+        send_receipt(sender, request_id, 0,
+                     "mission_id, positive completion radius, NED route and landing are required",
+                     sequence, NULL);
         return;
     }
     count = json_object_array_length(waypoints);
-    if (count == 0 || count > MAX_MISSION_WAYPOINTS) {
+    if (count < 3 || count > MISSION_CONTROLLER_MAX_ROUTE_WAYPOINTS) {
         send_receipt(sender, request_id, 0, "waypoint count is outside contract limit", sequence, NULL);
         return;
     }
     for (index = 0; index < count; ++index) {
-        if (!mission_waypoint_is_valid(json_object_array_get_idx(waypoints, index))) {
+        if (!parse_mission_waypoint(json_object_array_get_idx(waypoints, index), &parsed[index])) {
             send_receipt(sender, request_id, 0,
-                         "waypoint must contain finite north_m/east_m/down_m/speed_mps", sequence, NULL);
+                         "waypoint must contain finite north_m/east_m/down_m/speed_mps and positive speed_mps",
+                         sequence, NULL);
             return;
         }
     }
+    if (!parse_mission_waypoint(landing, &parsed[count])) {
+        send_receipt(sender, request_id, 0,
+                     "landing must contain finite NED coordinates and positive speed_mps",
+                     sequence, NULL);
+        return;
+    }
     pthread_mutex_lock(&command_lock);
     mission.active = 1;
-    mission.waypoint_count = (unsigned)count;
+    memcpy(mission.waypoints, parsed, (count + 1U) * sizeof(parsed[0]));
+    mission.waypoint_count = (unsigned)count + 1U;
+    mission.completion_radius_m = radius;
+    mission.generation++;
     strncpy(mission.mission_id, json_object_get_string(mission_id), sizeof(mission.mission_id) - 1);
     mission.mission_id[sizeof(mission.mission_id) - 1] = '\0';
     pthread_mutex_unlock(&command_lock);
-    send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence, NULL);
+    send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence + 1U, NULL);
 }
 
 static const HilParameterSpec* find_parameter(const char* name) {
@@ -181,7 +286,8 @@ static int state_is_valid(const FlightState_t* candidate) {
         !isfinite(candidate->vn_mps) || !isfinite(candidate->ve_mps) || !isfinite(candidate->vd_mps) ||
         !isfinite(candidate->q_w) || !isfinite(candidate->q_x) || !isfinite(candidate->q_y) ||
         !isfinite(candidate->q_z) || !isfinite(candidate->p_radps) || !isfinite(candidate->q_radps) ||
-        !isfinite(candidate->r_radps)) return 0;
+        !isfinite(candidate->r_radps) || !isfinite(candidate->ax_mps2) ||
+        !isfinite(candidate->ay_mps2) || !isfinite(candidate->az_mps2)) return 0;
     return norm > 0.0f && fabsf(norm - 1.0f) <= 0.02f && candidate->airborne <= 1;
 }
 
@@ -206,13 +312,18 @@ static void populate_state(void) {
     candidate.p_radps = MODEL_READ_p_radps(&output);
     candidate.q_radps = MODEL_READ_q_radps(&output);
     candidate.r_radps = MODEL_READ_r_radps(&output);
+    candidate.ax_mps2 = MODEL_READ_ax_mps2(&output);
+    candidate.ay_mps2 = MODEL_READ_ay_mps2(&output);
+    candidate.az_mps2 = MODEL_READ_az_mps2(&output);
     candidate.airborne = MODEL_READ_airborne(&output) ? 1 : 0;
     candidate.lifecycle = (uint8_t)lifecycle;
     if (state_is_valid(&candidate)) {
         state = candidate;
         have_valid_state = 1;
     }
-    else fprintf(stderr, "[HIL] rejected invalid generated state at sequence %llu\n", (unsigned long long)sequence);
+    else {
+        fprintf(stderr, "[HIL] rejected invalid generated state at sequence %llu\n", (unsigned long long)sequence);
+    }
 }
 
 static void queue_lifecycle(int event, const char* request_id, const struct sockaddr_in* sender) {
@@ -258,12 +369,23 @@ static void apply_lifecycle_request(void) {
     pthread_mutex_unlock(&command_lock);
 
     if (request.event == HIL_PAUSED) {
-        if (lifecycle != HIL_RUNNING) valid = 0; else lifecycle = HIL_PAUSED;
+        if (lifecycle != HIL_RUNNING) valid = 0;
+        else lifecycle = HIL_PAUSED;
     } else if (request.event == HIL_RUNNING) {
         if (lifecycle != HIL_PAUSED) valid = 0; else lifecycle = HIL_RUNNING;
     } else if (request.event == HIL_ENDED) {
         if (lifecycle != HIL_RUNNING && lifecycle != HIL_PAUSED) valid = 0;
-        else { lifecycle = HIL_ENDED; mission.active = 0; }
+        else {
+            lifecycle = HIL_ENDED;
+            pthread_mutex_lock(&command_lock);
+            mission.active = 0;
+            mission.waypoint_count = 0;
+            mission.mission_id[0] = '\0';
+            mission.generation++;
+            applied_mission_generation = mission.generation;
+            pthread_mutex_unlock(&command_lock);
+            mission_controller_reset();
+        }
     } else if (request.event == HIL_RESETTING) {
         if (lifecycle != HIL_PAUSED && lifecycle != HIL_ENDED && lifecycle != HIL_RUNNING) valid = 0;
         else {
@@ -283,9 +405,14 @@ static void apply_lifecycle_request(void) {
             pending_live.parameters = active_parameters;
             pending_live.generation++;
             pending_reset.generation = 0;
+            pthread_mutex_lock(&command_lock);
             mission.active = 0;
             mission.waypoint_count = 0;
             mission.mission_id[0] = '\0';
+            mission.generation++;
+            applied_mission_generation = mission.generation;
+            pthread_mutex_unlock(&command_lock);
+            mission_controller_reset();
             lifecycle = HIL_RUNNING;
             populate_state();
             /* The reset call occurs before this loop's model_step(); that
@@ -311,6 +438,56 @@ static void apply_live_update(void) {
     }
 }
 
+static void apply_mission_update(void) {
+    MissionMetadata snapshot;
+    pthread_mutex_lock(&command_lock);
+    snapshot = mission;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.generation == applied_mission_generation) return;
+    if (snapshot.active) {
+        if (!mission_controller_load(snapshot.waypoints, snapshot.waypoint_count,
+                                     snapshot.completion_radius_m)) {
+            fprintf(stderr, "[HIL] rejected invalid pending mission snapshot\n");
+        }
+    } else {
+        mission_controller_reset();
+    }
+    applied_mission_generation = snapshot.generation;
+}
+
+static void write_motor_command(const float motor[4]) {
+    double values[4];
+    unsigned index;
+    for (index = 0; index < 4; ++index) values[index] = motor[index];
+    if (!hil_contract_set_input(&active_input, "flight_control.motor_command", values, 4U)) {
+        fprintf(stderr, "[HIL] generated motor command setter unavailable\n");
+        running = 0;
+        return;
+    }
+    *model_get_input() = active_input;
+}
+
+static void zero_motor_command(void) {
+    const float motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    write_motor_command(motor);
+}
+
+/* Reset restores all ordinary model inputs to their contract defaults, while
+ * retaining the current values of explicitly live parameters.  Reset-only
+ * values are then layered onto this snapshot by parse_tune(). */
+static int reset_snapshot_from_initial(ModelU_t* input, HilParameterValues* parameters) {
+    unsigned index;
+    *input = initial_input;
+    *parameters = initial_parameters;
+    for (index = 0; index < HIL_PARAMETER_COUNT; ++index) {
+        const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[index];
+        if (spec->klass != HIL_PARAM_LIVE) continue;
+        if (!hil_contract_set_parameter(input, parameters, spec->name,
+                                        active_parameters.value[index])) return 0;
+    }
+    return 1;
+}
+
 static void parse_tune(struct json_object* root, const char* request_id,
                        const struct sockaddr_in* sender) {
     struct json_object *params = NULL;
@@ -326,8 +503,14 @@ static void parse_tune(struct json_object* root, const char* request_id,
     pthread_mutex_lock(&command_lock);
     live_candidate = pending_live.input;
     live_parameters = pending_live.parameters;
-    reset_candidate = pending_reset.generation ? pending_reset.input : active_input;
-    reset_parameters = pending_reset.generation ? pending_reset.parameters : active_parameters;
+    if (pending_reset.generation) {
+        reset_candidate = pending_reset.input;
+        reset_parameters = pending_reset.parameters;
+    } else if (!reset_snapshot_from_initial(&reset_candidate, &reset_parameters)) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "cannot construct reset input snapshot", sequence, field_results);
+        return;
+    }
     reset_slot_busy = pending_reset_receipt.pending;
     json_object_object_foreach(params, name, value) {
         const HilParameterSpec* spec = find_parameter(name);
@@ -381,6 +564,7 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     }
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
+    else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
     else if (!strcmp(command, "load_mission")) parse_load_mission(root, request_id, sender);
     else if (!strcmp(command, "pause")) queue_lifecycle(HIL_PAUSED, request_id, sender);
     else if (!strcmp(command, "resume")) queue_lifecycle(HIL_RUNNING, request_id, sender);
@@ -398,6 +582,7 @@ static void* command_thread(void* ignored) {
 
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
+    float mission_motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
     if (hil_realtime_init(90) != 0) {
         fprintf(stderr, "[HIL] SCHED_FIFO/locked memory unavailable; refusing production start\n");
@@ -422,15 +607,26 @@ int main(void) {
         apply_lifecycle_request();
         if (lifecycle == HIL_RUNNING) {
             apply_live_update();
+            apply_mission_update();
+            mission_controller_step(have_valid_state ? &state : NULL, 0.001,
+                                    mission_motor);
+            if (mission_controller_take_landed_event()) {
+                lifecycle = HIL_ENDED;
+            }
+            write_motor_command(mission_motor);
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
-        } else if (have_valid_state) { state.lifecycle = (uint8_t)lifecycle; }
+        } else {
+            zero_motor_command();
+            if (have_valid_state) state.lifecycle = (uint8_t)lifecycle;
+        }
         if (++send_counter >= SEND_INTERVAL) {
             if (have_valid_state) { udp_send_status(&state); udp_send_monitor(&state); }
             send_counter = 0;
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
         { struct timespec now; clock_gettime(CLOCK_MONOTONIC, &now);
-          hil_realtime_record_deadline((int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec); }
+          { int64_t lateness = (int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec;
+            hil_realtime_record_deadline(lateness); } }
     }
     { HilRealtimeStats stats = hil_realtime_stats();
       fprintf(stderr, "[HIL] realtime samples=%llu p99_abs_lateness_ns=%lld max_abs_lateness_ns=%lld over_250us=%llu non_realtime=%d\n",
