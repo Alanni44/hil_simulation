@@ -2,6 +2,7 @@ import json
 import asyncio
 import pathlib
 import socket
+import struct
 import sys
 import threading
 import unittest
@@ -22,13 +23,26 @@ WAYPOINTS = [
 
 
 def recv_json_line(sock):
-    data = bytearray()
-    while not data.endswith(b'\n'):
-        chunk = sock.recv(1)
+    header = bytearray()
+    while len(header) < 4:
+        chunk = sock.recv(4 - len(header))
         if not chunk:
-            raise EOFError('peer closed before JSON line completed')
+            raise EOFError('peer closed before frame header completed')
+        header.extend(chunk)
+    length = struct.unpack('>I', bytes(header))[0]
+    data = bytearray()
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:
+            raise EOFError('peer closed before JSON frame completed')
         data.extend(chunk)
-    return json.loads(data.decode('utf-8'))
+    return json.loads(bytes(data).decode('utf-8'))
+
+
+def encode_frame(payload):
+    if not isinstance(payload, bytes):
+        payload = json.dumps(payload).encode('utf-8')
+    return struct.pack('>I', len(payload)) + payload
 
 
 def send_fragmented_ack(sock, message, accepted=True, ref_type=None,
@@ -44,7 +58,7 @@ def send_fragmented_ack(sock, message, accepted=True, ref_type=None,
             'accepted': accepted,
         },
     }
-    wire = json.dumps(ack).encode('utf-8') + b'\n'
+    wire = encode_frame(ack)
     for split in (wire[:3], wire[3:11], wire[11:]):
         sock.sendall(split)
 
@@ -137,13 +151,13 @@ class BridgeTcpClientTests(unittest.TestCase):
                 bridge_tcp_client._event_queue)
         self.assertEqual([receipt], responses)
 
-    def test_json_line_fragment_survives_a_receive_timeout(self):
+    def test_length_prefixed_fragment_survives_a_receive_timeout(self):
         client, peer = socket.socketpair()
         message = {
             'type': 'ack',
             'data': {'ref_type': 'hello', 'ref_seq': 1, 'accepted': True},
         }
-        wire = json.dumps(message).encode('utf-8') + b'\n'
+        wire = encode_frame(message)
         try:
             peer.sendall(wire[:9])
             self.assertIsNone(bridge_tcp_client._frame_recv(client, 0.01))
@@ -153,10 +167,10 @@ class BridgeTcpClientTests(unittest.TestCase):
             client.close()
             peer.close()
 
-    def test_oversized_json_line_is_a_protocol_failure(self):
+    def test_oversized_length_prefixed_json_is_a_protocol_failure(self):
         client, peer = socket.socketpair()
         try:
-            peer.sendall(json.dumps('x' * 40).encode('utf-8') + b'\n')
+            peer.sendall(encode_frame('x' * 40))
             with mock.patch.object(bridge_tcp_client, 'MAX_FRAME_BYTES', 32):
                 with self.assertRaises(Exception) as caught:
                     bridge_tcp_client._frame_recv(client, 0.1)
@@ -183,7 +197,7 @@ class BridgeTcpClientTests(unittest.TestCase):
         thread.start()
         try:
             hello = recv_json_line(peer)
-            peer.sendall(b'{malformed-json}\n')
+            peer.sendall(encode_frame(b'{malformed-json}'))
             send_fragmented_ack(peer, hello)
             thread.join(0.5)
             self.assertFalse(thread.is_alive())
@@ -445,7 +459,11 @@ class BridgeTcpClientTests(unittest.TestCase):
                 self.messages = []
 
             def sendall(self, wire):
-                self.messages.append((self.clock.now, json.loads(wire.decode('utf-8'))))
+                length = struct.unpack('>I', wire[:4])[0]
+                self.messages.append((self.clock.now,
+                                      json.loads(wire[4:].decode('utf-8'))))
+                if length != len(wire) - 4:
+                    raise AssertionError('frame length does not match payload')
 
         state = {
             'sim_time_s': 1.25,

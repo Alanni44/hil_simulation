@@ -2,7 +2,7 @@
 """
 V2.0 TCP Bridge Client — 严格按 Simulink-三维视景通信协议 V2.0
 连接 UE4 侧的 Python Bridge（TCP Server :5000）
-帧格式: [UTF-8 JSON][\n]
+帧格式: [4字节大端无符号长度][UTF-8 JSON]
 消息类型:
   hello           → 握手
   mission_plan    → 发送航点规划
@@ -15,6 +15,7 @@ V2.0 TCP Bridge Client — 严格按 Simulink-三维视景通信协议 V2.0
 """
 import json
 import socket
+import struct
 import threading
 import time
 import weakref
@@ -132,9 +133,11 @@ def validate_mission_plan(mission_id, waypoints):
 
 def _frame_send(sock, data):
     clean = _sanitize(data)
-    body = json.dumps(clean, separators=(',', ':')).encode('utf-8') + b'\n'
+    body = json.dumps(clean, separators=(',', ':')).encode('utf-8')
+    if len(body) > MAX_FRAME_BYTES:
+        raise ProtocolFrameError('JSON frame exceeds frame limit')
     with _send_lock:
-        sock.sendall(body)
+        sock.sendall(struct.pack('>I', len(body)) + body)
 
 
 def _frame_recv(sock, timeout=0.5):
@@ -143,25 +146,26 @@ def _frame_recv(sock, timeout=0.5):
         body = _recv_buffers.setdefault(sock, bytearray())
     try:
         while True:
-            newline = body.find(b'\n')
-            if newline >= 0:
-                if newline > MAX_FRAME_BYTES:
-                    del body[:newline + 1]
-                    raise ProtocolFrameError('JSON line exceeds frame limit')
-                line = bytes(body[:newline])
-                del body[:newline + 1]
-                try:
-                    return json.loads(line.decode('utf-8'))
-                except (UnicodeDecodeError, ValueError) as exc:
-                    raise ProtocolFrameError(
-                        'invalid UTF-8 JSON line: {}'.format(exc))
+            if len(body) >= 4:
+                frame_length = struct.unpack('>I', bytes(body[:4]))[0]
+                if frame_length > MAX_FRAME_BYTES:
+                    body[:] = []
+                    raise ProtocolFrameError('JSON frame exceeds frame limit')
+                if len(body) >= 4 + frame_length:
+                    frame = bytes(body[4:4 + frame_length])
+                    del body[:4 + frame_length]
+                    try:
+                        return json.loads(frame.decode('utf-8'))
+                    except (UnicodeDecodeError, ValueError) as exc:
+                        raise ProtocolFrameError(
+                            'invalid UTF-8 JSON frame: {}'.format(exc))
             chunk = sock.recv(4096)
             if not chunk:
                 raise ConnectionError('TCP peer closed')
             body.extend(chunk)
-            if len(body) > MAX_FRAME_BYTES:
+            if len(body) > MAX_FRAME_BYTES + 4:
                 body[:] = []
-                raise ProtocolFrameError('JSON line exceeds frame limit')
+                raise ProtocolFrameError('JSON frame exceeds frame limit')
     except socket.timeout:
         return None
 

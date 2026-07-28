@@ -112,9 +112,13 @@ fi
 process_start_token() {
     pid="$1"
     [ -r "/proc/$pid/stat" ] || return 1
-    stat_line="$(sed -n '1p' "/proc/$pid/stat")"
+    stat_line="$(sed -n '1p' "/proc/$pid/stat")" || return 1
     stat_fields="${stat_line##*) }"
-    printf '%s\n' "$stat_fields" | awk '{print $20}'
+    start_token="$(printf '%s\n' "$stat_fields" | awk '{print $20}')" || return 1
+    case "$start_token" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    printf '%s\n' "$start_token"
 }
 
 LOCK_OWNER_TOKEN="$$:$(process_start_token "$$")"
@@ -153,7 +157,6 @@ for pid_file in "$RUN_DIR/model.pid" "$RUN_DIR/debug.pid"; do
 done
 
 MODEL_PID=""
-DEBUG_PID=""
 
 pid_executable_is() {
     pid="$1"
@@ -186,22 +189,23 @@ kill -0 "$MODEL_PID" 2>/dev/null || {
     exit 1
 }
 
-"$PYTHON_EXECUTABLE" "$ROOT/python_services/debug_main.py" \
-    >"$RUN_DIR/debug.log" 2>&1 &
-DEBUG_PID="$!"
-DEBUG_START="$(process_start_token "$DEBUG_PID")" || {
-    echo "ERROR: cannot record debug process identity" >&2
-    exit 1
-}
-printf '%s %s\n' "$DEBUG_PID" "$DEBUG_START" >"$RUN_DIR/debug.pid"
-sleep 1
-kill -0 "$DEBUG_PID" 2>/dev/null || {
-    echo "ERROR: debug service exited during startup; inspect $RUN_DIR/debug.log" >&2
-    exit 1
+printf '%s\n' "running" >"$LOCK_PHASE_FILE"
+
+cleanup_active_run() {
+    status="$?"
+    trap - EXIT INT TERM
+    if HIL_Z_LOCK_OWNER_TOKEN="$LOCK_OWNER_TOKEN" "$STOP_SCRIPT"; then
+        echo "Stopped Z debug run."
+    else
+        echo "ERROR: could not stop every owned Z debug process" >&2
+    fi
+    exit "$status"
 }
 
-printf '%s\n' "running" >"$LOCK_PHASE_FILE"
-trap - EXIT INT TERM
-echo "Started model PID $MODEL_PID, then no-WebSocket debug PID $DEBUG_PID."
-echo "Logs and PID records: $RUN_DIR"
-echo "Stop with: $ROOT/scripts/stop_z_debug.sh"
+trap cleanup_active_run EXIT INT TERM
+echo "Started model PID $MODEL_PID. Running no-WebSocket debug service in this terminal."
+echo "Logs are also written to: $RUN_DIR/debug.log"
+echo "Press Ctrl-C to stop both the debug service and model."
+"$PYTHON_EXECUTABLE" -u "$ROOT/python_services/debug_main.py" 2>&1 | tee "$RUN_DIR/debug.log"
+DEBUG_STATUS="${PIPESTATUS[0]}"
+exit "$DEBUG_STATUS"

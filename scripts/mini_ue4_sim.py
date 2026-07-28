@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import socket
+import struct
 import sys
 import time
 
@@ -19,12 +20,26 @@ DEFAULT_TRANSCRIPT = os.path.join(
     ROOT, 'runtime', 'z_debug', 'mini_ue4_transcript.json')
 
 
-def receive_frame(stream):
-    wire = stream.readline(MAX_FRAME_BYTES + 2)
-    if not wire:
+def receive_exact(connection, size):
+    body = bytearray()
+    while len(body) < size:
+        chunk = connection.recv(size - len(body))
+        if not chunk:
+            return None
+        body.extend(chunk)
+    return bytes(body)
+
+
+def receive_frame(connection):
+    header = receive_exact(connection, 4)
+    if header is None:
         return None
-    if len(wire) > MAX_FRAME_BYTES + 1 or not wire.endswith(b'\n'):
-        raise ProtocolViolation('newline JSON frame exceeds 1 MiB or is incomplete')
+    length = struct.unpack('>I', header)[0]
+    if length > MAX_FRAME_BYTES:
+        raise ProtocolViolation('length-prefixed JSON frame exceeds 1 MiB')
+    wire = receive_exact(connection, length)
+    if wire is None:
+        raise ProtocolViolation('length-prefixed JSON frame is incomplete')
     try:
         message = json.loads(wire.decode('utf-8'))
     except (UnicodeDecodeError, ValueError) as exc:
@@ -33,8 +48,10 @@ def receive_frame(stream):
 
 
 def send_frame(connection, message):
-    wire = json.dumps(message, separators=(',', ':')).encode('utf-8') + b'\n'
-    connection.sendall(wire)
+    wire = json.dumps(message, separators=(',', ':')).encode('utf-8')
+    if len(wire) > MAX_FRAME_BYTES:
+        raise ProtocolViolation('length-prefixed JSON frame exceeds 1 MiB')
+    connection.sendall(struct.pack('>I', len(wire)) + wire)
 
 
 def write_result(validator, summary, transcript_path):
@@ -66,10 +83,9 @@ def serve(host, port, transcript_path, timeout_s):
     try:
         connection, address = server.accept()
         connection.settimeout(timeout_s)
-        stream = connection.makefile('rb')
         print('Local client connected from {}:{}'.format(*address))
         while True:
-            message = receive_frame(stream)
+            message = receive_frame(connection)
             if message is None:
                 break
             ack = validator.observe(message, time.monotonic())

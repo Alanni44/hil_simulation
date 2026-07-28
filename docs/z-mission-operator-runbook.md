@@ -80,8 +80,9 @@ Run this command from the repository root:
 
 The script preflights every required path and the configured target before it
 launches anything. It starts the model, verifies that it remains alive, and
-then starts the terminal-only debug service. PID records and redirected logs
-are limited to ignored `runtime/z_debug/`.
+then runs the terminal-only debug service in the invoking terminal. Its output
+is also written to `runtime/z_debug/debug.log`; press `Ctrl-C` to stop both
+the debug service and model.
 
 The real-target evidence threshold is stronger than the local check. Only
 after the debug log/dashboard reports accepted `hello` and `mission_plan`

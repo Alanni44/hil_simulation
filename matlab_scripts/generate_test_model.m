@@ -14,17 +14,10 @@ function generate_test_model(output_dir)
 
     mass = Simulink.Parameter(5.0);
     mass.CoderInfo.StorageClass = 'ExportedGlobal';
-<<<<<<< HEAD
-    % The acceptance package is built by a separate MATLAB process.  Keep the
-    % exported parameter in the model workspace so its Constant expression is
-    % resolvable after loading the packaged SLX, rather than only in the
-    % generator process's base workspace.
-=======
     % Package the generated parameter inside the SLX model workspace.  A
     % package is built in a fresh MATLAB process, so a base-workspace value
     % created while producing this acceptance model would not be available
     % to the later ERT build.
->>>>>>> af80b13961f6e0aa929192fa268688ff2186dc13
     model_workspace = get_param(mdl, 'ModelWorkspace');
     assignin(model_workspace, 'uav_mass_kg', mass);
 

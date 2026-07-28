@@ -129,15 +129,15 @@ end
 
 function fields = parse_struct_fields_with_types(header_path, struct_name)
     content = fileread(header_path);
-    token = regexp(content, ['typedef\s+struct\s*\{([\s\S]*?)\}\s*' struct_name '\s*;'], 'tokens', 'once');
+    token = regexp(content, ['typedef\s+struct\s*\{([^}]*)\}\s*' struct_name '\s*;'], 'tokens', 'once');
     if isempty(token), error('Cannot parse generated ABI struct %s', struct_name); end
     body = regexprep(token{1}, '/\*[\s\S]*?\*/|//[^\r\n]*', '');
-    declarations = regexp(body, '^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\[\s*([0-9]+)\s*\])?\s*;', 'tokens', 'lineanchors');
+    declarations = regexp(body, '^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)(\s*\[\s*[0-9]+\s*\])?\s*;', 'tokens', 'lineanchors');
     fields = struct('name', {}, 'type', {}, 'dimension', {});
     for i = 1:length(declarations)
         fields(end+1).type = declarations{i}{1}; %#ok<AGROW>
         fields(end).name = declarations{i}{2};
-        if length(declarations{i}) >= 3 && ~isempty(declarations{i}{3}), fields(end).dimension = str2double(declarations{i}{3});
+        if length(declarations{i}) >= 3 && ~isempty(declarations{i}{3}), fields(end).dimension = str2double(regexprep(declarations{i}{3}, '[^0-9]', ''));
         else, fields(end).dimension = 1; end
     end
     if isempty(fields), error('Generated ABI struct %s has no scalar fields', struct_name); end
@@ -242,6 +242,8 @@ function validate_input_contract_abi(contract, u_fields)
         f = lookup_field(u_fields, descriptor.field);
         if isempty(f), error('Declared input is absent from generated ExtU: %s', descriptor.field); end
         if f.dimension ~= descriptor.dimension
+            fprintf('[HIL] ExtU.%s dimension generated=%g contract=%g\n', ...
+                descriptor.field, f.dimension, descriptor.dimension);
             error('Declared input dimension mismatches generated ExtU: %s', descriptor.field);
         end
         if strcmp(descriptor.type, 'bool')

@@ -81,9 +81,13 @@ pid_has_argument() {
 process_start_token() {
     pid="$1"
     [ -r "/proc/$pid/stat" ] || return 1
-    stat_line="$(sed -n '1p' "/proc/$pid/stat")"
+    stat_line="$(sed -n '1p' "/proc/$pid/stat")" || return 1
     stat_fields="${stat_line##*) }"
-    printf '%s\n' "$stat_fields" | awk '{print $20}'
+    start_token="$(printf '%s\n' "$stat_fields" | awk '{print $20}')" || return 1
+    case "$start_token" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    printf '%s\n' "$start_token"
 }
 
 pid_is_owned() {
@@ -120,6 +124,11 @@ stop_recorded() {
             return 0
             ;;
     esac
+    if ! kill -0 "$pid" 2>/dev/null; then
+        rm -f "$pid_file"
+        echo "Removed exited $role PID record ($pid)"
+        return 0
+    fi
     case "$recorded_start" in
         ''|*[!0-9]*)
             echo "ERROR: invalid $role start token; left in place: $pid_file" >&2
@@ -130,11 +139,6 @@ stop_recorded() {
     if [ -n "$extra" ]; then
         echo "ERROR: unexpected data in $role PID record; left in place: $pid_file" >&2
         STOP_FAILED=1
-        return 0
-    fi
-    if ! kill -0 "$pid" 2>/dev/null; then
-        rm -f "$pid_file"
-        echo "Removed exited $role PID record ($pid)"
         return 0
     fi
     current_start="$(process_start_token "$pid" 2>/dev/null || true)"
