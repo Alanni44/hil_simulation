@@ -76,6 +76,18 @@ class ZOperatorScriptStaticTests(unittest.TestCase):
         self.assertIn('192.168.100.172:5000', runbook)
         self.assertIn('LOCAL SIMULATOR PASSED', runbook)
         self.assertIn('REAL UE4 ACKNOWLEDGED', runbook)
+        self.assertIn("grep -q '^VERSION_ID=\"18.04\"$' /etc/os-release",
+                      runbook)
+        self.assertIn("uname -a | grep -Eqi 'PREEMPT[ _-]?RT'", runbook)
+        self.assertIn("sys.version_info[:3] == (3, 6, 9)", runbook)
+        self.assertIn('python3 -m pip install --requirement requirements.txt',
+                      runbook)
+        self.assertIn('import yaml, debug_main', runbook)
+        self.assertIn('gcc -dumpfullversion -dumpversion', runbook)
+        self.assertIn('bash scripts/build_quadrotor_demo.sh', runbook)
+        self.assertIn('readlink -f -- "$MODEL_EXECUTABLE"', runbook)
+        self.assertIn('test -f "$MODEL_EXECUTABLE"', runbook)
+        self.assertIn('test -x "$MODEL_EXECUTABLE"', runbook)
 
 
 if __name__ == '__main__':

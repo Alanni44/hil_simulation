@@ -5,18 +5,58 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RUN_DIR="$ROOT/runtime/z_debug"
 RUN_LOCK="$RUN_DIR/run.lock"
+LOCK_OWNER_FILE="$RUN_LOCK/owner.token"
+LOCK_PHASE_FILE="$RUN_LOCK/phase"
 DEBUG_MAIN="$ROOT/python_services/debug_main.py"
 MODEL_PATH_FILE="$RUN_DIR/model.path"
 PYTHON_PATH_FILE="$RUN_DIR/python.path"
 MODEL_PID_FILE="$RUN_DIR/model.pid"
 DEBUG_PID_FILE="$RUN_DIR/debug.pid"
 STOP_FAILED=0
+REQUESTED_OWNER_TOKEN="${HIL_Z_LOCK_OWNER_TOKEN:-}"
+LOCK_OWNER_TOKEN=""
+LOCK_PHASE=""
+
+if [ -f "$LOCK_OWNER_FILE" ]; then
+    LOCK_OWNER_TOKEN="$(sed -n '1p' "$LOCK_OWNER_FILE")"
+fi
+if [ -f "$LOCK_PHASE_FILE" ]; then
+    LOCK_PHASE="$(sed -n '1p' "$LOCK_PHASE_FILE")"
+fi
+
+STARTUP_CLEANUP_AUTHORIZED=0
+if [ -n "$REQUESTED_OWNER_TOKEN" ] &&
+        { [ -z "$LOCK_OWNER_TOKEN" ] ||
+          [ "$REQUESTED_OWNER_TOKEN" = "$LOCK_OWNER_TOKEN" ]; }; then
+    STARTUP_CLEANUP_AUTHORIZED=1
+fi
+
+if [ -d "$RUN_LOCK" ] && [ "$LOCK_PHASE" != "running" ] &&
+        [ "$STARTUP_CLEANUP_AUTHORIZED" -ne 1 ]; then
+    echo "ERROR: an active Z debug startup owns $RUN_LOCK; lock not released" >&2
+    exit 1
+fi
+
+release_run_lock() {
+    [ -d "$RUN_LOCK" ] || return 0
+    if [ "$LOCK_PHASE" != "running" ] &&
+            [ "$STARTUP_CLEANUP_AUTHORIZED" -ne 1 ]; then
+        echo "ERROR: refusing to release startup-owned lock $RUN_LOCK" >&2
+        STOP_FAILED=1
+        return 0
+    fi
+    rm -f "$LOCK_PHASE_FILE" "$LOCK_OWNER_FILE"
+    rmdir "$RUN_LOCK" 2>/dev/null || {
+        echo "ERROR: could not release scoped run lock $RUN_LOCK" >&2
+        STOP_FAILED=1
+    }
+}
 
 if [ ! -f "$MODEL_PID_FILE" ] && [ ! -f "$DEBUG_PID_FILE" ]; then
     rm -f "$MODEL_PATH_FILE" "$PYTHON_PATH_FILE"
-    rmdir "$RUN_LOCK" 2>/dev/null || true
+    release_run_lock
     echo "No recorded Z debug run at $RUN_DIR"
-    exit 0
+    exit "$STOP_FAILED"
 fi
 
 MODEL_EXECUTABLE=""
@@ -138,9 +178,6 @@ stop_recorded model "$MODEL_PID_FILE"
 
 if [ ! -f "$DEBUG_PID_FILE" ] && [ ! -f "$MODEL_PID_FILE" ]; then
     rm -f "$MODEL_PATH_FILE" "$PYTHON_PATH_FILE"
-    rmdir "$RUN_LOCK" 2>/dev/null || {
-        echo "ERROR: could not release scoped run lock $RUN_LOCK" >&2
-        STOP_FAILED=1
-    }
+    release_run_lock
 fi
 exit "$STOP_FAILED"

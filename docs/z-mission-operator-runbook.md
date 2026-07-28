@@ -22,15 +22,50 @@ state fields and message ordering.
 `LOCAL SIMULATOR PASSED` does **not** mean the real UE4 target was contacted.
 The self-test opens no network connection.
 
-## 2. Target prerequisites
+## 2. Target prerequisites and model artifact
 
-On the Ubuntu 18.04 RT target, confirm Python 3.6.9 and GCC 7.x are already
-installed, the Python requirements are available, and the model was generated
-with MATLAB R2018b/Embedded Coder and built for this target. This runbook does
-not install packages or build an unverified model.
+Run these commands from the repository root on the Ubuntu target before any
+real-target start. Every command must exit zero:
 
-The executable must be an absolute path, must exist, and must have execute
-permission. `config.yaml` must resolve `debug_ue4_tcp` to exactly
+```bash
+set -euo pipefail
+grep -q '^VERSION_ID="18.04"$' /etc/os-release
+uname -a | grep -Eqi 'PREEMPT[ _-]?RT'
+test "$(gcc -dumpfullversion -dumpversion | cut -d. -f1)" = "7"
+gcc -dumpfullversion -dumpversion
+python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:3] == (3, 6, 9) else 1)'
+/usr/local/MATLAB/R2018b/bin/matlab -nodisplay -nosplash -nodesktop -r \
+  "assert(strcmp(version('-release'),'2018b'));disp(version);exit(0)"
+```
+
+Provision the repository's pinned Python requirement, then validate the
+imports used by the no-WebSocket debug entry point:
+
+```bash
+python3 -m pip install --requirement requirements.txt
+PYTHONPATH=python_services python3 -c \
+  'import yaml, debug_main; debug_main._Runtime(); print(yaml.__version__)'
+```
+
+The supported repository build creates the Z-mission ERT/GCC artifact and
+prints its executable path on its final output line:
+
+```bash
+MODEL_EXECUTABLE="$(bash scripts/build_quadrotor_demo.sh | tail -n 1)"
+MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
+case "$MODEL_EXECUTABLE" in /*) ;; *) echo "not an absolute path" >&2; exit 2;; esac
+test -f "$MODEL_EXECUTABLE"
+test -x "$MODEL_EXECUTABLE"
+printf 'validated model executable: %s\n' "$MODEL_EXECUTABLE"
+```
+
+`scripts/build_quadrotor_demo.sh` itself rejects a non-Ubuntu-18.04-RT host
+and a missing MATLAB R2018b executable. Do not substitute an artifact copied
+from Windows. If an already-built target artifact is supplied instead, run
+the `readlink`, absolute-path, `-f`, and `-x` validation commands above with
+its path assigned to `MODEL_EXECUTABLE`.
+
+Finally, `config.yaml` must resolve `debug_ue4_tcp` to exactly
 `192.168.100.172:5000`.
 
 ## 3. Start the real-target run
@@ -39,13 +74,13 @@ Run one of these exact commands from the repository root:
 
 ```bash
 chmod +x scripts/start_z_debug.sh scripts/stop_z_debug.sh
-./scripts/start_z_debug.sh /absolute/path/to/verified_model_rt
+./scripts/start_z_debug.sh "$MODEL_EXECUTABLE"
 ```
 
 or use the validated environment variable:
 
 ```bash
-HIL_Z_MODEL_EXECUTABLE=/absolute/path/to/verified_model_rt ./scripts/start_z_debug.sh
+HIL_Z_MODEL_EXECUTABLE="$MODEL_EXECUTABLE" ./scripts/start_z_debug.sh
 ```
 
 The script preflights every required path and the configured target before it

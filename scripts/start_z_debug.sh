@@ -52,12 +52,20 @@ if ! "$PYTHON_EXECUTABLE" -c \
     exit 2
 fi
 
-for required_file in "$DEBUG_MAIN" "$CONFIG_FILE" "$MISSION_FILE" "$STOP_SCRIPT"; do
+for required_file in "$DEBUG_MAIN" "$CONFIG_FILE" "$MISSION_FILE"; do
     [ -f "$required_file" ] || {
         echo "ERROR: required file is missing: $required_file" >&2
         exit 2
     }
 done
+[ -f "$STOP_SCRIPT" ] || {
+    echo "ERROR: required stop script is missing: $STOP_SCRIPT" >&2
+    exit 2
+}
+[ -x "$STOP_SCRIPT" ] || {
+    echo "ERROR: required stop script is not executable: $STOP_SCRIPT" >&2
+    exit 2
+}
 
 TARGET="$(cd "$ROOT/python_services" && "$PYTHON_EXECUTABLE" -c \
     'import sys, debug_main; config = debug_main.load_config(); h, p = debug_main.get_debug_target(config); mission = debug_main.load_mission(sys.argv[1]); debug_main._bridge_waypoints(mission); debug_main._Runtime(); print("{}:{}".format(h, p))' \
@@ -67,15 +75,44 @@ if [ "$TARGET" != "$EXPECTED_TARGET" ]; then
     exit 2
 fi
 
+process_start_token() {
+    pid="$1"
+    [ -r "/proc/$pid/stat" ] || return 1
+    stat_line="$(sed -n '1p' "/proc/$pid/stat")"
+    stat_fields="${stat_line##*) }"
+    printf '%s\n' "$stat_fields" | awk '{print $20}'
+}
+
+LOCK_OWNER_TOKEN="$$:$(process_start_token "$$")"
+LOCK_OWNER_FILE="$RUN_LOCK/owner.token"
+LOCK_PHASE_FILE="$RUN_LOCK/phase"
+
+cleanup_partial_start() {
+    status="$?"
+    trap - EXIT INT TERM
+    if HIL_Z_LOCK_OWNER_TOKEN="$LOCK_OWNER_TOKEN" "$STOP_SCRIPT"; then
+        echo "ERROR: Z debug startup failed; owned partial processes were stopped" >&2
+    else
+        echo "ERROR: partial cleanup could not stop every owned process; PID records retained" >&2
+    fi
+    [ "$status" -ne 0 ] || status=1
+    exit "$status"
+}
+
 mkdir -p "$RUN_DIR"
 if ! mkdir "$RUN_LOCK" 2>/dev/null; then
     echo "ERROR: another Z debug start/run owns $RUN_LOCK" >&2
     exit 2
 fi
+trap cleanup_partial_start EXIT INT TERM
+printf '%s\n' "$LOCK_OWNER_TOKEN" >"$LOCK_OWNER_FILE"
+printf '%s\n' "starting" >"$LOCK_PHASE_FILE"
 
 for pid_file in "$RUN_DIR/model.pid" "$RUN_DIR/debug.pid"; do
     if [ -f "$pid_file" ]; then
+        rm -f "$LOCK_PHASE_FILE" "$LOCK_OWNER_FILE"
         rmdir "$RUN_LOCK"
+        trap - EXIT INT TERM
         echo "ERROR: a recorded Z debug run exists; use scripts/stop_z_debug.sh first" >&2
         exit 2
     fi
@@ -97,27 +134,6 @@ pid_has_argument() {
     [ -r "/proc/$pid/cmdline" ] &&
         tr '\000' '\n' <"/proc/$pid/cmdline" | grep -Fqx -- "$expected"
 }
-
-process_start_token() {
-    pid="$1"
-    [ -r "/proc/$pid/stat" ] || return 1
-    stat_line="$(sed -n '1p' "/proc/$pid/stat")"
-    stat_fields="${stat_line##*) }"
-    printf '%s\n' "$stat_fields" | awk '{print $20}'
-}
-
-cleanup_partial_start() {
-    status="$?"
-    trap - EXIT INT TERM
-    if "$STOP_SCRIPT"; then
-        echo "ERROR: Z debug startup failed; owned partial processes were stopped" >&2
-    else
-        echo "ERROR: partial cleanup could not stop every owned process; PID records retained" >&2
-    fi
-    [ "$status" -ne 0 ] || status=1
-    exit "$status"
-}
-trap cleanup_partial_start EXIT INT TERM
 
 printf '%s\n' "$MODEL_EXECUTABLE" >"$RUN_DIR/model.path"
 printf '%s\n' "$PYTHON_EXECUTABLE" >"$RUN_DIR/python.path"
@@ -150,6 +166,7 @@ kill -0 "$DEBUG_PID" 2>/dev/null || {
     exit 1
 }
 
+printf '%s\n' "running" >"$LOCK_PHASE_FILE"
 trap - EXIT INT TERM
 echo "Started model PID $MODEL_PID, then no-WebSocket debug PID $DEBUG_PID."
 echo "Logs and PID records: $RUN_DIR"
