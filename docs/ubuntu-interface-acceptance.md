@@ -115,12 +115,11 @@ UE4 侧 Python Bridge 服务端应记录以下顺序：
 ```json
 {
   "position": {"x": 10, "y": 20, "height": -30},
-  "velocity": {"vx": 1, "vy": 2, "vz": -3},
-  "acceleration": {"ax": 4, "ay": 5, "az": -6}
+  "velocity": {"vx": 1, "vy": 2, "vz": -3}
 }
 ```
 
-`vehicle_state.data` 必须包含 `mission_id`、`sim_time`、`position`、`attitude`、`velocity`、`acceleration`、`angular_velocity`；不得把内部 `RUNNING`、`PAUSED`、`RESETTING`、`ENDED` 写入 V2.0 `flight_state` 字段。内部 `reset` 对外只能发送 `simulation_event.data.event="reset_scene"`。
+`vehicle_state.data` 只能携带 V2.0 字段：`mission_id`、`sim_time`、`position`、`attitude`，以及可选的 `velocity`、`angular_velocity`、`flight_state`。不得要求或发送 `acceleration`、`rate_hz`；三轴加速度保留在内部 C/Python ABI。50 Hz 通过 `hello.data.state_rate_hz` 和 `vehicle_state` 状态流频率验证。不得把内部 `RUNNING`、`PAUSED`、`RESETTING`、`ENDED` 写入 V2.0 `flight_state` 字段。内部 `reset` 对外只能发送 `simulation_event.data.event="reset_scene"`。
 
 ## 未通过处理
 

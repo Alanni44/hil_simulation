@@ -117,6 +117,15 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn("'inputs-atomic-reject'", source)
         self.assertIn("'contract_input_effect_at_step_boundary'", source)
 
+    def test_ue4_acceptance_contract_excludes_internal_acceleration_and_rate(self):
+        source = read('scripts/accept_runtime_contract.py')
+        docs = read('docs/ubuntu-interface-acceptance.md')
+        self.assertNotIn("ue4['acceleration']", source)
+        self.assertNotIn("ue4['rate_hz']", source)
+        self.assertNotIn('"acceleration":', docs)
+        self.assertIn('不得要求或发送 `acceleration`、`rate_hz`', docs)
+        self.assertIn('`state_rate_hz`', docs)
+
     def test_one_command_ubuntu_acceptance_runner_exists(self):
         source = read('scripts/run_ubuntu_acceptance.sh')
         self.assertIn('set -euo pipefail', source)

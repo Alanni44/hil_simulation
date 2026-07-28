@@ -1,36 +1,33 @@
-# Task 3 — UE4 V2 acceleration boundary
+# Task 3 re-review acceptance fix
 
-## Status
+## Scope
 
-Completed. Acceleration remains part of the fixed C-to-Python binary-state ABI,
-but is no longer exposed by the generic NED-to-UE4 projection or serialized in
-UE4 V2.0 `vehicle_state` JSON. The V2 packet now emits only the applicable
-protocol fields: `mission_id`, `sim_time`, `position`, `attitude`, `velocity`,
-and `angular_velocity`; `flight_state` remains absent for the internal lifecycle
-as required by the existing runtime contract.
+Corrected the UE4 V2 acceptance contract only. Internal acceleration remains
+required by the C/Python model ABI and is not part of `vehicle_state.data`.
 
 ## TDD evidence
 
-The V2 regression test was changed before production code. Its first run failed
-as intended because `packet['data']` contained `acceleration` (along with the
-non-protocol `sequence` and `rate_hz` fields). The minimal projection and
-serialization removal made the test pass.
+- Added `test_ue4_acceptance_contract_excludes_internal_acceleration_and_rate`.
+- RED: the focused test failed because the harness accessed
+  `ue4['acceleration']` (and also accessed `ue4['rate_hz']`).
+- GREEN: the acceptance harness now requires the mandatory V2 fields and
+  rejects keys outside the allowed V2 set. Its existing 10-second stream check
+  remains the 50 Hz validation.
+
+## Documentation
+
+The Ubuntu acceptance guide now limits `vehicle_state.data` to mission ID,
+simulation time, position, attitude, and optional velocity, angular velocity,
+and flight state. It explicitly excludes `acceleration` and `rate_hz`, retains
+acceleration in the internal C/Python ABI, and validates 50 Hz through
+`hello.data.state_rate_hz` plus the state stream frequency.
 
 ## Verification
 
-- `python -m unittest tests.test_v2_protocol tests.test_static_contract -v` — 16 passed.
-- `python -m unittest discover -s tests -v` — 43 passed.
-- `git diff --check` — clean.
+- `python -m unittest tests.test_static_contract tests.test_v2_protocol tests.test_quadrotor_model_contract` — 23 tests passed.
+- `python -m unittest discover -s tests -p 'test_*.py'` — 44 tests passed.
 
-## Self-review
-
-Reviewed the final diff: only `python_services/shared/state_cache.py`, the V2
-regression test, and its static contract assertion changed. Binary parsing and
-the fixed 100-byte state ABI are untouched.
-
-## Concern
-
-`docs/ubuntu-interface-acceptance.md` still describes acceleration as a V2
-field. It was left unchanged because this task was limited to the review finding
-and its requested code/test fix; the binding contract and implementation now
-exclude it.
+The full suite emitted pre-existing `ResourceWarning` messages from
+`tests/test_model_registry.py` for unclosed temporary files; it had no test
+failures. MATLAB/Ubuntu runtime acceptance was not run on this Windows
+workstation.

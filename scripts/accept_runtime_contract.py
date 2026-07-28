@@ -28,6 +28,10 @@ from shared.model_package import package_sha256, sha256_file  # noqa
 from shared import state_cache  # noqa
 import ws_server  # noqa
 
+V2_VEHICLE_STATE_FIELDS = frozenset((
+    'mission_id', 'sim_time', 'position', 'attitude', 'velocity',
+    'angular_velocity', 'flight_state'))
+
 
 def write_json(path, value):
     with open(path, 'w') as output:
@@ -431,9 +435,9 @@ def main():
                            ue4_mission['data']['waypoints'][0]['height'] == 30.0,
                            ue4_mission)
                     record(assertions, 'ue4_protocol_ned_axes_and_90_yaw', ue4['position'] == {'x':10.0,'y':20.0,'height':-30.0} and abs(ue4['attitude']['yaw'] - 1.57079632679) < 1e-6 and ue4['velocity']['vz'] == -6.0, vehicle)
-                    record(assertions, 'ue4_protocol_acceleration_and_semantics',
-                           ue4['acceleration'] == {'ax':4.0,'ay':5.0,'az':-6.0} and
-                           'flight_state' not in ue4 and ue4['rate_hz'] == 50, vehicle)
+                    record(assertions, 'ue4_protocol_v2_fields_and_semantics',
+                           {'mission_id', 'sim_time', 'position', 'attitude'}.issubset(ue4) and
+                           set(ue4).issubset(V2_VEHICLE_STATE_FIELDS), vehicle)
                     record(assertions, 'ue4_10_second_rate_and_sequence',
                            49.0 <= stream['average_hz'] <= 51.0 and
                            stream['seq_strictly_increasing'], stream)
