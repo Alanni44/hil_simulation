@@ -131,11 +131,12 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
                   'q_z': 0.7071067811865476, 'p_radps': 0.0, 'q_radps': 0.0,
                   'r_radps': 0.0, 'ax_mps2': 4.0, 'ay_mps2': 5.0, 'az_mps2': 6.0,
                   'airborne': 1, 'lifecycle': 0, 'reserved': 0})
-    state_cache.update(struct.pack(FLIGHT_STATE_FORMAT, *[
+    known_state_raw = struct.pack(FLIGHT_STATE_FORMAT, *[
         known[key] for key in ('version', 'sequence', 'sim_time_s', 'north_m', 'east_m', 'down_m',
                                'vn_mps', 've_mps', 'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z',
                                'p_radps', 'q_radps', 'r_radps', 'ax_mps2', 'ay_mps2', 'az_mps2',
-                               'airborne', 'lifecycle', 'reserved')]))
+                               'airborne', 'lifecycle', 'reserved')])
+    state_cache.update(known_state_raw)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(('127.0.0.1', 5001)); server.listen(1); server.settimeout(8)
@@ -170,6 +171,11 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
         finally:
             event_loop.close()
         while time.monotonic() < stream_deadline:
+            # The production forwarder continually refreshes this cache.  The
+            # acceptance peer supplies the same valid source state at the
+            # requested 50 Hz so it exercises the sender rather than its
+            # intentional stale-state safety cutoff.
+            state_cache.update(known_state_raw)
             frame = _tcp_recv_frame(peer)
             if frame.get('type') == 'vehicle_state':
                 vehicle_states.append(frame)
