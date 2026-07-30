@@ -320,14 +320,17 @@ def send_mission_plan(mission_id, waypoints):
 
 
 def send_simulation_event(event_name, mission_id=''):
-    event_name = state_cache.v2_event_name(event_name)
+    # Validate at ingress but keep the internal lifecycle name in the queue.
+    # Wire-name conversion belongs to _simulation_event_message(); converting
+    # here as well turns ``reset`` into ``reset_scene`` twice.
+    state_cache.v2_event_name(event_name)
     with _queue_lock:
         _event_queue.append((event_name, mission_id))
 
 
 def reserve_simulation_event(event_name, mission_id=''):
     """Mark a lifecycle producer as in flight before its C-core request."""
-    event_name = state_cache.v2_event_name(event_name)
+    state_cache.v2_event_name(event_name)
     reservation = object()
     with _queue_lock:
         _event_reservations[reservation] = (event_name, mission_id)

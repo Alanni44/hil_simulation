@@ -155,6 +155,16 @@ class BridgeTcpClientTests(unittest.TestCase):
                 bridge_tcp_client._event_queue)
         self.assertEqual([receipt], responses)
 
+    def test_queued_reset_is_mapped_to_wire_event_exactly_once(self):
+        bridge_tcp_client.send_simulation_event('reset')
+
+        missions, events = bridge_tcp_client._drain_queues()
+        self.assertEqual([], missions)
+        self.assertEqual([('reset', '')], events)
+        message = bridge_tcp_client._simulation_event_message(*events[0])
+        self.assertEqual('simulation_event', message['type'])
+        self.assertEqual({'event': 'reset_scene'}, message['data'])
+
     def test_length_prefixed_fragment_survives_a_receive_timeout(self):
         client, peer = socket.socketpair()
         message = {
