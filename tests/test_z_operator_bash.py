@@ -78,6 +78,8 @@ class ZOperatorBashBehaviorTests(unittest.TestCase):
                   self.to_bash_path(self.repo / 'scripts' / 'stop_z_debug.sh'))
         self.environment = os.environ.copy()
         self.environment['HIL_Z_PYTHON'] = self.to_bash_path(self.python)
+        self.environment['HIL_Z_MODEL_EXECUTABLE'] = self.to_bash_path(
+            self.model)
 
     def tearDown(self):
         stop_script = self.repo / 'scripts' / 'stop_z_debug.sh'
@@ -95,6 +97,8 @@ class ZOperatorBashBehaviorTests(unittest.TestCase):
         self.temporary_directory.cleanup()
 
     def to_bash_path(self, path):
+        if os.name != 'nt' and not shutil.which('cygpath'):
+            return str(path)
         return subprocess.check_output(
             [BASH, '-lc', 'cygpath -u "$1"', 'bash', str(path)],
             universal_newlines=True).strip()
@@ -112,8 +116,7 @@ class ZOperatorBashBehaviorTests(unittest.TestCase):
 
     def start_command(self):
         return [BASH,
-                self.to_bash_path(self.repo / 'scripts' / 'start_z_debug.sh'),
-                self.to_bash_path(self.model)]
+                self.to_bash_path(self.repo / 'scripts' / 'start_z_debug.sh')]
 
     def wait_for(self, path, timeout=5):
         deadline = time.time() + timeout

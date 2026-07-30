@@ -1,0 +1,22 @@
+{
+  "gcc": {
+    "version": "7.5.0"
+  },
+  "kernel": {
+    "release": "5.4.10-rt5",
+    "requires_preempt_rt": true
+  },
+  "matlab": {
+    "executable": "/usr/local/MATLAB/R2018b/bin/matlab",
+    "release": "R2018b",
+    "version": "9.5.0.944444"
+  },
+  "operating_system": {
+    "id": "ubuntu",
+    "version_id": "18.04"
+  },
+  "python": {
+    "requirements": "requirements.txt",
+    "version": "3.6.9"
+  }
+}

@@ -54,6 +54,12 @@ MATLAB/ERT/GCC build. Do not run the build manually during normal operation.
 The build remains target-only and rejects a non-Ubuntu-18.04-RT host or missing
 MATLAB R2018b executable.
 
+For build troubleshooting only, the exact automatic build entry is:
+
+```bash
+bash scripts/build_quadrotor_demo.sh
+```
+
 The executable is replaced whenever it is rebuilt, so its real-time
 capabilities must be restored after every successful rebuild (including an
 automatic rebuild):
@@ -77,6 +83,15 @@ available. It must be an absolute regular executable file:
 ```bash
 HIL_Z_MODEL_EXECUTABLE=/absolute/path/to/verified_model_rt \
   ./scripts/start_z_debug.sh
+```
+
+Before using that override, resolve and verify the exact artifact:
+
+```bash
+MODEL_EXECUTABLE=/absolute/path/to/verified_model_rt
+MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
+test -f "$MODEL_EXECUTABLE"
+test -x "$MODEL_EXECUTABLE"
 ```
 
 Finally, `config.yaml` must resolve `debug_ue4_tcp` to exactly

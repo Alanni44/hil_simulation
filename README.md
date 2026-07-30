@@ -99,19 +99,23 @@ cd python_services && python3 main.py
 
 ## 目标环境验收
 
-`ert.tlc` 需要 Embedded Coder 许可证。Ubuntu 18.04 RT 目标机使用 GCC 7.x，
-从干净工作区运行完整验收：
+`ert.tlc` 需要 Embedded Coder 许可证。第一周工具链精确版本固定在
+[`config/target-toolchain.json`](config/target-toolchain.json)，Python 包固定在
+[`requirements.txt`](requirements.txt)。从干净工作区只运行统一入口：
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential libjson-c-dev python3 python3-pip
 python3 -m pip install -r requirements.txt
-python3 scripts/accept_runtime_contract.py
+bash scripts/run_ubuntu_acceptance.sh
 ```
 
-该命令在 `artifacts/acceptance/<UTC-run-id>/` 写入环境、源码哈希、完整构建和
-运行日志、原始命令/回执/NED/UE4 报文、断言与唯一结论。任意依赖不可用、跳过或
-断言失败都会写入 `result.json: failed` 并以非零状态退出。
+该命令先运行 `python3 -m unittest discover -s tests -v` 的全部 Python 测试，
+再执行 MATLAB ERT/GCC 与运行时合同验收。所有产物统一写入
+`artifacts/acceptance/<UTC>-<Git短SHA>-week1-baseline/`，包括环境指纹、测试
+报告、构建/运行日志、原始报文、断言、问题清单和唯一的 `result.json`。其中
+`result.json.git_head` 必须等于当前 `git rev-parse HEAD`；工作区不干净、依赖
+版本不符、测试跳过或断言失败均不得宣称通过，也不得引用 2026-07-27 的旧证据。
 
 ## 开发约束
 

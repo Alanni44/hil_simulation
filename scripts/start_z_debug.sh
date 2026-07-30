@@ -69,8 +69,8 @@ if [ -n "$MODEL_EXECUTABLE" ]; then
 else
     MODEL_EXECUTABLE="$(manifest_model_executable 2>/dev/null || true)"
     if ! valid_model_executable "$MODEL_EXECUTABLE"; then
-        [ -x "$BUILD_SCRIPT" ] || {
-            echo "ERROR: model build script is missing or not executable: $BUILD_SCRIPT" >&2
+        [ -f "$BUILD_SCRIPT" ] || {
+            echo "ERROR: model build script is missing: $BUILD_SCRIPT" >&2
             exit 2
         }
         echo "No valid model artifact found; generating the real-time model..."
@@ -85,6 +85,14 @@ else
     fi
 fi
 MODEL_EXECUTABLE="$(readlink -f -- "$MODEL_EXECUTABLE")"
+[ -f "$MODEL_EXECUTABLE" ] || {
+    echo "ERROR: resolved model path is not a regular file: $MODEL_EXECUTABLE" >&2
+    exit 2
+}
+[ -x "$MODEL_EXECUTABLE" ] || {
+    echo "ERROR: resolved model path is not executable: $MODEL_EXECUTABLE" >&2
+    exit 2
+}
 
 for required_file in "$DEBUG_MAIN" "$CONFIG_FILE" "$MISSION_FILE"; do
     [ -f "$required_file" ] || {

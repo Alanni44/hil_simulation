@@ -174,12 +174,33 @@ class RuntimeContractStaticTests(unittest.TestCase):
 
     def test_one_command_ubuntu_acceptance_runner_exists(self):
         source = read('scripts/run_ubuntu_acceptance.sh')
+        runner = read('scripts/run_week1_acceptance.py')
         self.assertIn('set -euo pipefail', source)
-        self.assertIn('Ubuntu 18.04 RT', source)
-        self.assertIn('python3 -m unittest', source)
-        self.assertIn('scripts/accept_runtime_contract.py', source)
-        self.assertIn('HIL_SKIP_REALTIME_GATE', source)
-        self.assertIn('artifacts/acceptance', source)
+        self.assertIn('scripts/run_week1_acceptance.py', source)
+        self.assertIn("'-m', 'unittest', 'discover', '-s', 'tests', '-v'", runner)
+        self.assertIn('scripts/accept_runtime_contract.py', runner)
+        self.assertIn("HIL_SKIP_REALTIME_GATE", runner)
+        self.assertIn("HIL_ACCEPTANCE_EVIDENCE_DIR", runner)
+        self.assertIn("environment.json", runner)
+        self.assertIn("test-report.json", runner)
+        self.assertIn("issues.json", runner)
+        self.assertIn("git_head", runner)
+
+    def test_target_toolchain_and_python_dependencies_are_pinned(self):
+        baseline = read('config/target-toolchain.json')
+        requirements = read('requirements.txt')
+
+        for value in ('18.04', '5.4.10-rt5', '3.6.9', '7.5.0',
+                      'R2018b', '9.5.0.944444'):
+            self.assertIn(value, baseline)
+        self.assertRegex(requirements, r'(?m)^PyYAML==6\.0\.1$')
+
+    def test_acceptance_directory_name_and_result_are_git_traceable(self):
+        source = read('scripts/accept_runtime_contract.py')
+
+        self.assertIn("HIL_ACCEPTANCE_EVIDENCE_DIR", source)
+        self.assertIn("git['head'][:12]", source)
+        self.assertIn("'git_head': git['head']", source)
 
 
 if __name__ == '__main__': unittest.main()

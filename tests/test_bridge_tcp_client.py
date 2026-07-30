@@ -139,10 +139,14 @@ class BridgeTcpClientTests(unittest.TestCase):
                                side_effect=core_request), \
                 mock.patch.object(ws_server, 'ws_send',
                                   side_effect=capture_response):
-            asyncio.run(ws_server._handle_core_command(
-                'mission_end',
-                {'request_id': 'request-a', 'mission_id': 'mission-a'},
-                object(), lifecycle_event='mission_end'))
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(ws_server._handle_core_command(
+                    'mission_end',
+                    {'request_id': 'request-a', 'mission_id': 'mission-a'},
+                    object(), lifecycle_event='mission_end'))
+            finally:
+                loop.close()
 
         with bridge_tcp_client._queue_lock:
             self.assertEqual({}, bridge_tcp_client._event_reservations)

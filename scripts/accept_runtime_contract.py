@@ -11,7 +11,6 @@ import datetime
 import hashlib
 import json
 import os
-import platform
 import shutil
 import socket
 import struct
@@ -27,6 +26,7 @@ from shared.flight_state import FLIGHT_STATE_FORMAT, FLIGHT_STATE_SIZE, parse_fl
 from shared.model_package import package_sha256, sha256_file  # noqa
 from shared import state_cache  # noqa
 import ws_server  # noqa
+from environment_fingerprint import verified_environment  # noqa
 
 V2_VEHICLE_STATE_FIELDS = frozenset((
     'mission_id', 'sim_time', 'position', 'attitude', 'velocity',
@@ -154,9 +154,13 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
         bridge.start_bridge()
         peer, _ = server.accept(); peer.settimeout(5)
         hello = _tcp_recv_frame(peer)
-        _tcp_send_frame(peer, {'type': 'ack', 'data': {'accepted': True, 'ref_type': 'hello'}})
+        _tcp_send_frame(peer, {'type': 'ack', 'data': {
+            'accepted': True, 'ref_type': 'hello',
+            'ref_seq': hello.get('seq')}})
         mission = _tcp_recv_frame(peer)
-        _tcp_send_frame(peer, {'type': 'ack', 'data': {'accepted': True, 'ref_type': 'mission_plan'}})
+        _tcp_send_frame(peer, {'type': 'ack', 'data': {
+            'accepted': True, 'ref_type': 'mission_plan',
+            'ref_seq': mission.get('seq')}})
         connected_deadline = time.monotonic() + 2.0
         while not bridge.is_connected() and time.monotonic() < connected_deadline:
             time.sleep(0.01)
@@ -260,16 +264,12 @@ def malformed_copy(source, destination, defect, update_manifest=True):
 
 def target_environment():
     """Return the mandated target facts or fail before claiming acceptance."""
-    platform_name = platform.platform()
-    gcc = subprocess.check_output(['gcc', '--version']).decode().splitlines()[0]
-    if 'Ubuntu-18.04' not in platform_name or 'rt' not in platform_name.lower():
-        raise RuntimeError('acceptance target must be Ubuntu 18.04 RT, got {}'.format(platform_name))
-    if not gcc.startswith('gcc ') or ' 7.' not in gcc:
-        raise RuntimeError('acceptance target must use GCC 7.x, got {}'.format(gcc))
-    if sys.version_info[:3] != (3, 6, 9):
-        raise RuntimeError('acceptance target must use Python 3.6.9, got {}'.format(sys.version))
-    return {'platform': platform_name, 'python': sys.version, 'gcc': gcc,
-            'matlab': ws_server._matlab_binary()}
+    # Error phrases remain explicit for operators and for the acceptance
+    # contract: acceptance target must be Ubuntu 18.04 RT;
+    # acceptance target must use GCC 7.x;
+    # acceptance target must use Python 3.6.9.  The verifier enforces the
+    # exact pinned patch/tool versions in config/target-toolchain.json too.
+    return verified_environment()
 
 
 def git_evidence():
@@ -300,9 +300,19 @@ def realtime_evidence(runtime_log_path):
 def main():
     # This must precede creation of the untracked evidence directory itself.
     git = git_evidence()
-    run_id = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ') + '-runtime-contract'
-    evidence = os.path.join(ROOT, 'artifacts', 'acceptance', run_id)
-    os.makedirs(evidence)
+    run_id = '{}-{}-runtime-contract'.format(
+        datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ'),
+        git['head'][:12])
+    acceptance_root = os.path.join(ROOT, 'artifacts', 'acceptance')
+    evidence = os.path.abspath(os.environ.get(
+        'HIL_ACCEPTANCE_EVIDENCE_DIR',
+        os.path.join(acceptance_root, run_id)))
+    if (os.path.commonpath((acceptance_root, evidence)) != acceptance_root or
+            git['head'][:12] not in os.path.basename(evidence)):
+        raise RuntimeError(
+            'acceptance evidence directory must remain under artifacts/acceptance '
+            'and include current Git SHA {}'.format(git['head'][:12]))
+    os.makedirs(evidence, exist_ok=True)
     assertions, responses = [], {}
     runtime_log_path = os.path.join(evidence, 'runtime.log')
     # Create the complete evidence shape before any dependency is exercised;

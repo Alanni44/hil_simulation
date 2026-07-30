@@ -10,13 +10,13 @@
 bash scripts/run_ubuntu_acceptance.sh
 ```
 
-脚本自动完成环境检查、Python 合同/协议测试、MATLAB ERT/GCC 集成验收和证据目录定位；默认跳过实时门槛。下方章节保留为脚本内部流程与失败排查依据，无需逐条手动执行。
+脚本自动完成固定版本环境检查、全量 Python 单元测试、MATLAB ERT/GCC 集成验收和证据目录定位；默认跳过第18周才执行的长时间实时门槛。`scripts/integration_test.sh` 也转发到同一入口，避免自动化与运行手册执行不同测试。下方章节保留为脚本内部流程与失败排查依据，无需逐条手动执行。
 
 ## 前置条件
 
-- 操作系统：Ubuntu 18.04 RT。
-- MATLAB：R2018b，已安装 Simulink Coder 与 Embedded Coder。
-- 编译器：GCC 7.x。
+- 操作系统：Ubuntu 18.04.6，PREEMPT_RT `5.4.10-rt5`。
+- MATLAB：R2018b（9.5.0.944444），已安装 Simulink Coder 与 Embedded Coder。
+- 编译器：GCC 7.5.0。
 - Python：3.6.9。
 - Python 依赖：`PyYAML`、`json-c` 开发库和项目既有依赖均已安装。
 - UE4 侧 Python Bridge 已在 `config.yaml` 的 `ue4_tcp.host:port` 上作为 TCP 服务端监听。
@@ -40,10 +40,7 @@ bash scripts/run_ubuntu_acceptance.sh
 
 ```bash
 cd /path/to/hil_simulation
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
-  tests.test_model_registry \
-  tests.test_v2_protocol \
-  tests.test_static_contract
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 ```
 
 通过标准：退出码为 `0`；所有测试均为 `OK`。若出现失败，不得继续执行模型构建验收。
@@ -58,9 +55,10 @@ HIL_DEPLOY_MODE=development HIL_SKIP_REALTIME_GATE=1 \
 
 通过标准：
 
-- 验收脚本退出码为 `0`，新建 `artifacts/acceptance/<run-id>/result.json`。
+- 验收脚本退出码为 `0`，新建 `artifacts/acceptance/<UTC>-<Git短SHA>-week1-baseline/result.json`。
 - `result.json.status` 为 `passed`，其中 `git_head` 等于 `git rev-parse HEAD`。
-- `environment.json` 显示 Ubuntu 18.04 RT、MATLAB R2018b、GCC 7.x、Python 3.6.9。
+- `environment.json` 与 `config/target-toolchain.json` 完全匹配，并记录 `requirements.txt` 哈希及已安装依赖版本。
+- `test-report.json.status` 为 `passed`，`unit-tests.log` 是全量测试日志，`issues.json` 为空数组。
 - `source-manifest.json` 包含模型包、C、MATLAB、Python、脚本、生成代码和可执行文件的哈希。
 - 篡改任一合同字段、删除 `wind_d_mps`、删除加速度输出、改变单位、使 `reset_only` 允许 `RUNNING`，均必须在 `VALIDATING` 或 `BUILDING` 阶段失败。
 
@@ -123,4 +121,4 @@ UE4 侧 Python Bridge 服务端应记录以下顺序：
 
 ## 未通过处理
 
-任一命令失败时，保留对应的 `artifacts/acceptance/<run-id>` 目录、`build.log`、`runtime.log`、`packets.ndjson`、`assertions.json` 与 `result.json`，并以该目录中的 Git 提交号、哈希、失败阶段和原始报文定位问题。不得通过修改证据包或跳过失败断言宣称验收通过。
+任一命令失败时，保留对应的带 Git SHA 目录、`unit-tests.log`、`build.log`、`runtime.log`、`packets.ndjson`、`assertions.json`、`issues.json` 与 `result.json`，并以其中的 Git 提交号、哈希、失败阶段和原始报文定位问题。不得通过修改证据包、引用 2026-07-27 旧证据或跳过失败断言宣称验收通过。

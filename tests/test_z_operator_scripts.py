@@ -23,7 +23,7 @@ class ZOperatorScriptStaticTests(unittest.TestCase):
         self.assertNotRegex(source, r'\bws_server\b|\bwebsocket\b')
         self.assertLess(source.index('\n"$MODEL_EXECUTABLE" >'),
                         source.index(
-                            '\n"$PYTHON_EXECUTABLE" '
+                            '\n"$PYTHON_EXECUTABLE" -u '
                             '"$ROOT/python_services/debug_main.py"'))
 
     def test_start_preflights_exact_target_and_scopes_failure_cleanup(self):
@@ -36,6 +36,7 @@ class ZOperatorScriptStaticTests(unittest.TestCase):
         self.assertIn('_bridge_waypoints(mission)', source)
         self.assertIn('_Runtime()', source)
         self.assertIn('RUN_LOCK="$RUN_DIR/run.lock"', source)
+        self.assertIn('[ -f "$BUILD_SCRIPT" ]', source)
         self.assertIn('mkdir "$RUN_LOCK"', source)
         self.assertLess(source.index('mkdir "$RUN_LOCK"'),
                         source.index('\n"$MODEL_EXECUTABLE" >'))
