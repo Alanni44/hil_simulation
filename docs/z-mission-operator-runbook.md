@@ -54,6 +54,18 @@ MATLAB/ERT/GCC build. Do not run the build manually during normal operation.
 The build remains target-only and rejects a non-Ubuntu-18.04-RT host or missing
 MATLAB R2018b executable.
 
+The executable is replaced whenever it is rebuilt, so its real-time
+capabilities must be restored after every successful rebuild (including an
+automatic rebuild):
+
+```bash
+sudo setcap cap_sys_nice,cap_ipc_lock=ep artifacts/z_mission/bin/quadrotor_hil_rt
+getcap artifacts/z_mission/bin/quadrotor_hil_rt
+```
+
+The expected result is `cap_ipc_lock,cap_sys_nice+ep`. Without it the model
+must not claim real-time scheduling or locked-memory operation.
+
 ```bash
 chmod +x scripts/start_z_debug.sh scripts/stop_z_debug.sh
 ./scripts/start_z_debug.sh

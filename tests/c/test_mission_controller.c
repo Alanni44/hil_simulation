@@ -32,6 +32,14 @@ static void assert_zero(const float motor[4])
     for (index = 0; index < 4; ++index) assert(motor[index] == 0.0f);
 }
 
+static void run_controller_steps(const FlightState_t* state, float motor[4],
+                                 unsigned count)
+{
+    unsigned index;
+    for (index = 0; index < count; ++index)
+        mission_controller_step(state, 0.001, motor);
+}
+
 int main(void)
 {
     const MissionWaypoint mission[] = {
@@ -66,26 +74,30 @@ int main(void)
     assert(mission_controller_phase() == MISSION_TAKEOFF);
 
     state = state_at(0.0, 0.0, -20.0);
-    mission_controller_step(&state, 0.001, motor);
+    run_controller_steps(&state, motor, 600U);
     assert(mission_controller_phase() == MISSION_FLYING);
     assert_bounded(motor);
 
     state = state_at(40.0, 0.0, -20.0);
-    mission_controller_step(&state, 0.001, motor);
+    run_controller_steps(&state, motor, 600U);
     assert(mission_controller_phase() == MISSION_FLYING);
     assert_bounded(motor);
 
     state = state_at(0.0, 20.0, -20.0);
-    mission_controller_step(&state, 0.001, motor);
+    run_controller_steps(&state, motor, 600U);
     assert(mission_controller_phase() == MISSION_FLYING);
 
     state = state_at(40.0, 20.0, -20.0);
-    mission_controller_step(&state, 0.001, motor);
+    run_controller_steps(&state, motor, 600U);
     assert(mission_controller_phase() == MISSION_LANDING);
     assert_bounded(motor);
 
+    /* Landing waits for a horizontal hold before it starts descending. */
+    run_controller_steps(&state, motor, 800U);
+    assert(mission_controller_phase() == MISSION_LANDING);
+
     state = state_at(40.0, 20.0, 0.0);
-    mission_controller_step(&state, 0.001, motor);
+    run_controller_steps(&state, motor, 600U);
     assert(mission_controller_phase() == MISSION_LANDED);
     assert_zero(motor);
     if (mission_controller_take_landed_event()) {

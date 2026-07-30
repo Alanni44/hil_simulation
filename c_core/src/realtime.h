@@ -9,6 +9,8 @@ typedef struct {
     int64_t max_abs_lateness_ns;
     int64_t p99_abs_lateness_ns;
     int non_realtime;
+    int sched_setscheduler_errno;
+    int mlockall_errno;
 } HilRealtimeStats;
 
 /* Production returns non-zero unless FIFO scheduling and locked memory both

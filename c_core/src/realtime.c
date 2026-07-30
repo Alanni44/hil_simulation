@@ -13,10 +13,15 @@ static uint64_t histogram[1001];
 int hil_realtime_init(int priority) {
     struct sched_param parameter;
     const char* allow_nonrt = getenv("HIL_ALLOW_NONRT");
+    int scheduler_ok;
+    int memory_lock_ok;
     memset(&parameter, 0, sizeof(parameter));
     parameter.sched_priority = priority;
-    if (sched_setscheduler(0, SCHED_FIFO, &parameter) != 0 ||
-        mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+    scheduler_ok = sched_setscheduler(0, SCHED_FIFO, &parameter) == 0;
+    if (!scheduler_ok) stats.sched_setscheduler_errno = errno;
+    memory_lock_ok = mlockall(MCL_CURRENT | MCL_FUTURE) == 0;
+    if (!memory_lock_ok) stats.mlockall_errno = errno;
+    if (!scheduler_ok || !memory_lock_ok) {
         if (allow_nonrt && !strcmp(allow_nonrt, "1")) {
             stats.non_realtime = 1;
             return 0;

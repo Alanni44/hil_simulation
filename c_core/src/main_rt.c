@@ -46,6 +46,33 @@ static HilParameterValues initial_parameters;
 static unsigned applied_live_generation = 0;
 static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* This measures process-local command-to-status latency with CLOCK_MONOTONIC:
+ * UDP command receipt -> command effective at a model boundary -> completion
+ * of the first UDP state send that contains that boundary.  Commands replaced
+ * before either boundary are counted as coalesced, never as low-latency wins. */
+typedef enum {
+    HIL_LATENCY_LIVE_INPUT = 0,
+    HIL_LATENCY_MISSION = 1,
+    HIL_LATENCY_LANE_COUNT = 2
+} HilLatencyLane;
+
+typedef struct {
+    uint64_t accepted;
+    uint64_t coalesced;
+    uint64_t samples;
+    uint64_t sum_ns;
+    uint64_t max_ns;
+    uint64_t min_ns;
+    uint64_t histogram[1001]; /* 100 us buckets, final bucket >= 100 ms. */
+    int awaiting_apply;
+    int awaiting_output;
+    unsigned generation;
+    uint64_t ingress_ns;
+    uint64_t applied_ns;
+} CommandLatency;
+static CommandLatency command_latency[HIL_LATENCY_LANE_COUNT];
+static uint64_t command_ingress_ns;
+
 /* A reset-only write has no truthful effective sequence until reset reaches
  * the next model-step boundary.  Preserve its command identity so C can send
  * a second, final receipt with that actual sequence. */
@@ -75,6 +102,92 @@ typedef struct {
     struct sockaddr_in sender;
 } LifecycleRequest;
 static LifecycleRequest lifecycle_request;
+
+static uint64_t monotonic_time_ns(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (uint64_t)now.tv_sec * 1000000000ULL + (uint64_t)now.tv_nsec;
+}
+
+/* command_lock must be held by the caller. */
+static void latency_accept_locked(HilLatencyLane lane, unsigned generation,
+                                  uint64_t ingress_ns) {
+    CommandLatency* latency = &command_latency[lane];
+    if (latency->awaiting_apply || latency->awaiting_output) latency->coalesced++;
+    latency->accepted++;
+    latency->awaiting_apply = 1;
+    latency->awaiting_output = 0;
+    latency->generation = generation;
+    latency->ingress_ns = ingress_ns;
+    latency->applied_ns = 0;
+}
+
+static void latency_mark_applied(HilLatencyLane lane, unsigned generation) {
+    CommandLatency* latency = &command_latency[lane];
+    pthread_mutex_lock(&command_lock);
+    if (latency->awaiting_apply && latency->generation == generation) {
+        latency->awaiting_apply = 0;
+        latency->awaiting_output = 1;
+        latency->applied_ns = monotonic_time_ns();
+    }
+    pthread_mutex_unlock(&command_lock);
+}
+
+static uint64_t latency_percentile_ns(const CommandLatency* latency,
+                                      unsigned percentile) {
+    uint64_t cumulative = 0;
+    const uint64_t target = (latency->samples * percentile + 99U) / 100U;
+    unsigned index;
+    for (index = 0; index < 1001U; ++index) {
+        cumulative += latency->histogram[index];
+        if (cumulative >= target) return (uint64_t)index * 100000ULL;
+    }
+    return 100000000ULL;
+}
+
+static void latency_record_output_completed(void) {
+    uint64_t now_ns = monotonic_time_ns();
+    unsigned lane;
+    pthread_mutex_lock(&command_lock);
+    for (lane = 0; lane < HIL_LATENCY_LANE_COUNT; ++lane) {
+        CommandLatency* latency = &command_latency[lane];
+        uint64_t elapsed_ns;
+        unsigned bucket;
+        if (!latency->awaiting_output) continue;
+        elapsed_ns = now_ns - latency->ingress_ns;
+        bucket = elapsed_ns / 100000ULL > 1000ULL ? 1000U :
+                 (unsigned)(elapsed_ns / 100000ULL);
+        latency->samples++;
+        latency->sum_ns += elapsed_ns;
+        if (elapsed_ns > latency->max_ns) latency->max_ns = elapsed_ns;
+        if (!latency->min_ns || elapsed_ns < latency->min_ns) latency->min_ns = elapsed_ns;
+        latency->histogram[bucket]++;
+        latency->awaiting_output = 0;
+    }
+    pthread_mutex_unlock(&command_lock);
+}
+
+static void latency_report(void) {
+    static const char* const lane_name[] = {"live_input", "mission"};
+    unsigned lane;
+    pthread_mutex_lock(&command_lock);
+    for (lane = 0; lane < HIL_LATENCY_LANE_COUNT; ++lane) {
+        const CommandLatency* latency = &command_latency[lane];
+        const uint64_t average_ns = latency->samples ? latency->sum_ns / latency->samples : 0;
+        fprintf(stderr,
+                "[HIL] command_latency lane=%s accepted=%llu samples=%llu coalesced=%llu "
+                "pending=%d avg_ns=%llu p50_ns=%llu p95_ns=%llu p99_ns=%llu max_ns=%llu\n",
+                lane_name[lane], (unsigned long long)latency->accepted,
+                (unsigned long long)latency->samples, (unsigned long long)latency->coalesced,
+                latency->awaiting_apply || latency->awaiting_output,
+                (unsigned long long)average_ns,
+                (unsigned long long)latency_percentile_ns(latency, 50U),
+                (unsigned long long)latency_percentile_ns(latency, 95U),
+                (unsigned long long)latency_percentile_ns(latency, 99U),
+                (unsigned long long)latency->max_ns);
+    }
+    pthread_mutex_unlock(&command_lock);
+}
 
 static void on_signal(int ignored) { (void)ignored; running = 0; }
 
@@ -187,7 +300,12 @@ static void parse_set_inputs(struct json_object* root, const char* request_id,
             add_input_result(results, full_name, 1, "accepted"); seen = 1;
         }
     }
-    if (ok && seen) { pending_live.input = candidate; pending_live.generation++; }
+    if (ok && seen) {
+        pending_live.input = candidate;
+        pending_live.generation++;
+        latency_accept_locked(HIL_LATENCY_LIVE_INPUT, pending_live.generation,
+                              command_ingress_ns);
+    }
     pthread_mutex_unlock(&command_lock);
     send_receipt(sender, request_id, ok && seen,
                  ok && seen ? "accepted" : "atomic input group rejected",
@@ -265,6 +383,7 @@ static void parse_load_mission(struct json_object* root, const char* request_id,
     mission.waypoint_count = (unsigned)count + 1U;
     mission.completion_radius_m = radius;
     mission.generation++;
+    latency_accept_locked(HIL_LATENCY_MISSION, mission.generation, command_ingress_ns);
     strncpy(mission.mission_id, json_object_get_string(mission_id), sizeof(mission.mission_id) - 1);
     mission.mission_id[sizeof(mission.mission_id) - 1] = '\0';
     pthread_mutex_unlock(&command_lock);
@@ -435,6 +554,7 @@ static void apply_live_update(void) {
         *model_get_input() = active_input;
         hil_contract_apply_exported_globals(&active_parameters);
         applied_live_generation = snapshot.generation;
+        latency_mark_applied(HIL_LATENCY_LIVE_INPUT, snapshot.generation);
     }
 }
 
@@ -453,6 +573,7 @@ static void apply_mission_update(void) {
         mission_controller_reset();
     }
     applied_mission_generation = snapshot.generation;
+    latency_mark_applied(HIL_LATENCY_MISSION, snapshot.generation);
 }
 
 static void write_motor_command(const float motor[4]) {
@@ -538,7 +659,13 @@ static void parse_tune(struct json_object* root, const char* request_id,
         json_object_object_add(field_results, name, detail);
     }
     if (ok) {
-        if (has_live) { pending_live.input = live_candidate; pending_live.parameters = live_parameters; pending_live.generation++; }
+        if (has_live) {
+            pending_live.input = live_candidate;
+            pending_live.parameters = live_parameters;
+            pending_live.generation++;
+            latency_accept_locked(HIL_LATENCY_LIVE_INPUT, pending_live.generation,
+                                  command_ingress_ns);
+        }
         if (has_reset) {
             pending_reset.input = reset_candidate; pending_reset.parameters = reset_parameters; pending_reset.generation++;
             pending_reset_receipt.pending = 1;
@@ -556,6 +683,7 @@ static void parse_tune(struct json_object* root, const char* request_id,
 static void parse_command(const char* text, const struct sockaddr_in* sender) {
     struct json_object *root, *request, *cmd;
     const char *request_id, *command;
+    command_ingress_ns = monotonic_time_ns();
     root = json_tokener_parse(text);
     if (!root || json_object_get_type(root) != json_type_object) { send_receipt(sender, "", 0, "invalid JSON object", sequence, NULL); if (root) json_object_put(root); return; }
     if (!json_object_object_get_ex(root, "request_id", &request) || json_object_get_type(request) != json_type_string ||
@@ -582,10 +710,18 @@ static void* command_thread(void* ignored) {
 
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
+    uint64_t next_latency_report_ns = 0;
     float mission_motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
     if (hil_realtime_init(90) != 0) {
-        fprintf(stderr, "[HIL] SCHED_FIFO/locked memory unavailable; refusing production start\n");
+        HilRealtimeStats stats = hil_realtime_stats();
+        fprintf(stderr,
+                "[HIL] SCHED_FIFO/locked memory unavailable; refusing production start "
+                "(sched_setscheduler=%d:%s mlockall=%d:%s)\n",
+                stats.sched_setscheduler_errno,
+                stats.sched_setscheduler_errno ? strerror(stats.sched_setscheduler_errno) : "ok",
+                stats.mlockall_errno,
+                stats.mlockall_errno ? strerror(stats.mlockall_errno) : "ok");
         return 1;
     }
     if (udp_init(UDP_CMD_PORT, UDP_STATUS_PORT) != 0) { fprintf(stderr, "UDP initialization failed\n"); return 1; }
@@ -620,7 +756,15 @@ int main(void) {
             if (have_valid_state) state.lifecycle = (uint8_t)lifecycle;
         }
         if (++send_counter >= SEND_INTERVAL) {
-            if (have_valid_state) { udp_send_status(&state); udp_send_monitor(&state); }
+            if (have_valid_state) {
+                udp_send_status(&state);
+                udp_send_monitor(&state);
+                latency_record_output_completed();
+            }
+            if (monotonic_time_ns() >= next_latency_report_ns) {
+                latency_report();
+                next_latency_report_ns = monotonic_time_ns() + 10000000000ULL;
+            }
             send_counter = 0;
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
@@ -632,5 +776,6 @@ int main(void) {
       fprintf(stderr, "[HIL] realtime samples=%llu p99_abs_lateness_ns=%lld max_abs_lateness_ns=%lld over_250us=%llu non_realtime=%d\n",
               (unsigned long long)stats.samples, (long long)stats.p99_abs_lateness_ns, (long long)stats.max_abs_lateness_ns,
               (unsigned long long)stats.over_250us, stats.non_realtime); }
+    latency_report();
     pthread_join(command_worker, NULL); model_terminate(); udp_close(); return 0;
 }
