@@ -21,6 +21,9 @@ typedef enum {
     MISSION_LANDED = 3
 } MissionPhase;
 
+void mission_controller_configure_vehicle(double mass_kg,
+                                          double thrust_coefficient_n,
+                                          double motor_efficiency);
 int mission_controller_load(const MissionWaypoint* waypoints, unsigned count,
                             double completion_radius_m);
 void mission_controller_step(const FlightState_t* state, double dt_s,

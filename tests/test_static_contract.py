@@ -20,6 +20,21 @@ class RuntimeContractStaticTests(unittest.TestCase):
             r"if \(mission_controller_take_landed_event\(\)\)\s*\{\s*"
             r"lifecycle = HIL_ENDED;")
 
+    def test_mission_controller_is_independent_of_generated_model_globals(self):
+        controller = read('c_core/src/mission_controller.c')
+        runtime = read('c_core/src/main_rt.c')
+
+        self.assertNotIn('#include "model_rt_wrapper.h"', controller)
+        self.assertNotIn('uav_mass_kg', controller)
+        self.assertNotIn('uav_thrust_coefficient_n', controller)
+        self.assertNotIn('uav_motor_efficiency', controller)
+        self.assertIn('active_parameter_or_default("mass_kg", 1.5)', runtime)
+        self.assertIn(
+            'active_parameter_or_default("thrust_coefficient_n", 4.2)',
+            runtime)
+        self.assertIn(
+            'active_parameter_or_default("motor_efficiency", 1.0)', runtime)
+
     def test_acceptance_submits_complete_task_4_mission_schema(self):
         tree = ast.parse(read('scripts/accept_runtime_contract.py'))
         mission_params = None

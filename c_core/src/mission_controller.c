@@ -1,5 +1,4 @@
 #include "mission_controller.h"
-#include "model_rt_wrapper.h"
 
 #include <math.h>
 #include <string.h>
@@ -52,6 +51,9 @@ typedef struct {
 } MissionController;
 
 static MissionController controller;
+static double vehicle_mass_kg = 1.5;
+static double vehicle_thrust_coefficient_n = 4.2;
+static double vehicle_motor_efficiency = 1.0;
 
 static double clamp_double(double value, double minimum, double maximum)
 {
@@ -356,12 +358,9 @@ static void mix_control(const FlightState_t* state,
                                      GRAVITY_MPS2 - acceleration_d),
                                -MAX_TILT_RAD, MAX_TILT_RAD);
 
-    mass_kg = isfinite(uav_mass_kg) && uav_mass_kg > 0.0 ? uav_mass_kg : 1.5;
-    thrust_coefficient_n = isfinite(uav_thrust_coefficient_n) &&
-                           uav_thrust_coefficient_n > 0.0 ?
-                           uav_thrust_coefficient_n : 4.2;
-    motor_efficiency = isfinite(uav_motor_efficiency) && uav_motor_efficiency > 0.0 ?
-                        uav_motor_efficiency : 1.0;
+    mass_kg = vehicle_mass_kg;
+    thrust_coefficient_n = vehicle_thrust_coefficient_n;
+    motor_efficiency = vehicle_motor_efficiency;
     collective = sqrt(clamp_double(
         mass_kg * (GRAVITY_MPS2 - acceleration_d) /
         (4.0 * thrust_coefficient_n * motor_efficiency * motor_efficiency), 0.0, 1.0));
@@ -394,6 +393,19 @@ static void mix_control(const FlightState_t* state,
         const double value = clamp_double(mixed[index], 0.0, 1.0);
         motor[index] = isfinite(value) ? (float)value : 0.0f;
     }
+}
+
+void mission_controller_configure_vehicle(double mass_kg,
+                                          double thrust_coefficient_n,
+                                          double motor_efficiency)
+{
+    vehicle_mass_kg = isfinite(mass_kg) && mass_kg > 0.0 ? mass_kg : 1.5;
+    vehicle_thrust_coefficient_n =
+        isfinite(thrust_coefficient_n) && thrust_coefficient_n > 0.0 ?
+        thrust_coefficient_n : 4.2;
+    vehicle_motor_efficiency =
+        isfinite(motor_efficiency) && motor_efficiency > 0.0 ?
+        motor_efficiency : 1.0;
 }
 
 int mission_controller_load(const MissionWaypoint* waypoints, unsigned count,

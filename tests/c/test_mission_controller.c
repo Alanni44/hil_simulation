@@ -57,6 +57,7 @@ int main(void)
     unsigned ended_transitions = 0U;
 
     mission_controller_reset();
+    mission_controller_configure_vehicle(1.5, 4.2, 1.0);
     mission_controller_step(&state, 0.001, motor);
     assert_zero(motor);
 
@@ -64,6 +65,12 @@ int main(void)
                                    (unsigned)(sizeof(mission) / sizeof(mission[0])),
                                    1.0));
     assert(mission_controller_phase() == MISSION_TAKEOFF);
+
+    /* Invalid optional vehicle parameters fall back safely without any
+     * dependency on model-generated exported globals. */
+    mission_controller_configure_vehicle(NAN, -1.0, 0.0);
+    mission_controller_step(&state, 0.001, motor);
+    assert_bounded(motor);
 
     mission_controller_step(&state, 0.001, motor);
     assert(mission_controller_phase() == MISSION_TAKEOFF);

@@ -397,6 +397,23 @@ static const HilParameterSpec* find_parameter(const char* name) {
     return NULL;
 }
 
+static double active_parameter_or_default(const char* name, double fallback) {
+    const HilParameterSpec* spec = find_parameter(name);
+    unsigned index;
+    double value;
+    if (!spec) return fallback;
+    index = (unsigned)(spec - HIL_PARAMETER_SPECS);
+    value = active_parameters.value[index];
+    return isfinite(value) && value > 0.0 ? value : fallback;
+}
+
+static void configure_mission_controller_vehicle(void) {
+    mission_controller_configure_vehicle(
+        active_parameter_or_default("mass_kg", 1.5),
+        active_parameter_or_default("thrust_coefficient_n", 4.2),
+        active_parameter_or_default("motor_efficiency", 1.0));
+}
+
 static int state_is_valid(const FlightState_t* candidate) {
     const float norm = sqrtf(candidate->q_w * candidate->q_w + candidate->q_x * candidate->q_x +
                              candidate->q_y * candidate->q_y + candidate->q_z * candidate->q_z);
@@ -520,6 +537,7 @@ static void apply_lifecycle_request(void) {
             if (pending_reset.generation) active_parameters = pending_reset.parameters;
             *model_get_input() = active_input;
             hil_contract_apply_exported_globals(&active_parameters);
+            configure_mission_controller_vehicle();
             pending_live.input = active_input;
             pending_live.parameters = active_parameters;
             pending_live.generation++;
@@ -553,6 +571,7 @@ static void apply_live_update(void) {
         active_parameters = snapshot.parameters;
         *model_get_input() = active_input;
         hil_contract_apply_exported_globals(&active_parameters);
+        configure_mission_controller_vehicle();
         applied_live_generation = snapshot.generation;
         latency_mark_applied(HIL_LATENCY_LIVE_INPUT, snapshot.generation);
     }
@@ -733,6 +752,7 @@ int main(void) {
     active_parameters = initial_parameters;
     *model_get_input() = active_input;
     hil_contract_apply_exported_globals(&active_parameters);
+    configure_mission_controller_vehicle();
     pending_live.input = active_input; pending_live.parameters = active_parameters;
     pending_reset.input = active_input; pending_reset.parameters = active_parameters;
     populate_state();
