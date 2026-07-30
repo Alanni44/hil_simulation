@@ -35,6 +35,16 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn(
             'active_parameter_or_default("motor_efficiency", 1.0)', runtime)
 
+    def test_axis_command_contract_does_not_require_motor_command_setter(self):
+        runtime = read('c_core/src/main_rt.c')
+
+        self.assertIn(
+            'if (!hil_contract_find_input("flight_control.motor_command")) '
+            'return;', runtime)
+        self.assertIn(
+            'hil_contract_set_input(&active_input, '
+            '"flight_control.motor_command", values, 4U)', runtime)
+
     def test_acceptance_submits_complete_task_4_mission_schema(self):
         tree = ast.parse(read('scripts/accept_runtime_contract.py'))
         mission_params = None

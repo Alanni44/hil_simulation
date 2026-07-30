@@ -598,6 +598,10 @@ static void apply_mission_update(void) {
 static void write_motor_command(const float motor[4]) {
     double values[4];
     unsigned index;
+    /* Axis-command contracts are driven by their declared external inputs;
+     * only motor-command contracts accept the onboard mission mixer's four
+     * outputs.  Absence is a valid contract mode, not a generated ABI error. */
+    if (!hil_contract_find_input("flight_control.motor_command")) return;
     for (index = 0; index < 4; ++index) values[index] = motor[index];
     if (!hil_contract_set_input(&active_input, "flight_control.motor_command", values, 4U)) {
         fprintf(stderr, "[HIL] generated motor command setter unavailable\n");
