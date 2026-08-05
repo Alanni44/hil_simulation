@@ -11,6 +11,7 @@ from ws_server import start_ws_server
 from udp_forwarder import start_udp_forwarder
 from bridge_tcp_client import start_bridge
 from config_loader import CONFIG
+from hil_adapters.px4_hil_service import Px4HilService
 
 logger = get_logger('main')
 
@@ -40,6 +41,12 @@ def main():
         threading.Thread(target=start_bridge, daemon=True, name='bridge'),
     ]
 
+    px4_service = None
+    px4_config = CONFIG.get('px4_hil', {})
+    if px4_config.get('enabled'):
+        px4_service = Px4HilService(px4_config)
+        threads.append(px4_service.start())
+
     for t in threads:
         t.start()
         logger.info("{} started".format(t.name))
@@ -50,6 +57,8 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("Stopping...")
+        if px4_service is not None:
+            px4_service.stop()
         sys.exit(0)
 
 

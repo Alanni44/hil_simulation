@@ -84,8 +84,8 @@ function build_script(task_file, result_file)
         cmd = sprintf(['gcc -O2 -Wall -pthread -I"%s" -I"%s" ' ...
             '-DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h %s ' ...
             '"%s/main_rt.c" "%s/mission_controller.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
-            '"%s/hal_stub.c" "%s/realtime.c" -lm -lrt -ljson-c -o "%s"'], ...
-            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
+            '"%s/hal_stub.c" "%s/realtime.c" "%s/control_arbiter.c" -lm -lrt -ljson-c -o "%s"'], ...
+            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
         [status, output] = system(cmd);
         % ``system`` captures GCC output, so explicitly relay both the exact
         % invocation and its output into MATLAB stdout for build.log audit.
@@ -261,6 +261,9 @@ function validate_input_contract_abi(contract, u_fields)
         names{end+1} = descriptor.field; %#ok<AGROW>
     end
     if length(unique(names)) ~= length(names), error('Declared inputs must map to distinct ExtU fields'); end
+    % V3 actuator channels are explicitly bound to declared control inputs;
+    % validate every field/index before code generation emits a setter.
+    contract_actuator_descriptors(contract, descriptors);
 end
 
 function generate_contract_header(path, contract, y_fields, u_fields, exported_globals)
@@ -305,6 +308,29 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
         end
     end
     fprintf(fid, '(void)u; (void)name; (void)values; (void)count; return 0; }\n');
+    actuators = contract_actuator_descriptors(contract, input_descriptors);
+    fprintf(fid, '#define HIL_ACTUATOR_COUNT %d\n', length(actuators));
+    fprintf(fid, 'typedef struct { double min_value; double max_value; double safe_value; } HilActuatorSpec;\n');
+    fprintf(fid, 'static const HilActuatorSpec HIL_ACTUATOR_SPECS[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {\n');
+    for i = 1:length(actuators)
+        a = actuators(i);
+        fprintf(fid, '{%.17g, %.17g, %.17g},\n', a.minimum, a.maximum, a.safe_value);
+    end
+    if isempty(actuators), fprintf(fid, '{0,0,0},\n'); end
+    fprintf(fid, '};\n');
+    source_mask = contract_control_source_mask(contract);
+    fprintf(fid, '#define HIL_CONTROL_SOURCE_MASK %uU\n', source_mask);
+    fprintf(fid, '#define HIL_DEMO_MISSION_ENABLED %d\n', bitand(source_mask, 1) ~= 0);
+    fprintf(fid, 'static int hil_contract_set_actuators(ModelU_t* u, const double* values, unsigned count) { if (count != HIL_ACTUATOR_COUNT) return 0;\n');
+    for i = 1:length(actuators)
+        a = actuators(i);
+        if a.dimension == 1
+            fprintf(fid, 'u->%s = (%s)values[%d];\n', a.field, c_cast_type(a.type), i - 1);
+        else
+            fprintf(fid, 'u->%s[%d] = (%s)values[%d];\n', a.field, a.index, c_cast_type(a.type), i - 1);
+        end
+    end
+    fprintf(fid, 'return 1; }\n');
     params = as_cell(contract.parameters);
     fprintf(fid, 'enum { HIL_PARAM_LIVE=1, HIL_PARAM_RESET_ONLY=2, HIL_PARAM_READONLY=3 };\n');
     fprintf(fid, '#define HIL_PARAMETER_COUNT %d\n', length(params));
@@ -377,6 +403,27 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
         end
     end
     fprintf(fid, '(void)u; (void)values; (void)name; (void)value; return 0; }\n#endif\n'); fclose(fid);
+end
+
+function mask = contract_control_source_mask(contract)
+    % Bit positions deliberately match ControlSource in control_arbiter.h.
+    mask = 7; % V2 compatibility: demo, PX4 SITL and physical UUT.
+    if ~isfield(contract, 'contract_version') || contract.contract_version < 3
+        return;
+    end
+    if ~isfield(contract, 'control_sources') || isempty(contract.control_sources)
+        error('V3 contract control_sources is required');
+    end
+    mask = 0;
+    sources = as_cell(contract.control_sources);
+    for i = 1:length(sources)
+        switch sources{i}
+            case 'demo_mission', mask = bitor(mask, 1);
+            case 'px4_sitl', mask = bitor(mask, 2);
+            case 'physical_uut', mask = bitor(mask, 4);
+            otherwise, error('Unsupported V3 control source');
+        end
+    end
 end
 
 function generate_bridge_header(path, model_name, u_type, y_type)
@@ -457,6 +504,47 @@ function descriptors = contract_input_descriptors(contract)
             else
                 descriptors(end).default = 0.0;
             end
+        end
+    end
+end
+
+function actuators = contract_actuator_descriptors(contract, inputs)
+    actuators = struct('field', {}, 'type', {}, 'dimension', {}, 'index', {}, 'minimum', {}, 'maximum', {}, 'safe_value', {});
+    if isfield(contract, 'contract_version') && contract.contract_version >= 3
+        if ~isfield(contract, 'actuators') || ~isfield(contract.actuators, 'channels')
+            error('V3 contract actuators.channels is required');
+        end
+        channels = as_cell(contract.actuators.channels);
+        for i = 1:length(channels)
+            channel = channels{i};
+            if ~isfield(channel, 'binding') || ~isfield(channel.binding, 'input') || ~isfield(channel.binding, 'index')
+                error('V3 actuator channel binding is required');
+            end
+            found = [];
+            for j = 1:length(inputs)
+                full_name = [inputs(j).group '.' inputs(j).name];
+                if strcmp(full_name, channel.binding.input), found = inputs(j); break; end
+            end
+            if isempty(found) || channel.binding.index < 0 || channel.binding.index >= found.dimension
+                error('V3 actuator binding does not match a declared input channel');
+            end
+            if ~is_numeric_type(found.type), error('V3 actuator input must be numeric'); end
+            actuators(end+1) = struct('field', found.field, 'type', found.type, ... %#ok<AGROW>
+                'dimension', found.dimension, 'index', channel.binding.index, ...
+                'minimum', channel.min, 'maximum', channel.max, 'safe_value', channel.safe_value);
+        end
+    else
+        found = [];
+        for i = 1:length(inputs)
+            if strcmp(inputs(i).group, 'flight_control') && strcmp(inputs(i).name, 'motor_command')
+                found = inputs(i); break;
+            end
+        end
+        if isempty(found), error('V2 contract motor_command actuator input is required'); end
+        for i = 0:found.dimension - 1
+            actuators(end+1) = struct('field', found.field, 'type', found.type, ... %#ok<AGROW>
+                'dimension', found.dimension, 'index', i, 'minimum', found.min, ...
+                'maximum', found.max, 'safe_value', 0.0);
         end
     end
 end

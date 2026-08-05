@@ -104,6 +104,12 @@ def get_state_dict():
             'lifecycle': LIFECYCLE_NAMES[state['lifecycle']]}
 
 
+def get_normalized_state():
+    """Return a stable copy in the C-core NED frame for HIL adapters."""
+    with _lock:
+        return dict(_latest_raw) if _latest_raw else None
+
+
 def vehicle_state_v2_from_state(state, mission_id):
     if not isinstance(mission_id, str) or not mission_id:
         raise ValueError('mission_id is required for V2 vehicle_state')

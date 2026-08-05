@@ -263,6 +263,8 @@ async def command_loop(reader, writer):
             await ws_send(writer, json.dumps(_build_or_deploy(request_body)))
         elif cmd == 'tune': await _handle_core_command('tune', dict(params), writer)
         elif cmd == 'set_inputs': await _handle_core_command('set_inputs', dict(params), writer)
+        elif cmd in ('select_control_source', 'actuator_command'):
+            await _handle_core_command(cmd, dict(params), writer)
         elif cmd == 'load_mission': await _handle_load_mission(dict(params), writer)
         elif cmd in ('pause', 'resume', 'reset', 'mission_end'):
             await _handle_core_command(cmd, dict(params), writer, cmd)

@@ -9,8 +9,10 @@ function analyze_model(slx_path, output_json_path)
 % 输出 JSON 字段:
 %   model_name        - 模型名称
 %   solver / solver_type / fixed_step / system_target
-%   root_inports      - 根级 Inport 列表 [{name, port}]
-%   root_outports     - 根级 Outport 列表 [{name, port}]
+%   root_inports      - 根级 Inport 列表 [{name, port, type, dimension}]
+%   root_outports     - 根级 Outport 列表 [{name, port, type, dimension}]
+%   candidate_parameters - 可导出的候选参数（仅供人工审核）
+%   unresolved_items  - 无法自动确认物理语义的端口/参数
 %   root_constants    - 根级 Constant 块名称列表
 %   root_steps        - 根级 Step 块名称列表
 %   root_scopes       - 根级 Scope 块名称列表
@@ -61,6 +63,16 @@ function analyze_model(slx_path, output_json_path)
         info.target_lang = '';
     end
 
+    % Compile once to obtain declared root-port data types and dimensions.
+    % Any failure is recorded in the draft rather than guessed.
+    compiled_available = false;
+    try
+        set_param(model_name, 'SimulationCommand', 'update');
+        compiled_available = true;
+    catch ME
+        info.compile_warning = ME.message;
+    end
+
     % ---- Root-level Inports ----
     inports = find_system(model_name, 'SearchDepth', 1, 'BlockType', 'Inport');
     info.root_inports = {};
@@ -68,7 +80,17 @@ function analyze_model(slx_path, output_json_path)
         name = get_param(inports{i}, 'Name');
         port_str = get_param(inports{i}, 'Port');
         port_num = str2double(port_str);
-        info.root_inports{end+1} = struct('name', name, 'port', port_num);
+        descriptor = struct('name', name, 'port', port_num, 'type', '', 'dimension', 0);
+        if compiled_available
+            try
+                descriptor.type = get_param(inports{i}, 'CompiledPortDataTypes');
+                descriptor.type = descriptor.type.Outport{1};
+                dimensions = get_param(inports{i}, 'CompiledPortWidths');
+                descriptor.dimension = dimensions.Outport(1);
+            catch
+            end
+        end
+        info.root_inports{end+1} = descriptor;
     end
 
     % ---- Root-level Outports ----
@@ -78,7 +100,17 @@ function analyze_model(slx_path, output_json_path)
         name = get_param(outports{i}, 'Name');
         port_str = get_param(outports{i}, 'Port');
         port_num = str2double(port_str);
-        info.root_outports{end+1} = struct('name', name, 'port', port_num);
+        descriptor = struct('name', name, 'port', port_num, 'type', '', 'dimension', 0);
+        if compiled_available
+            try
+                descriptor.type = get_param(outports{i}, 'CompiledPortDataTypes');
+                descriptor.type = descriptor.type.Inport{1};
+                dimensions = get_param(outports{i}, 'CompiledPortWidths');
+                descriptor.dimension = dimensions.Inport(1);
+            catch
+            end
+        end
+        info.root_outports{end+1} = descriptor;
     end
 
     % ---- Root-level source/sink blocks ----
@@ -108,6 +140,19 @@ function analyze_model(slx_path, output_json_path)
     has_io_interface = ~isempty(info.root_inports) || ~isempty(info.root_outports);
     info.needs_adaptation = (~has_io_interface) || info.is_continuous;
 
+    % A draft is intentionally descriptive only.  It identifies conventional
+    % names as candidates but never supplies units, frames, ranges, actuator
+    % semantics or parameter permissions on behalf of an operator.
+    info.candidate_state_fields = standard_name_candidates(info.root_outports, ...
+        {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps', ...
+         'q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'});
+    info.candidate_input_fields = standard_name_candidates(info.root_inports, ...
+        {'motor_command','throttle','roll_cmd','pitch_cmd','yaw_cmd', ...
+         'wind_n_mps','wind_e_mps','wind_d_mps','pressure_pa','temperature_k','ground_height_m'});
+    info.candidate_parameters = candidate_tunable_parameters(model_name);
+    info.unresolved_items = unresolved_items(info.root_inports, info.root_outports, ...
+        info.candidate_state_fields, info.candidate_input_fields, info.candidate_parameters);
+
     % ---- Write JSON ----
     fid = fopen(output_json_path, 'w');
     if fid < 0
@@ -115,6 +160,7 @@ function analyze_model(slx_path, output_json_path)
     end
     fprintf(fid, '%s', jsonencode(info));
     fclose(fid);
+    write_contract_draft(output_json_path, info);
 
     % ---- Summary ----
     fprintf('\n========== [analyze_model] %s ==========\n', model_name);
@@ -148,4 +194,76 @@ function analyze_model(slx_path, output_json_path)
     fprintf('============================================\n\n');
 
     bdclose(model_name);
+end
+
+function candidates = standard_name_candidates(ports, standard_names)
+    candidates = {};
+    for i = 1:length(ports)
+        for j = 1:length(standard_names)
+            if strcmp(ports{i}.name, standard_names{j})
+                candidates{end+1} = struct('semantic', standard_names{j}, ...
+                    'port', ports{i}.name, 'confidence', 'name_only'); %#ok<AGROW>
+            end
+        end
+    end
+end
+
+function candidates = candidate_tunable_parameters(model_name)
+    candidates = {};
+    try
+        workspace = get_param(model_name, 'ModelWorkspace');
+        variables = workspace.whos;
+        for i = 1:length(variables)
+            if strcmp(variables(i).class, 'Simulink.Parameter')
+                candidates{end+1} = struct('name', variables(i).name, ...
+                    'source', 'model_workspace', 'requires_review', true); %#ok<AGROW>
+            end
+        end
+    catch
+    end
+end
+
+function write_contract_draft(interface_json_path, info)
+    % This is intentionally not a deployable contract.  It gives the model
+    % owner a reviewable starting point while retaining every uncertainty.
+    [folder, name, ~] = fileparts(interface_json_path);
+    draft = struct();
+    draft.document_kind = 'hil_contract_draft';
+    draft.schema_version = 1;
+    draft.model_name = info.model_name;
+    draft.source_interface = [name '.json'];
+    draft.contract_review_required = true;
+    draft.proposed = struct('state_outputs', {info.candidate_state_fields}, ...
+        'input_bindings', {info.candidate_input_fields}, ...
+        'parameters', {info.candidate_parameters});
+    draft.unresolved_items = info.unresolved_items;
+    draft.notes = {'This file is not accepted by the package validator.', ...
+        'Units, ranges, frames, actuator bindings, source permissions and parameter classes require owner approval.'};
+    fid = fopen(fullfile(folder, [info.model_name '_hil_contract_draft.json']), 'w');
+    if fid < 0, error('Cannot write HIL contract draft'); end
+    fprintf(fid, '%s', jsonencode(draft));
+    fclose(fid);
+end
+
+function items = unresolved_items(inports, outports, state_candidates, input_candidates, parameters)
+    items = {};
+    matched = {};
+    for i = 1:length(state_candidates), matched{end+1} = state_candidates{i}.port; end %#ok<AGROW>
+    for i = 1:length(input_candidates), matched{end+1} = input_candidates{i}.port; end %#ok<AGROW>
+    for i = 1:length(inports)
+        if ~any(strcmp(matched, inports{i}.name))
+            items{end+1} = struct('kind', 'input_port', 'name', inports{i}.name, ...
+                'reason', 'physical_semantics_unit_and_range_require_review'); %#ok<AGROW>
+        end
+    end
+    for i = 1:length(outports)
+        if ~any(strcmp(matched, outports{i}.name))
+            items{end+1} = struct('kind', 'output_port', 'name', outports{i}.name, ...
+                'reason', 'physical_semantics_unit_and_range_require_review'); %#ok<AGROW>
+        end
+    end
+    for i = 1:length(parameters)
+        items{end+1} = struct('kind', 'parameter', 'name', parameters{i}.name, ...
+            'reason', 'runtime_class_range_and_binding_require_review'); %#ok<AGROW>
+    end
 end

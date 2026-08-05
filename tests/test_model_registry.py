@@ -105,6 +105,58 @@ class ModelPackageTests(unittest.TestCase):
         self.assertEqual('example', result['contract']['model_name'])
         self.assertEqual(64, len(result['contract_sha256']))
 
+    def test_v3_fixed_wing_contract_has_explicit_actuator_bindings(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract.update({
+            'contract_version': 3,
+            'vehicle_kind': 'fixed_wing',
+            'control_sources': ['px4_sitl', 'physical_uut'],
+            'sensors': {'imu': {'rate_hz': 250}, 'gps': {'rate_hz': 20}},
+            'actuators': {'channels': [
+                {'name': name, 'unit': '1', 'min': -1.0, 'max': 1.0,
+                 'safe_value': 0.0,
+                 'binding': {'input': 'flight_control.{}'.format(name), 'index': 0}}
+                for name in ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
+            ]},
+        })
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        result = validate_package(self.package, self.root, package_sha256(self.package))
+        self.assertEqual('fixed_wing', result['contract']['vehicle_kind'])
+
+    def test_v3_actuator_without_explicit_binding_is_rejected(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract.update({'contract_version': 3, 'vehicle_kind': 'fixed_wing',
+                         'control_sources': ['px4_sitl'], 'sensors': {},
+                         'actuators': {'channels': [
+                             {'name': 'throttle', 'unit': '1', 'min': -1.0,
+                              'max': 1.0, 'safe_value': 0.0}]}})
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root, package_sha256(self.package))
+
+    def test_v3_actuator_binding_must_target_declared_input_dimension(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        contract = json.load(open(contract_path))
+        contract.update({'contract_version': 3, 'vehicle_kind': 'fixed_wing',
+                         'control_sources': ['px4_sitl'], 'sensors': {},
+                         'actuators': {'channels': [
+                             {'name': 'bad', 'unit': '1', 'min': -1.0,
+                              'max': 1.0, 'safe_value': 0.0,
+                              'binding': {'input': 'flight_control.throttle', 'index': 1}}]}})
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root, package_sha256(self.package))
+
     def test_internal_acceleration_declaration_is_accepted(self):
         contract_path = os.path.join(self.package, 'hil_contract.json')
         result = validate_package(self.package, self.root, package_sha256(self.package))

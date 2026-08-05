@@ -19,6 +19,23 @@ debug_ue4_tcp:
   host: "192.168.100.172"
   port: 5000
 
+# PX4 MAVLink HIL is opt-in.  It only transports sensors/actuators; selecting
+# px4_sitl remains an explicit WebSocket control-source action.
+px4_hil:
+  enabled: false
+  peer_host: "127.0.0.1"
+  peer_port: 14560
+  bind_host: "127.0.0.1"
+  bind_port: 14580
+  system_id: 1
+  component_id: 1
+  actuator_count: 4
+  imu_rate_hz: 250
+  gps_rate_hz: 20
+  origin_lat_deg: 31.2304
+  origin_lon_deg: 121.4737
+  origin_alt_m: 10.0
+
 logging:
   level: "INFO"
   file: "logs/hil.log"

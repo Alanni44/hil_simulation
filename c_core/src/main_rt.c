@@ -11,11 +11,27 @@
 #include <json-c/json.h>
 
 #include "flight_state.h"
+#include "control_arbiter.h"
 #include "local_udp.h"
 #include "mission_controller.h"
 #include "model_rt_wrapper.h"
 #include "model_contract.h"
 #include "realtime.h"
+
+/* Existing V2 generated artifacts remain deployable until their next ERT
+ * rebuild.  New V3 artifacts provide the same API from build_script.m. */
+#ifndef HIL_ACTUATOR_COUNT
+#define HIL_ACTUATOR_COUNT 4U
+typedef struct { double min_value; double max_value; double safe_value; } HilActuatorSpec;
+static const HilActuatorSpec HIL_ACTUATOR_SPECS[HIL_ACTUATOR_COUNT] = {
+    {0.0, 1.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 1.0, 0.0}
+};
+#define HIL_CONTROL_SOURCE_MASK 7U
+static int hil_contract_set_actuators(ModelU_t* input, const double* values,
+                                      unsigned count) {
+    return hil_contract_set_input(input, "flight_control.motor_command", values, count);
+}
+#endif
 
 #define STEP_NS 1000000L
 #define UDP_CMD_PORT 9997
@@ -23,7 +39,13 @@
 #define SEND_INTERVAL 20U
 #define REQUEST_ID_MAX 96
 #define MISSION_ID_MAX 128
-#define MAX_INPUT_VALUE_COUNT 16U
+#define MAX_INPUT_VALUE_COUNT 32U
+#define EXTERNAL_CONTROL_TIMEOUT_NS 100000000ULL
+
+static int control_source_allowed(ControlSource source) {
+    return source != CONTROL_SOURCE_NONE &&
+           (HIL_CONTROL_SOURCE_MASK & (1U << ((unsigned)source - 1U))) != 0U;
+}
 
 static volatile sig_atomic_t running = 1;
 static volatile int lifecycle = HIL_RUNNING;
@@ -45,6 +67,7 @@ static HilParameterValues active_parameters;
 static HilParameterValues initial_parameters;
 static unsigned applied_live_generation = 0;
 static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
+static ControlArbiter control_arbiter;
 
 /* This measures process-local command-to-status latency with CLOCK_MONOTONIC:
  * UDP command receipt -> command effective at a model boundary -> completion
@@ -397,23 +420,6 @@ static const HilParameterSpec* find_parameter(const char* name) {
     return NULL;
 }
 
-static double active_parameter_or_default(const char* name, double fallback) {
-    const HilParameterSpec* spec = find_parameter(name);
-    unsigned index;
-    double value;
-    if (!spec) return fallback;
-    index = (unsigned)(spec - HIL_PARAMETER_SPECS);
-    value = active_parameters.value[index];
-    return isfinite(value) && value > 0.0 ? value : fallback;
-}
-
-static void configure_mission_controller_vehicle(void) {
-    mission_controller_configure_vehicle(
-        active_parameter_or_default("mass_kg", 1.5),
-        active_parameter_or_default("thrust_coefficient_n", 4.2),
-        active_parameter_or_default("motor_efficiency", 1.0));
-}
-
 static int state_is_valid(const FlightState_t* candidate) {
     const float norm = sqrtf(candidate->q_w * candidate->q_w + candidate->q_x * candidate->q_x +
                              candidate->q_y * candidate->q_y + candidate->q_z * candidate->q_z);
@@ -537,7 +543,6 @@ static void apply_lifecycle_request(void) {
             if (pending_reset.generation) active_parameters = pending_reset.parameters;
             *model_get_input() = active_input;
             hil_contract_apply_exported_globals(&active_parameters);
-            configure_mission_controller_vehicle();
             pending_live.input = active_input;
             pending_live.parameters = active_parameters;
             pending_live.generation++;
@@ -571,7 +576,6 @@ static void apply_live_update(void) {
         active_parameters = snapshot.parameters;
         *model_get_input() = active_input;
         hil_contract_apply_exported_globals(&active_parameters);
-        configure_mission_controller_vehicle();
         applied_live_generation = snapshot.generation;
         latency_mark_applied(HIL_LATENCY_LIVE_INPUT, snapshot.generation);
     }
@@ -595,15 +599,12 @@ static void apply_mission_update(void) {
     latency_mark_applied(HIL_LATENCY_MISSION, snapshot.generation);
 }
 
-static void write_motor_command(const float motor[4]) {
-    double values[4];
+static void write_actuator_command(const float* actuator, unsigned count) {
+    double values[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
     unsigned index;
-    /* Axis-command contracts are driven by their declared external inputs;
-     * only motor-command contracts accept the onboard mission mixer's four
-     * outputs.  Absence is a valid contract mode, not a generated ABI error. */
-    if (!hil_contract_find_input("flight_control.motor_command")) return;
-    for (index = 0; index < 4; ++index) values[index] = motor[index];
-    if (!hil_contract_set_input(&active_input, "flight_control.motor_command", values, 4U)) {
+    if (!actuator || count != HIL_ACTUATOR_COUNT) { running = 0; return; }
+    for (index = 0; index < count; ++index) values[index] = actuator[index];
+    if (!hil_contract_set_actuators(&active_input, values, count)) {
         fprintf(stderr, "[HIL] generated motor command setter unavailable\n");
         running = 0;
         return;
@@ -612,8 +613,8 @@ static void write_motor_command(const float motor[4]) {
 }
 
 static void zero_motor_command(void) {
-    const float motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    write_motor_command(motor);
+    const float actuator[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {0.0f};
+    write_actuator_command(actuator, HIL_ACTUATOR_COUNT);
 }
 
 /* Reset restores all ordinary model inputs to their contract defaults, while
@@ -703,6 +704,76 @@ static void parse_tune(struct json_object* root, const char* request_id,
                  ok && has_live ? sequence + 1U : (ok && has_reset ? 0U : sequence), field_results);
 }
 
+static void parse_select_control_source(struct json_object* root, const char* request_id,
+                                        const struct sockaddr_in* sender) {
+    struct json_object* params = NULL;
+    struct json_object* source_value = NULL;
+    ControlSource source;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "source", &source_value) ||
+        json_object_get_type(source_value) != json_type_string) {
+        send_receipt(sender, request_id, 0, "params.source is required", sequence, NULL);
+        return;
+    }
+    source = control_source_from_name(json_object_get_string(source_value));
+    pthread_mutex_lock(&command_lock);
+    if (!control_source_allowed(source) ||
+        (source == CONTROL_SOURCE_DEMO_MISSION && HIL_ACTUATOR_COUNT != 4U) ||
+        !control_arbiter_select(&control_arbiter, source)) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "unsupported control source", sequence, NULL);
+        return;
+    }
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, 1, control_source_name(source), sequence + 1U, NULL);
+}
+
+static void parse_actuator_command(struct json_object* root, const char* request_id,
+                                   const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *source_value = NULL, *values = NULL;
+    float command[HIL_MAX_ACTUATORS];
+    ControlSource source;
+    size_t index, count;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "source", &source_value) ||
+        json_object_get_type(source_value) != json_type_string ||
+        !json_object_object_get_ex(params, "values", &values) ||
+        json_object_get_type(values) != json_type_array) {
+        send_receipt(sender, request_id, 0, "params.source and params.values are required", sequence, NULL);
+        return;
+    }
+    source = control_source_from_name(json_object_get_string(source_value));
+    count = json_object_array_length(values);
+    pthread_mutex_lock(&command_lock);
+    if (source == CONTROL_SOURCE_NONE || count != control_arbiter.actuator_count) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "control source or actuator count is invalid", sequence, NULL);
+        return;
+    }
+    for (index = 0; index < count; ++index) {
+        double value;
+        int was_bool = 0;
+        if (!valid_number(json_object_array_get_idx(values, index), &value, &was_bool) ||
+            was_bool || value < HIL_ACTUATOR_SPECS[index].min_value ||
+            value > HIL_ACTUATOR_SPECS[index].max_value) {
+            pthread_mutex_unlock(&command_lock);
+            send_receipt(sender, request_id, 0, "actuator command is outside its contract range", sequence, NULL);
+            return;
+        }
+        command[index] = (float)value;
+    }
+    if (!control_arbiter_submit(&control_arbiter, source, command, (unsigned)count,
+                                monotonic_time_ns())) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "source is not active", sequence, NULL);
+        return;
+    }
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, 1, "actuator command accepted", sequence + 1U, NULL);
+}
+
 static void parse_command(const char* text, const struct sockaddr_in* sender) {
     struct json_object *root, *request, *cmd;
     const char *request_id, *command;
@@ -716,6 +787,8 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
     else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
+    else if (!strcmp(command, "select_control_source")) parse_select_control_source(root, request_id, sender);
+    else if (!strcmp(command, "actuator_command")) parse_actuator_command(root, request_id, sender);
     else if (!strcmp(command, "load_mission")) parse_load_mission(root, request_id, sender);
     else if (!strcmp(command, "pause")) queue_lifecycle(HIL_PAUSED, request_id, sender);
     else if (!strcmp(command, "resume")) queue_lifecycle(HIL_RUNNING, request_id, sender);
@@ -731,10 +804,21 @@ static void* command_thread(void* ignored) {
     return NULL;
 }
 
+static ControlSource active_control_source(void) {
+    ControlSource source;
+    pthread_mutex_lock(&command_lock);
+    source = control_arbiter.active_source;
+    pthread_mutex_unlock(&command_lock);
+    return source;
+}
+
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
     uint64_t next_latency_report_ns = 0;
-    float mission_motor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float mission_motor[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {0.0f};
+    float external_actuator[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {0.0f};
+    float actuator_safe_value[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+    unsigned actuator_index;
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
     if (hil_realtime_init(90) != 0) {
         HilRealtimeStats stats = hil_realtime_stats();
@@ -756,9 +840,15 @@ int main(void) {
     active_parameters = initial_parameters;
     *model_get_input() = active_input;
     hil_contract_apply_exported_globals(&active_parameters);
-    configure_mission_controller_vehicle();
     pending_live.input = active_input; pending_live.parameters = active_parameters;
     pending_reset.input = active_input; pending_reset.parameters = active_parameters;
+    for (actuator_index = 0; actuator_index < HIL_ACTUATOR_COUNT; ++actuator_index)
+        actuator_safe_value[actuator_index] = (float)HIL_ACTUATOR_SPECS[actuator_index].safe_value;
+    if (!control_arbiter_init(&control_arbiter, HIL_ACTUATOR_COUNT, actuator_safe_value,
+                              EXTERNAL_CONTROL_TIMEOUT_NS)) {
+        fprintf(stderr, "[HIL] control arbiter initialization failed\n");
+        model_terminate(); udp_close(); return 1;
+    }
     populate_state();
     if (pthread_create(&command_worker, NULL, command_thread, NULL) != 0) { model_terminate(); udp_close(); return 1; }
     clock_gettime(CLOCK_MONOTONIC, &next);
@@ -766,14 +856,23 @@ int main(void) {
         next.tv_nsec += STEP_NS; if (next.tv_nsec >= 1000000000L) { next.tv_sec++; next.tv_nsec -= 1000000000L; }
         apply_lifecycle_request();
         if (lifecycle == HIL_RUNNING) {
+            ControlSource source = active_control_source();
             apply_live_update();
             apply_mission_update();
-            mission_controller_step(have_valid_state ? &state : NULL, 0.001,
-                                    mission_motor);
-            if (mission_controller_take_landed_event()) {
-                lifecycle = HIL_ENDED;
+            if (source == CONTROL_SOURCE_DEMO_MISSION && HIL_ACTUATOR_COUNT == 4U) {
+                mission_controller_step(have_valid_state ? &state : NULL, 0.001,
+                                        mission_motor);
+                if (mission_controller_take_landed_event()) {
+                    lifecycle = HIL_ENDED;
+                }
+                write_actuator_command(mission_motor, HIL_ACTUATOR_COUNT);
+            } else {
+                pthread_mutex_lock(&command_lock);
+                control_arbiter_get(&control_arbiter, monotonic_time_ns(),
+                                    external_actuator, HIL_ACTUATOR_COUNT);
+                pthread_mutex_unlock(&command_lock);
+                write_actuator_command(external_actuator, HIL_ACTUATOR_COUNT);
             }
-            write_motor_command(mission_motor);
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
         } else {
             zero_motor_command();

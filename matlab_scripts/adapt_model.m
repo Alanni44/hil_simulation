@@ -10,8 +10,8 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
     info = read_json_object(interface_json_path, 'interface JSON');
     contract = read_json_object(contract_path, 'hil_contract.json');
 
-    if ~isfield(contract, 'contract_version') || contract.contract_version ~= 2
-        error('hil_contract.json contract_version must equal 2');
+    if ~isfield(contract, 'contract_version') || ~any(contract.contract_version == [2 3])
+        error('hil_contract.json contract_version must equal 2 or 3');
     end
     if ~isfield(contract, 'model_name') || ~strcmp(contract.model_name, info.model_name)
         error('contract.model_name must exactly match the top-level model name');
@@ -49,6 +49,7 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
         error('each required state key must map to a distinct root Outport');
     end
     validate_declared_inputs(contract, root_port_names(info.root_inports));
+    validate_v3_actuators(contract);
     validate_internal_acceleration_outputs(contract, root_names);
 
     % No topology mutation is permitted.  Copy only so codegen has its own
@@ -65,6 +66,32 @@ function result = adapt_model(slx_path, interface_json_path, contract_path, outp
     if fid < 0, error('Cannot write field_mapping.json'); end
     fprintf(fid, '%s', jsonencode(result.field_mapping));
     fclose(fid);
+end
+
+function validate_v3_actuators(contract)
+    if contract.contract_version < 3, return; end
+    if ~isfield(contract, 'actuators') || ~isfield(contract.actuators, 'channels') || ...
+            ~isfield(contract, 'control_sources') || isempty(contract.control_sources)
+        error('V3 contract actuators and control_sources are required');
+    end
+    channels = contract.actuators.channels;
+    if ~iscell(channels), channels = num2cell(channels); end
+    if isempty(channels) || length(channels) > 32, error('V3 actuator count must be 1..32'); end
+    input_names = {};
+    groups = {'flight_control','environment','fault'};
+    for g = 1:length(groups)
+        port_names = fieldnames(contract.inputs.(groups{g}).ports);
+        for p = 1:length(port_names)
+            input_names{end+1} = [groups{g} '.' port_names{p}]; %#ok<AGROW>
+        end
+    end
+    for i = 1:length(channels)
+        channel = channels{i};
+        if ~isfield(channel, 'binding') || ~isfield(channel.binding, 'input') || ...
+                ~isfield(channel.binding, 'index') || ~any(strcmp(input_names, channel.binding.input))
+            error('V3 actuator binding is invalid');
+        end
+    end
 end
 
 function value = read_json_object(path, label)

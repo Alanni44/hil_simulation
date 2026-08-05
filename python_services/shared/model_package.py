@@ -49,6 +49,8 @@ REQUIRED_FAULT_PORTS = {
 }
 REQUIRED_AXIS_PORTS = ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
 REQUIRED_ACCELERATION_PORTS = ('ax_mps2', 'ay_mps2', 'az_mps2')
+CONTROL_SOURCES = ('demo_mission', 'px4_sitl', 'physical_uut')
+VEHICLE_KINDS = ('multirotor', 'fixed_wing')
 
 
 class PackageError(ValueError):
@@ -159,9 +161,13 @@ def _validate_inputs(contract):
             raise PackageError('motor_command and axis_command are mutually exclusive')
         if 'motor_command' not in ports:
             raise PackageError('flight_control motor_command missing motor_command')
+        expected_dimension = 4
+        if contract.get('contract_version') == 3:
+            channels = contract.get('actuators', {}).get('channels', [])
+            expected_dimension = len(channels) or 1
         _validate_port_descriptor(ports['motor_command'],
                                   'contract.inputs.flight_control.ports.motor_command',
-                                  '1', 'double', 4)
+                                  '1', 'double', expected_dimension)
     else:
         raise PackageError('flight_control.mode must be axis_command or motor_command')
     _validate_port_group(inputs.get('environment'), 'contract.inputs.environment',
@@ -215,9 +221,68 @@ def _validate_execution(contract):
         raise PackageError('contract.execution.locked_configuration is incomplete')
 
 
+def _validate_v3_extensions(contract):
+    vehicle_kind = contract.get('vehicle_kind')
+    if vehicle_kind not in VEHICLE_KINDS:
+        raise PackageError('V3 contract.vehicle_kind must be multirotor or fixed_wing')
+    actuators = contract.get('actuators')
+    if not isinstance(actuators, dict) or not isinstance(actuators.get('channels'), list):
+        raise PackageError('V3 contract.actuators.channels must be an array')
+    channels = actuators['channels']
+    if not channels or len(channels) > 32:
+        raise PackageError('V3 contract.actuators.channels must contain 1..32 channels')
+    names = set()
+    input_ports = {}
+    for group_name in ('flight_control', 'environment', 'fault'):
+        for port_name, descriptor in contract['inputs'][group_name]['ports'].items():
+            input_ports['{}.{}'.format(group_name, port_name)] = descriptor
+    for index, channel in enumerate(channels):
+        label = 'contract.actuators.channels[{}]'.format(index)
+        if not isinstance(channel, dict):
+            raise PackageError('{} must be an object'.format(label))
+        name = _require_string(channel.get('name'), label + '.name')
+        if name in names:
+            raise PackageError('duplicate actuator channel {}'.format(name))
+        names.add(name)
+        _require_string(channel.get('unit'), label + '.unit')
+        binding = channel.get('binding')
+        if not isinstance(binding, dict):
+            raise PackageError('{}.binding must be an object'.format(label))
+        _require_string(binding.get('input'), label + '.binding.input')
+        index_value = binding.get('index')
+        if not isinstance(index_value, int) or isinstance(index_value, bool) or index_value < 0:
+            raise PackageError('{}.binding.index must be a non-negative integer'.format(label))
+        bound_input = input_ports.get(binding['input'])
+        if bound_input is None:
+            raise PackageError('{}.binding.input must name a declared input port'.format(label))
+        if bound_input.get('type') not in ('double', 'float'):
+            raise PackageError('{}.binding.input must bind a numeric input port'.format(label))
+        if index_value >= bound_input.get('dimension', 0):
+            raise PackageError('{}.binding.index exceeds the declared input dimension'.format(label))
+        for key in ('min', 'max', 'safe_value'):
+            if not _finite_number(channel.get(key)):
+                raise PackageError('{}.{} must be finite'.format(label, key))
+        if channel['min'] > channel['max'] or not (channel['min'] <= channel['safe_value'] <= channel['max']):
+            raise PackageError('{} has invalid range or safe_value'.format(label))
+    sources = contract.get('control_sources')
+    if not isinstance(sources, list) or not sources:
+        raise PackageError('V3 contract.control_sources must be a non-empty array')
+    if any(source not in CONTROL_SOURCES for source in sources) or len(set(sources)) != len(sources):
+        raise PackageError('V3 contract.control_sources contains an unsupported or duplicate source')
+    sensors = contract.get('sensors', {})
+    if not isinstance(sensors, dict):
+        raise PackageError('V3 contract.sensors must be an object')
+    for name, descriptor in sensors.items():
+        if name not in ('imu', 'gps', 'magnetometer', 'barometer') or not isinstance(descriptor, dict):
+            raise PackageError('V3 contract.sensors contains an invalid sensor declaration')
+        rate_hz = descriptor.get('rate_hz')
+        if not isinstance(rate_hz, int) or rate_hz <= 0 or rate_hz > 1000:
+            raise PackageError('V3 sensor {} has invalid rate_hz'.format(name))
+
+
 def validate_contract(contract):
-    if contract.get('contract_version') != 2:
-        raise PackageError('contract_version must equal 2')
+    if contract.get('contract_version') not in (2, 3):
+        raise PackageError('contract_version must equal 2 or 3')
     _require_string(contract.get('model_name'), 'contract.model_name')
     state = contract.get('state')
     if not isinstance(state, dict):
@@ -241,6 +306,8 @@ def validate_contract(contract):
     _validate_inputs(contract)
     _validate_outputs(contract)
     _validate_execution(contract)
+    if contract.get('contract_version') == 3:
+        _validate_v3_extensions(contract)
 
     parameters = contract.get('parameters')
     if not isinstance(parameters, list):
