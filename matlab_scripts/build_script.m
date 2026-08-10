@@ -335,13 +335,14 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     fprintf(fid, 'enum { HIL_PARAM_LIVE=1, HIL_PARAM_RESET_ONLY=2, HIL_PARAM_READONLY=3 };\n');
     fprintf(fid, '#define HIL_PARAMETER_COUNT %d\n', length(params));
     fprintf(fid, 'typedef struct { double value[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1]; } HilParameterValues;\n');
-    fprintf(fid, 'typedef struct { const char* name; int klass; double min_value; double max_value; int is_bool; unsigned phase_mask; } HilParameterSpec;\n');
+    fprintf(fid, 'typedef struct { const char* name; const char* unit; const char* review_status; int klass; double default_value; double min_value; double max_value; int is_bool; unsigned phase_mask; } HilParameterSpec;\n');
     fprintf(fid, 'static const HilParameterSpec HIL_PARAMETER_SPECS[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1] = {\n');
     for i = 1:length(params)
         p = params{i};
-        fprintf(fid, '{"%s", HIL_PARAM_%s, %.17g, %.17g, %d, %u},\n', p.name, upper(p.class), p.min, p.max, strcmp(p.type,'bool'), phase_mask_for_parameter(p));
+        review_status = parameter_review_status(p);
+        fprintf(fid, '{"%s", "%s", "%s", HIL_PARAM_%s, %.17g, %.17g, %.17g, %d, %u},\n', p.name, p.unit, review_status, upper(p.class), numeric_parameter_default(p), p.min, p.max, strcmp(p.type,'bool'), phase_mask_for_parameter(p));
     end
-    if isempty(params), fprintf(fid, '{"",0,0,0,0,0},\n'); end
+    if isempty(params), fprintf(fid, '{"","","",0,0,0,0,0,0},\n'); end
     fprintf(fid, '};\n');
     for i = 1:length(exported_globals)
         fprintf(fid, 'extern %s %s;\n', exported_globals(i).type, exported_globals(i).name);
@@ -473,6 +474,11 @@ function binding = parameter_binding(parameter)
     end
 end
 function value = numeric_parameter_default(parameter), if islogical(parameter.default), value = double(parameter.default); else, value = parameter.default; end, end
+function status = parameter_review_status(parameter)
+    status = 'approved';
+    if isfield(parameter, 'review_status'), status = parameter.review_status; end
+    if ~strcmp(status, 'approved'), error('Deployable parameter %s must have review_status approved', parameter.name); end
+end
 
 function yes = is_numeric_type(type)
     yes = any(strcmp(type, {'real_T','real32_T','real64_T','double','float','int8_T','uint8_T','int16_T','uint16_T','int32_T','uint32_T','int64_T','uint64_T'}));

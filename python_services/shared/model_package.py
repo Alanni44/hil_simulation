@@ -328,6 +328,11 @@ def validate_contract(contract):
         parameter_class = parameter.get('class')
         if parameter_class not in ('live', 'reset_only', 'readonly'):
             raise PackageError('{} has unsupported class'.format(label))
+        review_status = parameter.get('review_status', 'approved')
+        if review_status not in ('approved', 'candidate', 'rejected'):
+            raise PackageError('{} has invalid review_status'.format(label))
+        if parameter_class != 'readonly' and review_status != 'approved':
+            raise PackageError('{} writable parameter must be approved'.format(label))
         phases = parameter.get('allowed_phases')
         if not isinstance(phases, list) or not phases or any(
                 phase not in ('RUNNING', 'PAUSED', 'RESETTING', 'ENDED') for phase in phases):

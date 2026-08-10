@@ -261,7 +261,8 @@ async def command_loop(reader, writer):
         if cmd in ('build_package', 'deploy_package'):
             request_body = dict(params); request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
             await ws_send(writer, json.dumps(_build_or_deploy(request_body)))
-        elif cmd == 'tune': await _handle_core_command('tune', dict(params), writer)
+        elif cmd in ('tune', 'get_parameter_registry'):
+            await _handle_core_command(cmd, dict(params), writer)
         elif cmd == 'set_inputs': await _handle_core_command('set_inputs', dict(params), writer)
         elif cmd in ('select_control_source', 'actuator_command'):
             await _handle_core_command(cmd, dict(params), writer)

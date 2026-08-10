@@ -161,6 +161,7 @@ function analyze_model(slx_path, output_json_path)
     fprintf(fid, '%s', jsonencode(info));
     fclose(fid);
     write_contract_draft(output_json_path, info);
+    write_parameter_candidates(output_json_path, info);
 
     % ---- Summary ----
     fprintf('\n========== [analyze_model] %s ==========\n', model_name);
@@ -215,8 +216,20 @@ function candidates = candidate_tunable_parameters(model_name)
         variables = workspace.whos;
         for i = 1:length(variables)
             if strcmp(variables(i).class, 'Simulink.Parameter')
-                candidates{end+1} = struct('name', variables(i).name, ...
-                    'source', 'model_workspace', 'requires_review', true); %#ok<AGROW>
+                candidate = struct('name', variables(i).name, ...
+                    'source', 'model_workspace', 'declared_class', variables(i).class, ...
+                    'requires_review', true, 'recommended_review_status', 'candidate');
+                try
+                    parameter = workspace.getVariable(variables(i).name);
+                    candidate.data_type = parameter.DataType;
+                    candidate.storage_class = parameter.CoderInfo.StorageClass;
+                    if isnumeric(parameter.Value) || islogical(parameter.Value)
+                        if isscalar(parameter.Value), candidate.default_candidate = parameter.Value; end
+                    end
+                catch
+                    candidate.metadata_read_error = true;
+                end
+                candidates{end+1} = candidate; %#ok<AGROW>
             end
         end
     catch
@@ -243,6 +256,16 @@ function write_contract_draft(interface_json_path, info)
     if fid < 0, error('Cannot write HIL contract draft'); end
     fprintf(fid, '%s', jsonencode(draft));
     fclose(fid);
+end
+
+function write_parameter_candidates(interface_json_path, info)
+    [folder, ~, ~] = fileparts(interface_json_path);
+    report = struct('document_kind', 'hil_parameter_candidates', ...
+        'schema_version', 1, 'model_name', info.model_name, ...
+        'review_required', true, 'parameters', {info.candidate_parameters});
+    fid = fopen(fullfile(folder, [info.model_name '_parameter_candidates.json']), 'w');
+    if fid < 0, error('Cannot write parameter candidate report'); end
+    fprintf(fid, '%s', jsonencode(report)); fclose(fid);
 end
 
 function items = unresolved_items(inports, outports, state_candidates, input_candidates, parameters)

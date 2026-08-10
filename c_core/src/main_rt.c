@@ -420,6 +420,38 @@ static const HilParameterSpec* find_parameter(const char* name) {
     return NULL;
 }
 
+static const char* parameter_class_name(int klass) {
+    if (klass == HIL_PARAM_LIVE) return "live";
+    if (klass == HIL_PARAM_RESET_ONLY) return "reset_only";
+    return "readonly";
+}
+
+static void parse_get_parameter_registry(const char* request_id,
+                                         const struct sockaddr_in* sender) {
+    struct json_object* fields = json_object_new_object();
+    struct json_object* parameters = json_object_new_array();
+    unsigned index;
+    pthread_mutex_lock(&command_lock);
+    for (index = 0; index < HIL_PARAMETER_COUNT; ++index) {
+        const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[index];
+        struct json_object* item = json_object_new_object();
+        json_object_object_add(item, "name", json_object_new_string(spec->name));
+        json_object_object_add(item, "unit", json_object_new_string(spec->unit));
+        json_object_object_add(item, "review_status", json_object_new_string(spec->review_status));
+        json_object_object_add(item, "class", json_object_new_string(parameter_class_name(spec->klass)));
+        json_object_object_add(item, "type", json_object_new_string(spec->is_bool ? "bool" : "double"));
+        json_object_object_add(item, "default", spec->is_bool ? json_object_new_boolean(spec->default_value != 0.0) : json_object_new_double(spec->default_value));
+        json_object_object_add(item, "min", json_object_new_double(spec->min_value));
+        json_object_object_add(item, "max", json_object_new_double(spec->max_value));
+        json_object_object_add(item, "current", spec->is_bool ? json_object_new_boolean(active_parameters.value[index] != 0.0) : json_object_new_double(active_parameters.value[index]));
+        json_object_object_add(item, "allowed_phase_mask", json_object_new_int((int)spec->phase_mask));
+        json_object_array_add(parameters, item);
+    }
+    pthread_mutex_unlock(&command_lock);
+    json_object_object_add(fields, "parameters", parameters);
+    send_receipt(sender, request_id, 1, "parameter registry", sequence, fields);
+}
+
 static int state_is_valid(const FlightState_t* candidate) {
     const float norm = sqrtf(candidate->q_w * candidate->q_w + candidate->q_x * candidate->q_x +
                              candidate->q_y * candidate->q_y + candidate->q_z * candidate->q_z);
@@ -787,6 +819,7 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
     else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
+    else if (!strcmp(command, "get_parameter_registry")) parse_get_parameter_registry(request_id, sender);
     else if (!strcmp(command, "select_control_source")) parse_select_control_source(root, request_id, sender);
     else if (!strcmp(command, "actuator_command")) parse_actuator_command(root, request_id, sender);
     else if (!strcmp(command, "load_mission")) parse_load_mission(root, request_id, sender);

@@ -107,6 +107,6 @@ function params = generic_parameters(vehicle_kind)
     for i = 1:size(names,1)
         binding = struct('kind','exported_global','symbol',['uav_' names{i,1}]);
         params(i) = struct('name',names{i,1},'generated_field',['uav_' names{i,1}], 'type','double','unit',names{i,2}, ...
-            'default',names{i,3},'min',names{i,4},'max',names{i,5},'class','live','allowed_phases',{{'RUNNING','PAUSED'}},'binding',binding); %#ok<AGROW>
+            'default',names{i,3},'min',names{i,4},'max',names{i,5},'class','live','review_status','approved','allowed_phases',{{'RUNNING','PAUSED'}},'binding',binding); %#ok<AGROW>
     end
 end
