@@ -43,16 +43,51 @@ function contract_path = create_generic_vehicle_contract(output_dir, vehicle_kin
         end
     end
     contract.actuators = struct('channels', channels);
+    % This profile is consumed only by the optional software virtual flight
+    % controller.  C remains generic and receives the ordered channels above.
+    contract.virtual_fc = virtual_fc_profile(vehicle_kind, channels);
     contract.inputs.environment = environment_inputs();
     contract.inputs.fault = fault_inputs();
     contract.outputs.internal_state = internal_outputs();
     contract.execution = struct('step_s',0.001, 'locked_configuration', ...
         {{'solver_step_s','model_topology','port_schema','communication_endpoint'}});
+    if strcmp(vehicle_kind, 'fixed_wing')
+        % V3 protocol metadata.  Surfaces are intentionally omitted: the
+        % generic axis commands are not real deflection angles and must never
+        % be relabelled as such.  A supplied SLX may add a validated explicit
+        % mapping or native surface outputs in its own contract.
+        contract.protocol_v3 = struct('flight_state', struct( ...
+            'source','c_core_state_machine', 'takeoff_throttle_min',0.05, ...
+            'landing_throttle_max',0.05, 'tas_min_mps',0.1));
+    end
     contract.parameters = generic_parameters(vehicle_kind);
     contract_path = fullfile(output_dir, 'hil_contract.json');
     fid = fopen(contract_path, 'w');
     if fid < 0, error('Cannot write %s', contract_path); end
     fprintf(fid, '%s\n', jsonencode(contract)); fclose(fid);
+end
+
+function profile = virtual_fc_profile(vehicle_kind, channels)
+    if strcmp(vehicle_kind, 'fixed_wing')
+        profile = struct('kind','fixed_wing', ...
+            'axis_map',struct('throttle','throttle','roll','roll_cmd', ...
+                              'pitch','pitch_cmd','yaw','yaw_cmd'), ...
+            'cruise_speed_mps',15.0);
+        return;
+    end
+    count = length(channels);
+    profile = struct('kind','multirotor');
+    % X is forward and Y is right in the body frame.  Starting at front-left
+    % preserves the historical four-rotor mixer signs; additional rotors are
+    % evenly distributed on the same arm radius.
+    for i = 1:count
+        angle = pi*3/4 + 2*pi*(i-1)/count;
+        if mod(i,2) == 0, spin = 'ccw'; else, spin = 'cw'; end
+        rotors(i) = struct('channel',channels(i).name, ... %#ok<AGROW>
+            'position_m',[cos(angle), sin(angle)], 'spin',spin, ...
+            'thrust_scale',1.0);
+    end
+    profile.rotors = rotors;
 end
 
 function state = standard_state()

@@ -11,6 +11,7 @@
 #include <json-c/json.h>
 
 #include "flight_state.h"
+#include "fixed_wing_v3_tcp.h"
 #include "control_arbiter.h"
 #include "local_udp.h"
 #include "mission_controller.h"
@@ -33,6 +34,44 @@ static int hil_contract_set_actuators(ModelU_t* input, const double* values,
 }
 #endif
 
+/* V2 generated headers do not describe V3 fixed-wing projection metadata. */
+#ifndef HIL_FIXED_WING
+#define HIL_FIXED_WING 0
+#endif
+#ifndef HIL_FIXED_WING_V3_TCP
+#define HIL_FIXED_WING_V3_TCP 0
+#endif
+#ifndef HIL_READ_WIND_N_MPS
+#define HIL_READ_WIND_N_MPS(u) (0.0)
+#define HIL_READ_WIND_E_MPS(u) (0.0)
+#define HIL_READ_WIND_D_MPS(u) (0.0)
+#endif
+#ifndef HIL_READ_THROTTLE
+#define HIL_READ_THROTTLE(u) (0.0)
+#endif
+#ifndef HIL_READ_FAULT_ACTIVE
+#define HIL_READ_FAULT_ACTIVE(u) (0)
+#endif
+#ifndef HIL_TAKEOFF_THROTTLE_MIN
+#define HIL_TAKEOFF_THROTTLE_MIN 0.05
+#endif
+#ifndef HIL_LANDING_THROTTLE_MAX
+#define HIL_LANDING_THROTTLE_MAX 0.05
+#endif
+#ifndef HIL_TAS_MIN_MPS
+#define HIL_TAS_MIN_MPS 0.1
+#endif
+#ifndef HIL_READ_FLIGHT_PHASE_MODEL
+/* A negative value means the model does not authoritatively publish a phase. */
+#define HIL_READ_FLIGHT_PHASE_MODEL(y) (-1)
+#endif
+#ifndef HIL_READ_AILERON_RAD
+#define HIL_SURFACE_OUTPUT_VALID 0
+#define HIL_READ_AILERON_RAD(u,y) (0.0)
+#define HIL_READ_ELEVATOR_RAD(u,y) (0.0)
+#define HIL_READ_RUDDER_RAD(u,y) (0.0)
+#endif
+
 #define STEP_NS 1000000L
 #define UDP_CMD_PORT 9997
 #define UDP_STATUS_PORT 9998
@@ -49,10 +88,13 @@ static int control_source_allowed(ControlSource source) {
 
 static volatile sig_atomic_t running = 1;
 static volatile int lifecycle = HIL_RUNNING;
-static FlightState_t state;
+static FlightStateV3_t state;
 static int have_valid_state = 0;
 static uint64_t sequence = 0;
 static double sim_time_s = 0.0;
+static float prior_p_radps, prior_q_radps, prior_r_radps;
+static int prior_rates_valid = 0;
+static int fixed_wing_has_taken_off = 0;
 
 typedef struct {
     ModelU_t input;
@@ -410,6 +452,9 @@ static void parse_load_mission(struct json_object* root, const char* request_id,
     strncpy(mission.mission_id, json_object_get_string(mission_id), sizeof(mission.mission_id) - 1);
     mission.mission_id[sizeof(mission.mission_id) - 1] = '\0';
     pthread_mutex_unlock(&command_lock);
+    if (HIL_FIXED_WING_V3_TCP)
+        fixed_wing_v3_tcp_set_mission(json_object_get_string(mission_id), parsed,
+                                      (unsigned)count + 1U);
     send_receipt(sender, request_id, 1, "mission accepted as explicit NED route", sequence + 1U, NULL);
 }
 
@@ -418,6 +463,25 @@ static const HilParameterSpec* find_parameter(const char* name) {
     for (i = 0; i < HIL_PARAMETER_COUNT; ++i)
         if (!strcmp(HIL_PARAMETER_SPECS[i].name, name)) return &HIL_PARAMETER_SPECS[i];
     return NULL;
+}
+
+/* The optional demo mission controller must consume contract values through
+ * this generic registry, never model-generated global symbols. */
+static double active_parameter_or_default(const char* name, double default_value) {
+    const HilParameterSpec* spec = find_parameter(name);
+    unsigned index;
+    if (!spec) return default_value;
+    index = (unsigned)(spec - HIL_PARAMETER_SPECS);
+    if (index >= HIL_PARAMETER_COUNT || !isfinite(active_parameters.value[index]) ||
+        active_parameters.value[index] <= 0.0) return default_value;
+    return active_parameters.value[index];
+}
+
+static void configure_demo_mission_controller(void) {
+    mission_controller_configure_vehicle(
+        active_parameter_or_default("mass_kg", 1.5),
+        active_parameter_or_default("thrust_coefficient_n", 4.2),
+        active_parameter_or_default("motor_efficiency", 1.0));
 }
 
 static const char* parameter_class_name(int klass) {
@@ -435,12 +499,24 @@ static void parse_get_parameter_registry(const char* request_id,
     for (index = 0; index < HIL_PARAMETER_COUNT; ++index) {
         const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[index];
         struct json_object* item = json_object_new_object();
+        /* V2 generated contract headers predate descriptive parameter
+         * metadata.  Keep those deployed models runnable: their initial
+         * parameter snapshot is authoritative for the default, while V3
+         * headers provide the richer schema below. */
+        const char* unit = "";
+        const char* review_status = "approved";
+        double default_value = initial_parameters.value[index];
+#if defined(HIL_PARAMETER_METADATA)
+        unit = spec->unit;
+        review_status = spec->review_status;
+        default_value = spec->default_value;
+#endif
         json_object_object_add(item, "name", json_object_new_string(spec->name));
-        json_object_object_add(item, "unit", json_object_new_string(spec->unit));
-        json_object_object_add(item, "review_status", json_object_new_string(spec->review_status));
+        json_object_object_add(item, "unit", json_object_new_string(unit));
+        json_object_object_add(item, "review_status", json_object_new_string(review_status));
         json_object_object_add(item, "class", json_object_new_string(parameter_class_name(spec->klass)));
         json_object_object_add(item, "type", json_object_new_string(spec->is_bool ? "bool" : "double"));
-        json_object_object_add(item, "default", spec->is_bool ? json_object_new_boolean(spec->default_value != 0.0) : json_object_new_double(spec->default_value));
+        json_object_object_add(item, "default", spec->is_bool ? json_object_new_boolean(default_value != 0.0) : json_object_new_double(default_value));
         json_object_object_add(item, "min", json_object_new_double(spec->min_value));
         json_object_object_add(item, "max", json_object_new_double(spec->max_value));
         json_object_object_add(item, "current", spec->is_bool ? json_object_new_boolean(active_parameters.value[index] != 0.0) : json_object_new_double(active_parameters.value[index]));
@@ -452,7 +528,7 @@ static void parse_get_parameter_registry(const char* request_id,
     send_receipt(sender, request_id, 1, "parameter registry", sequence, fields);
 }
 
-static int state_is_valid(const FlightState_t* candidate) {
+static int state_is_valid(const FlightStateV3_t* candidate) {
     const float norm = sqrtf(candidate->q_w * candidate->q_w + candidate->q_x * candidate->q_x +
                              candidate->q_y * candidate->q_y + candidate->q_z * candidate->q_z);
     if (!isfinite(candidate->sim_time_s) || !isfinite(candidate->north_m) ||
@@ -461,16 +537,45 @@ static int state_is_valid(const FlightState_t* candidate) {
         !isfinite(candidate->q_w) || !isfinite(candidate->q_x) || !isfinite(candidate->q_y) ||
         !isfinite(candidate->q_z) || !isfinite(candidate->p_radps) || !isfinite(candidate->q_radps) ||
         !isfinite(candidate->r_radps) || !isfinite(candidate->ax_mps2) ||
-        !isfinite(candidate->ay_mps2) || !isfinite(candidate->az_mps2)) return 0;
-    return norm > 0.0f && fabsf(norm - 1.0f) <= 0.02f && candidate->airborne <= 1;
+        !isfinite(candidate->ay_mps2) || !isfinite(candidate->az_mps2) ||
+        !isfinite(candidate->p_dot_radps2) || !isfinite(candidate->q_dot_radps2) ||
+        !isfinite(candidate->r_dot_radps2) || !isfinite(candidate->wind_n_mps) ||
+        !isfinite(candidate->wind_e_mps) || !isfinite(candidate->wind_d_mps) ||
+        !isfinite(candidate->throttle) || !isfinite(candidate->aileron_rad) ||
+        !isfinite(candidate->elevator_rad) || !isfinite(candidate->rudder_rad) ||
+        !isfinite(candidate->tas_min_mps)) return 0;
+    return norm > 0.0f && fabsf(norm - 1.0f) <= 0.02f && candidate->airborne <= 1 &&
+           candidate->throttle >= 0.0f && candidate->throttle <= 1.0f &&
+           candidate->tas_min_mps > 0.0f &&
+           candidate->flight_phase <= HIL_FLIGHT_FAULT &&
+           candidate->control_surface_valid <= 1;
+}
+
+static uint8_t fixed_wing_flight_phase(const FlightStateV3_t* candidate,
+                                       const ModelY_t* output) {
+    const int model_phase = HIL_READ_FLIGHT_PHASE_MODEL(output);
+    if (!HIL_FIXED_WING) return candidate->airborne ? HIL_FLIGHT_FLYING : HIL_FLIGHT_LANDED;
+    if (HIL_READ_FAULT_ACTIVE(&active_input)) return HIL_FLIGHT_FAULT;
+    if (lifecycle == HIL_ENDED) return HIL_FLIGHT_LANDED;
+    if (lifecycle == HIL_RESETTING) return HIL_FLIGHT_READY;
+    /* A declared model phase is authoritative only after C has handled
+     * lifecycle and explicit fault overrides above. */
+    if (model_phase >= HIL_FLIGHT_READY && model_phase <= HIL_FLIGHT_FAULT)
+        return (uint8_t)model_phase;
+    if (candidate->airborne) {
+        fixed_wing_has_taken_off = 1;
+        return candidate->throttle <= HIL_LANDING_THROTTLE_MAX ? HIL_FLIGHT_LANDING : HIL_FLIGHT_FLYING;
+    }
+    if (fixed_wing_has_taken_off) return HIL_FLIGHT_LANDED;
+    return candidate->throttle > HIL_TAKEOFF_THROTTLE_MIN ? HIL_FLIGHT_TAKING_OFF : HIL_FLIGHT_READY;
 }
 
 static void populate_state(void) {
     ModelY_t output;
-    FlightState_t candidate;
+    FlightStateV3_t candidate;
     model_get_output(&output);
     memset(&candidate, 0, sizeof(candidate));
-    candidate.version = FLIGHT_STATE_VERSION;
+    candidate.version = FLIGHT_STATE_V3_VERSION;
     candidate.sequence = sequence;
     candidate.sim_time_s = sim_time_s;
     candidate.north_m = MODEL_READ_north_m(&output);
@@ -491,8 +596,25 @@ static void populate_state(void) {
     candidate.az_mps2 = MODEL_READ_az_mps2(&output);
     candidate.airborne = MODEL_READ_airborne(&output) ? 1 : 0;
     candidate.lifecycle = (uint8_t)lifecycle;
+    candidate.p_dot_radps2 = prior_rates_valid ? (candidate.p_radps - prior_p_radps) * 1000.0f : 0.0f;
+    candidate.q_dot_radps2 = prior_rates_valid ? (candidate.q_radps - prior_q_radps) * 1000.0f : 0.0f;
+    candidate.r_dot_radps2 = prior_rates_valid ? (candidate.r_radps - prior_r_radps) * 1000.0f : 0.0f;
+    candidate.wind_n_mps = (float)HIL_READ_WIND_N_MPS(&active_input);
+    candidate.wind_e_mps = (float)HIL_READ_WIND_E_MPS(&active_input);
+    candidate.wind_d_mps = (float)HIL_READ_WIND_D_MPS(&active_input);
+    candidate.throttle = (float)HIL_READ_THROTTLE(&active_input);
+    candidate.aileron_rad = (float)HIL_READ_AILERON_RAD(&active_input, &output);
+    candidate.elevator_rad = (float)HIL_READ_ELEVATOR_RAD(&active_input, &output);
+    candidate.rudder_rad = (float)HIL_READ_RUDDER_RAD(&active_input, &output);
+    candidate.tas_min_mps = (float)HIL_TAS_MIN_MPS;
+    candidate.control_surface_valid = HIL_SURFACE_OUTPUT_VALID ? 1 : 0;
+    candidate.flight_phase = fixed_wing_flight_phase(&candidate, &output);
     if (state_is_valid(&candidate)) {
-        state = candidate;
+        memcpy(&state, &candidate, sizeof(state));
+        prior_p_radps = candidate.p_radps;
+        prior_q_radps = candidate.q_radps;
+        prior_r_radps = candidate.r_radps;
+        prior_rates_valid = 1;
         have_valid_state = 1;
     }
     else {
@@ -536,6 +658,7 @@ static void send_reset_parameter_completion(uint64_t effective_sequence) {
 static void apply_lifecycle_request(void) {
     LifecycleRequest request;
     int valid = 1;
+    char v3_mission_id[MISSION_ID_MAX] = "";
     pthread_mutex_lock(&command_lock);
     if (!lifecycle_request.pending) { pthread_mutex_unlock(&command_lock); return; }
     request = lifecycle_request;
@@ -544,14 +667,16 @@ static void apply_lifecycle_request(void) {
 
     if (request.event == HIL_PAUSED) {
         if (lifecycle != HIL_RUNNING) valid = 0;
-        else lifecycle = HIL_PAUSED;
+        else { lifecycle = HIL_PAUSED; if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_send_event("pause", mission.mission_id); }
     } else if (request.event == HIL_RUNNING) {
-        if (lifecycle != HIL_PAUSED) valid = 0; else lifecycle = HIL_RUNNING;
+        if (lifecycle != HIL_PAUSED) valid = 0; else { lifecycle = HIL_RUNNING; if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_send_event("resume", mission.mission_id); }
     } else if (request.event == HIL_ENDED) {
         if (lifecycle != HIL_RUNNING && lifecycle != HIL_PAUSED) valid = 0;
         else {
             lifecycle = HIL_ENDED;
             pthread_mutex_lock(&command_lock);
+            strncpy(v3_mission_id, mission.mission_id, sizeof(v3_mission_id) - 1);
+            v3_mission_id[sizeof(v3_mission_id) - 1] = '\0';
             mission.active = 0;
             mission.waypoint_count = 0;
             mission.mission_id[0] = '\0';
@@ -559,6 +684,7 @@ static void apply_lifecycle_request(void) {
             applied_mission_generation = mission.generation;
             pthread_mutex_unlock(&command_lock);
             mission_controller_reset();
+            if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_send_event("mission_end", v3_mission_id);
         }
     } else if (request.event == HIL_RESETTING) {
         if (lifecycle != HIL_PAUSED && lifecycle != HIL_ENDED && lifecycle != HIL_RUNNING) valid = 0;
@@ -569,6 +695,8 @@ static void apply_lifecycle_request(void) {
             have_valid_state = 0;
             model_terminate();
             model_initialize();
+            prior_rates_valid = 0;
+            fixed_wing_has_taken_off = 0;
             active_input = initial_input;
             active_parameters = initial_parameters;
             if (pending_reset.generation) active_input = pending_reset.input;
@@ -589,6 +717,10 @@ static void apply_lifecycle_request(void) {
             mission_controller_reset();
             lifecycle = HIL_RUNNING;
             populate_state();
+            if (HIL_FIXED_WING_V3_TCP) {
+                fixed_wing_v3_tcp_send_event("reset_scene", "");
+                fixed_wing_v3_tcp_clear_mission();
+            }
             /* The reset call occurs before this loop's model_step(); that
              * next step is the contractual parameter effect boundary. */
             send_reset_parameter_completion(sequence + 1U);
@@ -883,6 +1015,10 @@ int main(void) {
         model_terminate(); udp_close(); return 1;
     }
     populate_state();
+    if (HIL_FIXED_WING_V3_TCP && !fixed_wing_v3_tcp_start()) {
+        fprintf(stderr, "[HIL] fixed-wing V3 TCP worker start failed\n");
+        model_terminate(); udp_close(); return 1;
+    }
     if (pthread_create(&command_worker, NULL, command_thread, NULL) != 0) { model_terminate(); udp_close(); return 1; }
     clock_gettime(CLOCK_MONOTONIC, &next);
     while (running) {
@@ -893,10 +1029,13 @@ int main(void) {
             apply_live_update();
             apply_mission_update();
             if (source == CONTROL_SOURCE_DEMO_MISSION && HIL_ACTUATOR_COUNT == 4U) {
-                mission_controller_step(have_valid_state ? &state : NULL, 0.001,
+                configure_demo_mission_controller();
+                mission_controller_step(have_valid_state ? (const FlightState_t*)&state : NULL, 0.001,
                                         mission_motor);
                 if (mission_controller_take_landed_event()) {
                     lifecycle = HIL_ENDED;
+                    if (HIL_FIXED_WING_V3_TCP)
+                        fixed_wing_v3_tcp_send_event("mission_end", mission.mission_id);
                 }
                 write_actuator_command(mission_motor, HIL_ACTUATOR_COUNT);
             } else {
@@ -907,14 +1046,16 @@ int main(void) {
                 write_actuator_command(external_actuator, HIL_ACTUATOR_COUNT);
             }
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
+            if (have_valid_state && sequence % 4U == 0U) udp_send_sensor(&state, sizeof(state));
         } else {
             zero_motor_command();
             if (have_valid_state) state.lifecycle = (uint8_t)lifecycle;
         }
         if (++send_counter >= SEND_INTERVAL) {
             if (have_valid_state) {
-                udp_send_status(&state);
-                udp_send_monitor(&state);
+                udp_send_status(&state, sizeof(state));
+                udp_send_monitor(&state, sizeof(state));
+                if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_publish_state(&state);
                 latency_record_output_completed();
             }
             if (monotonic_time_ns() >= next_latency_report_ns) {
@@ -928,6 +1069,7 @@ int main(void) {
           { int64_t lateness = (int64_t)(now.tv_sec - next.tv_sec) * 1000000000LL + now.tv_nsec - next.tv_nsec;
             hil_realtime_record_deadline(lateness); } }
     }
+    fixed_wing_v3_tcp_stop();
     { HilRealtimeStats stats = hil_realtime_stats();
       fprintf(stderr, "[HIL] realtime samples=%llu p99_abs_lateness_ns=%lld max_abs_lateness_ns=%lld over_250us=%llu non_realtime=%d\n",
               (unsigned long long)stats.samples, (long long)stats.p99_abs_lateness_ns, (long long)stats.max_abs_lateness_ns,

@@ -83,9 +83,9 @@ function build_script(task_file, result_file)
         exe_path = fullfile(executable_dir, [model_name '_rt']);
         cmd = sprintf(['gcc -O2 -Wall -pthread -I"%s" -I"%s" ' ...
             '-DMODEL_RT_BRIDGE_HEADER=model_rt_bridge.h %s ' ...
-            '"%s/main_rt.c" "%s/mission_controller.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
+            '"%s/main_rt.c" "%s/fixed_wing_v3_tcp.c" "%s/mission_controller.c" "%s/model_rt_wrapper.c" "%s/local_udp.c" ' ...
             '"%s/hal_stub.c" "%s/realtime.c" "%s/control_arbiter.c" -lm -lrt -ljson-c -o "%s"'], ...
-            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
+            code_dir, c_core_src, flags, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, c_core_src, exe_path);
         [status, output] = system(cmd);
         % ``system`` captures GCC output, so explicitly relay both the exact
         % invocation and its output into MATLAB stdout for build.log audit.
@@ -321,6 +321,61 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     source_mask = contract_control_source_mask(contract);
     fprintf(fid, '#define HIL_CONTROL_SOURCE_MASK %uU\n', source_mask);
     fprintf(fid, '#define HIL_DEMO_MISSION_ENABLED %d\n', bitand(source_mask, 1) ~= 0);
+    if isfield(contract, 'vehicle_kind') && strcmp(contract.vehicle_kind, 'fixed_wing')
+        fixed_control = contract.inputs.flight_control.ports;
+        fixed_environment = contract.inputs.environment.ports;
+        fixed_fault = contract.inputs.fault.ports;
+        fprintf(fid, '#define HIL_FIXED_WING 1\n');
+        fprintf(fid, '#define HIL_FIXED_WING_V3_TCP %d\n', ...
+            isfield(contract, 'protocol_v3'));
+        fprintf(fid, '#define HIL_READ_WIND_N_MPS(u) ((u)->%s)\n', fixed_environment.wind_n_mps.field);
+        fprintf(fid, '#define HIL_READ_WIND_E_MPS(u) ((u)->%s)\n', fixed_environment.wind_e_mps.field);
+        fprintf(fid, '#define HIL_READ_WIND_D_MPS(u) ((u)->%s)\n', fixed_environment.wind_d_mps.field);
+        fprintf(fid, '#define HIL_READ_THROTTLE(u) ((u)->%s)\n', fixed_control.throttle.field);
+        fprintf(fid, '#define HIL_READ_FAULT_ACTIVE(u) ((u)->%s || (u)->%s || (u)->%s || (u)->%s)\n', ...
+            fixed_fault.motor_1_failed.field, fixed_fault.motor_2_failed.field, ...
+            fixed_fault.motor_3_failed.field, fixed_fault.motor_4_failed.field);
+        if isfield(contract, 'protocol_v3') && isfield(contract.protocol_v3, 'flight_state')
+            phase = contract.protocol_v3.flight_state;
+            fprintf(fid, '#define HIL_TAKEOFF_THROTTLE_MIN %.17g\n', phase.takeoff_throttle_min);
+            fprintf(fid, '#define HIL_LANDING_THROTTLE_MAX %.17g\n', phase.landing_throttle_max);
+            fprintf(fid, '#define HIL_TAS_MIN_MPS %.17g\n', phase.tas_min_mps);
+            if strcmp(phase.source, 'model_output')
+                field = lookup_field(y_fields, phase.field);
+                if isempty(field) || field.dimension ~= 1 || ~is_numeric_type(field.type)
+                    error('V3 flight_state model output must be a numeric scalar ExtY field: %s', phase.field);
+                end
+                fprintf(fid, '#define HIL_READ_FLIGHT_PHASE_MODEL(y) ((int)((y)->%s))\n', phase.field);
+            end
+        end
+        if isfield(contract, 'protocol_v3') && isfield(contract.protocol_v3, 'control_surfaces')
+            surfaces = contract.protocol_v3.control_surfaces;
+            fprintf(fid, '#define HIL_SURFACE_OUTPUT_VALID 1\n');
+            if strcmp(surfaces.source, 'command_mapping')
+                fprintf(fid, '#define HIL_READ_AILERON_RAD(u,y) fmin(%.17g, fmax(%.17g, %.17g * (u)->%s + %.17g))\n', ...
+                    surfaces.aileron.max_rad, surfaces.aileron.min_rad, surfaces.aileron.scale_rad, surfaces.aileron.input, surfaces.aileron.offset_rad);
+                fprintf(fid, '#define HIL_READ_ELEVATOR_RAD(u,y) fmin(%.17g, fmax(%.17g, %.17g * (u)->%s + %.17g))\n', ...
+                    surfaces.elevator.max_rad, surfaces.elevator.min_rad, surfaces.elevator.scale_rad, surfaces.elevator.input, surfaces.elevator.offset_rad);
+                fprintf(fid, '#define HIL_READ_RUDDER_RAD(u,y) fmin(%.17g, fmax(%.17g, %.17g * (u)->%s + %.17g))\n', ...
+                    surfaces.rudder.max_rad, surfaces.rudder.min_rad, surfaces.rudder.scale_rad, surfaces.rudder.input, surfaces.rudder.offset_rad);
+            elseif strcmp(surfaces.source, 'model_output')
+                surface_names = {'aileron','elevator','rudder'};
+                for i = 1:length(surface_names)
+                    surface = surface_names{i};
+                    field = lookup_field(y_fields, surfaces.(surface).field);
+                    if isempty(field) || field.dimension ~= 1 || ~is_numeric_type(field.type)
+                        error('V3 %s model output must be a numeric scalar ExtY field: %s', surface, surfaces.(surface).field);
+                    end
+                    fprintf(fid, '#define HIL_READ_%s_RAD(u,y) ((y)->%s)\n', upper(surface), field.name);
+                end
+            else
+                error('Unsupported V3 control_surfaces source');
+            end
+        end
+    else
+        fprintf(fid, '#define HIL_FIXED_WING 0\n');
+        fprintf(fid, '#define HIL_FIXED_WING_V3_TCP 0\n');
+    end
     fprintf(fid, 'static int hil_contract_set_actuators(ModelU_t* u, const double* values, unsigned count) { if (count != HIL_ACTUATOR_COUNT) return 0;\n');
     for i = 1:length(actuators)
         a = actuators(i);
@@ -336,6 +391,7 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     fprintf(fid, '#define HIL_PARAMETER_COUNT %d\n', length(params));
     fprintf(fid, 'typedef struct { double value[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1]; } HilParameterValues;\n');
     fprintf(fid, 'typedef struct { const char* name; const char* unit; const char* review_status; int klass; double default_value; double min_value; double max_value; int is_bool; unsigned phase_mask; } HilParameterSpec;\n');
+    fprintf(fid, '#define HIL_PARAMETER_METADATA 1\n');
     fprintf(fid, 'static const HilParameterSpec HIL_PARAMETER_SPECS[HIL_PARAMETER_COUNT ? HIL_PARAMETER_COUNT : 1] = {\n');
     for i = 1:length(params)
         p = params{i};

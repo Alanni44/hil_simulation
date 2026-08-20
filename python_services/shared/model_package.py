@@ -51,6 +51,7 @@ REQUIRED_AXIS_PORTS = ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
 REQUIRED_ACCELERATION_PORTS = ('ax_mps2', 'ay_mps2', 'az_mps2')
 CONTROL_SOURCES = ('demo_mission', 'px4_sitl', 'physical_uut')
 VEHICLE_KINDS = ('multirotor', 'fixed_wing')
+V3_FLIGHT_STATE_SOURCES = ('c_core_state_machine', 'model_output')
 
 
 class PackageError(ValueError):
@@ -278,6 +279,67 @@ def _validate_v3_extensions(contract):
         rate_hz = descriptor.get('rate_hz')
         if not isinstance(rate_hz, int) or rate_hz <= 0 or rate_hz > 1000:
             raise PackageError('V3 sensor {} has invalid rate_hz'.format(name))
+    if vehicle_kind == 'fixed_wing':
+        _validate_fixed_wing_v3_protocol(contract)
+
+
+def _validate_fixed_wing_v3_protocol(contract):
+    protocol = contract.get('protocol_v3')
+    # Existing V3 vehicle packages remain deployable without the V3 TCP
+    # projection section.  The new fixed-wing template always creates it;
+    # deployments that select bridge.protocol_version=3.0 require it.
+    if protocol is None:
+        return
+    if not isinstance(protocol, dict) or not isinstance(protocol.get('flight_state'), dict):
+        raise PackageError('fixed-wing V3 contract.protocol_v3.flight_state is required when protocol_v3 is declared')
+    flight_state = protocol['flight_state']
+    if flight_state.get('source') not in V3_FLIGHT_STATE_SOURCES:
+        raise PackageError('fixed-wing flight_state.source is invalid')
+    if flight_state['source'] == 'model_output':
+        _require_string(flight_state.get('field'), 'fixed-wing flight_state.field')
+    for name in ('takeoff_throttle_min', 'landing_throttle_max', 'tas_min_mps'):
+        if not _finite_number(flight_state.get(name)):
+            raise PackageError('fixed-wing flight_state.{} must be finite'.format(name))
+    if not 0.0 <= flight_state['takeoff_throttle_min'] <= 1.0 or \
+            not 0.0 <= flight_state['landing_throttle_max'] <= 1.0 or \
+            flight_state['tas_min_mps'] <= 0.0:
+        raise PackageError('fixed-wing flight_state thresholds are invalid')
+    throttle = contract['inputs']['flight_control']['ports'].get('throttle')
+    if not isinstance(throttle, dict) or throttle.get('min') != 0.0 or throttle.get('max') != 1.0:
+        raise PackageError('fixed-wing V3 throttle input range must be 0..1')
+    surfaces = protocol.get('control_surfaces')
+    if surfaces is None:
+        return
+    required = {'aileron': 'roll_cmd', 'elevator': 'pitch_cmd', 'rudder': 'yaw_cmd'}
+    if not isinstance(surfaces, dict) or surfaces.get('source') not in ('command_mapping', 'model_output'):
+        raise PackageError('fixed-wing control_surfaces.source must be command_mapping or model_output')
+    if surfaces['source'] == 'command_mapping':
+        ports = contract['inputs']['flight_control']['ports']
+        for surface, default_port in required.items():
+            mapping = surfaces.get(surface)
+            if not isinstance(mapping, dict):
+                raise PackageError('fixed-wing control_surfaces.{} is required'.format(surface))
+            input_name = mapping.get('input')
+            if input_name != default_port or input_name not in ports:
+                raise PackageError('fixed-wing {} must map its matching declared axis command'.format(surface))
+            for name in ('scale_rad', 'offset_rad', 'min_rad', 'max_rad'):
+                if not _finite_number(mapping.get(name)):
+                    raise PackageError('fixed-wing {}.{} must be finite'.format(surface, name))
+            if mapping['min_rad'] > mapping['max_rad'] or not (
+                    mapping['min_rad'] <= mapping['offset_rad'] <= mapping['max_rad']):
+                raise PackageError('fixed-wing {} has invalid angle range'.format(surface))
+            _require_string(mapping.get('positive_definition'),
+                            'fixed-wing {}.positive_definition'.format(surface))
+        return
+    for surface in required:
+        output = surfaces.get(surface)
+        if not isinstance(output, dict):
+            raise PackageError('fixed-wing control_surfaces.{} is required'.format(surface))
+        _require_string(output.get('field'), 'fixed-wing {}.field'.format(surface))
+        if output.get('unit') != 'rad':
+            raise PackageError('fixed-wing {}.unit must be rad'.format(surface))
+        _require_string(output.get('positive_definition'),
+                        'fixed-wing {}.positive_definition'.format(surface))
 
 
 def validate_contract(contract):

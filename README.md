@@ -18,7 +18,7 @@ AirSim + UE4 (三维渲染)
 - **Python Bridge**: 接收状态、校验协议、坐标转换、驱动 UE4 渲染
 - **AirSim / UE4**: 渲染适配层，不再自行计算飞行动力学
 
-通信协议详见 `C:\Users\裴鹏飞\Desktop\Simulink_三维视景通信协议草案_V2.0.md`
+默认通信协议为 V2.0；固定翼可按下文切换到 V3.0。
 
 ## 目录结构
 
@@ -48,6 +48,31 @@ TCP 连接
 消息帧格式: `[4 字节大端长度头][UTF-8 JSON]`
 
 Python Bridge 为 TCP Server (192.168.100.172:5000)，Simulink / HIL 为 TCP Client。
+
+## 固定翼 V3.0
+
+将 `config.yaml` 中 `bridge.protocol_version` 设为 `"3.0"`，并重新构建带
+`protocol_v3` 的固定翼模型包后，Python Bridge 将作为 TCP Server 监听
+`fixed_wing_v3.host:port`；固定翼 C 核心/Simulink 作为 TCP Client，以
+`FixedWing01` 身份按 50 Hz 发送 V3 `vehicle_state`。每帧仍是
+`[4 字节大端长度头][UTF-8 JSON]`，没有换行分隔。
+
+C 核心通过 `HIL_V3_TCP_HOST`、`HIL_V3_TCP_PORT`（未设置时为
+`127.0.0.1:5000`）指定 Bridge 地址。连接后严格执行
+`hello → ack → mission_plan → ack → vehicle_state@50Hz`，断线后在独立的
+非实时线程重连，因此不会阻塞 1 ms 模型周期。
+
+必填数据包括位置、姿态、速度、加速度、FRD 角速度、0~1 油门和飞行阶段；空气
+动力学数据按 `V_air = V_ground - V_wind` 计算，并在真空速低于模型契约的
+`tas_min_mps` 时省略。迎角/侧滑角采用 `alpha=atan2(w,u)`、`beta=asin(v/TAS)`。
+
+真实副翼、升降舵、方向舵仅在固定翼 `hil_contract.json` 明确声明时发送：可声明
+已验证的命令到舵偏角映射，或声明 SLX 的真实舵面输出字段；绝不会把
+`roll_cmd`、`pitch_cmd`、`yaw_cmd`直接伪装成舵面角。
+
+V3 服务只保留最新有效状态；500 ms 未更新会标记数据陈旧，2 s 未更新会标记
+通信超时。该同一状态链供 AirSim `simSetKinematics` 注入（启用
+`fixed_wing_v3.airsim_enabled` 时）、HUD、日志和 WebSocket `get_state` 使用。
 
 ## 环境要求
 
@@ -96,6 +121,49 @@ chmod +x scripts/start_all.sh scripts/stop_all.sh
 # 仅启动 Python 服务
 cd python_services && python3 main.py
 ```
+
+### 5. 虚拟四旋翼飞控联调（软件闭环）
+
+虚拟飞控默认关闭。将 `config.yaml` 中的
+`virtual_quad_fc.enabled` 设为 `true` 后重启 Python 服务。C 核心会在
+`127.0.0.1:9996` 以 250 Hz 发布独立的模型状态快照；虚拟飞控只使用该
+快照生成 IMU、气压计、GPS、模型真值和健康帧，UE4 的 50 Hz 状态流不参与
+传感器闭环。
+
+虚拟飞控不会自行取得控制权。先通过 WebSocket 选择唯一控制源，再启动闭环
+目标场景：
+
+```json
+{"cmd":"select_control_source","params":{"source":"physical_uut"}}
+{"cmd":"virtual_fc_start","params":{"scenario":"takeoff"}}
+```
+
+可用场景：`idle`、`takeoff`、`hover`、`forward`、`turn`、`land`。场景不再直接
+写固定电机值：虚拟飞控只从自己接收的 IMU、GPS、气压计更新状态估计，并以位置
+→速度→姿态→电机的串级控制器在 250 Hz 重算电机命令；IMU/GPS/气压计任一数据
+超过安全新鲜度阈值时进入 `FAILSAFE` 并发送零推力。
+
+也可下发任意 NED 目标或路线：
+
+```json
+{"cmd":"virtual_fc_set_target","params":{"north_m":20,"east_m":5,"down_m":-5,"yaw_deg":90}}
+{"cmd":"virtual_fc_load_route","params":{"waypoints":[{"north_m":0,"east_m":0,"down_m":-5},{"north_m":20,"east_m":0,"down_m":-5},{"north_m":20,"east_m":0,"down_m":0,"landing":true}]}}
+```
+
+路线仅在到达当前点且速度降低后才切换下一点。运行状态和记录路径通过
+`virtual_fc_status` 获取；停止场景使用 `virtual_fc_stop`。可通过
+`virtual_fc_inject_fault` 注入 `sensor_invalid`、`model_invalid`、固定延迟
+`fixed_delay_ms`、随机丢包 `packet_loss_ratio`，以及一次性的
+`duplicate_next`、`out_of_order_next`、`timestamp_rollback_next`、
+`invalid_frame_next`；用 `{"name":"clear"}` 清除故障。每次服务启动会在
+`runtime/virtual_fc/<UTC>/frames.ndjson` 留下传感器、执行器、拒绝原因和故障
+事件的原始记录。为避免长期浸泡测试耗尽磁盘，`virtual_quad_fc.recording`
+默认每 64 MiB 将已完成的记录压缩为 `frames.NNNN.ndjson.gz`，每次运行最多保留
+512 MiB 原始记录，并在服务启动时清理 14 天前的历史运行目录。
+
+执行器帧必须含严格单调的 `sequence` 和 `timestamp_us`，并含四个 `[0,1]`
+电机命令。帧不合法、重复、乱序或时间回退时在适配器边界丢弃，绝不会转发给 C
+核心；有效帧仍要经过 C 核的 `physical_uut` 互斥选择及 100 ms 超时归零保护。
 
 ## 目标环境验收
 

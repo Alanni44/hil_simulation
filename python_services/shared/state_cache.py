@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 
-from .flight_state import LIFECYCLE_NAMES, parse_flight_state
+from .flight_state import FLIGHT_PHASE_NAMES, LIFECYCLE_NAMES, parse_flight_state
 
 _latest_raw = None
 _latest_received_monotonic = None
@@ -118,8 +118,70 @@ def vehicle_state_v2_from_state(state, mission_id):
             'data': {'mission_id': mission_id, 'sim_time': state['sim_time_s'],
                      'position': converted['position'], 'attitude': converted['attitude'],
                      'velocity': converted['velocity'],
-                     'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
-                                          'r': state['r_radps']}}}
+                      'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
+                                           'r': state['r_radps']}}}
+
+
+def _frd_velocity_from_ned(state):
+    """Rotate a NED vector into FRD using the normalized FRD→NED quaternion."""
+    qw, qx, qy, qz = (state['q_w'], state['q_x'], state['q_y'], state['q_z'])
+    # R is FRD→NED; its transpose maps NED vectors into FRD.
+    r11 = 1.0 - 2.0 * (qy * qy + qz * qz)
+    r12 = 2.0 * (qx * qy - qz * qw)
+    r13 = 2.0 * (qx * qz + qy * qw)
+    r21 = 2.0 * (qx * qy + qz * qw)
+    r22 = 1.0 - 2.0 * (qx * qx + qz * qz)
+    r23 = 2.0 * (qy * qz - qx * qw)
+    r31 = 2.0 * (qx * qz - qy * qw)
+    r32 = 2.0 * (qy * qz + qx * qw)
+    r33 = 1.0 - 2.0 * (qx * qx + qy * qy)
+    north, east, down = state['vn_mps'] - state['wind_n_mps'], \
+        state['ve_mps'] - state['wind_e_mps'], state['vd_mps'] - state['wind_d_mps']
+    return (r11 * north + r21 * east + r31 * down,
+            r12 * north + r22 * east + r32 * down,
+            r13 * north + r23 * east + r33 * down)
+
+
+def _v3_aerodynamics(state):
+    u_air, v_air, w_air = _frd_velocity_from_ned(state)
+    tas = math.sqrt(u_air * u_air + v_air * v_air + w_air * w_air)
+    if tas < state.get('tas_min_mps', 0.1):
+        return None
+    beta_ratio = max(-1.0, min(1.0, v_air / tas))
+    return {'airspeed': tas, 'angle_of_attack': math.atan2(w_air, u_air),
+            'sideslip_angle': math.asin(beta_ratio)}
+
+
+def vehicle_state_v3_from_state(state, mission_id):
+    """Build the fixed-wing V3 latest-state payload from a V3 C-core state."""
+    if not isinstance(mission_id, str) or not mission_id:
+        raise ValueError('mission_id is required for V3 vehicle_state')
+    if state.get('version') != 3:
+        raise ValueError('V3 protocol requires a V3 C-core state')
+    converted = ned_to_ue4(state)
+    data = {
+        'mission_id': mission_id, 'sim_time': state['sim_time_s'],
+        'position': converted['position'], 'attitude': converted['attitude'],
+        'velocity': converted['velocity'],
+        'acceleration': {'ax': state['ax_mps2'], 'ay': state['ay_mps2'],
+                         'az': -state['az_mps2']},
+        'angular_velocity': {'p': state['p_radps'], 'q': state['q_radps'],
+                             'r': state['r_radps']},
+        'angular_acceleration': {'p_dot': state['p_dot_radps2'],
+                                 'q_dot': state['q_dot_radps2'],
+                                 'r_dot': state['r_dot_radps2']},
+        'control': {'throttle': state['throttle']},
+        'flight_state': FLIGHT_PHASE_NAMES[state['flight_phase']],
+    }
+    aerodynamics = _v3_aerodynamics(state)
+    if aerodynamics is not None:
+        data['aerodynamics'] = aerodynamics
+    if state.get('control_surface_valid'):
+        data['control'].update({'aileron': state['aileron_rad'],
+                                'elevator': state['elevator_rad'],
+                                'rudder': state['rudder_rad']})
+    return {'protocol_version': '3.0', 'type': 'vehicle_state',
+            'vehicle_id': 'FixedWing01', 'data': data}
 
 
 def v2_event_name(event_name):
@@ -138,6 +200,16 @@ def get_vehicle_state_v2(mission_id, rate_hz=50):
     if not state or is_stale():
         return None
     return vehicle_state_v2_from_state(state, mission_id)
+
+
+def get_vehicle_state_v3(mission_id, rate_hz=50):
+    if rate_hz != 50:
+        raise ValueError('V3 vehicle_state rate is fixed at 50 Hz')
+    with _lock:
+        state = _latest_raw
+    if not state or is_stale():
+        return None
+    return vehicle_state_v3_from_state(state, mission_id)
 
 
 def get_mission_waypoints_from_cache():

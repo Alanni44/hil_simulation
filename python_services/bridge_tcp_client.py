@@ -94,6 +94,16 @@ def _reset_session_sequence():
         _seq = 0
 
 
+def _protocol_settings():
+    bridge = CONFIG.get('bridge', {})
+    version = bridge.get('protocol_version', '2.0')
+    if version == '3.0':
+        return {'version': '3.0', 'vehicle_id': 'FixedWing01',
+                'role': 'simulink_fixedwing_state_source', 'body_frame': 'FRD'}
+    return {'version': '2.0', 'vehicle_id': 'Drone1',
+            'role': 'simulink_state_source', 'body_frame': None}
+
+
 def _sanitize(obj):
     if isinstance(obj, float):
         import math
@@ -195,21 +205,24 @@ def _send_and_wait_for_ack(sock, message, timeout):
 
 
 def _hello_message():
+    protocol = _protocol_settings()
+    data = {
+        'role': protocol['role'], 'state_rate_hz': 50,
+        'coordinate_convention': 'x_forward_y_right_height_up',
+        'angle_unit': 'rad',
+    }
+    if protocol['body_frame']:
+        data['body_frame'] = protocol['body_frame']
     return {
-        'protocol_version': '2.0',
+        'protocol_version': protocol['version'],
         'type': 'hello',
         'seq': _next_seq(),
-        'vehicle_id': 'Drone1',
-        'data': {
-            'role': 'simulink_state_source',
-            'state_rate_hz': 50,
-            'coordinate_convention': 'x_forward_y_right_height_up',
-            'angle_unit': 'rad',
-        },
+        'vehicle_id': protocol['vehicle_id'], 'data': data,
     }
 
 
 def _mission_plan_message(mission_id, waypoints):
+    protocol = _protocol_settings()
     protocol_waypoints = []
     for index, waypoint in enumerate(validate_mission_plan(mission_id, waypoints)):
         protocol_waypoints.append({
@@ -220,10 +233,10 @@ def _mission_plan_message(mission_id, waypoints):
             'target_speed': waypoint['speed'],
         })
     return {
-        'protocol_version': '2.0',
+        'protocol_version': protocol['version'],
         'type': 'mission_plan',
         'seq': _next_seq(),
-        'vehicle_id': 'Drone1',
+        'vehicle_id': protocol['vehicle_id'],
         'data': {
             'mission_id': mission_id,
             'replace_previous': True,
@@ -254,7 +267,10 @@ def _vehicle_state_sender(sock, mission_id, stop_event, max_frames=None,
     stale_warned = False
     while not stop_event.is_set() and (max_frames is None or sent < max_frames):
         try:
-            state_message = state_cache.get_vehicle_state_v2(mission_id, 50)
+            if _protocol_settings()['version'] == '3.0':
+                state_message = state_cache.get_vehicle_state_v3(mission_id, 50)
+            else:
+                state_message = state_cache.get_vehicle_state_v2(mission_id, 50)
         except ValueError as exc:
             logger.warning('vehicle_state withheld: {}'.format(exc))
             state_message = None
@@ -280,11 +296,12 @@ def _vehicle_state_sender(sock, mission_id, stop_event, max_frames=None,
 
 
 def _simulation_event_message(event_name, mission_id=''):
+    protocol = _protocol_settings()
     message = {
-        'protocol_version': '2.0',
+        'protocol_version': protocol['version'],
         'type': 'simulation_event',
         'seq': _next_seq(),
-        'vehicle_id': 'Drone1',
+        'vehicle_id': protocol['vehicle_id'],
         'data': {'event': state_cache.v2_event_name(event_name)},
     }
     if mission_id:

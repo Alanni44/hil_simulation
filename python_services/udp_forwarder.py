@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import socket
 import threading
-from shared.flight_state import FLIGHT_STATE_SIZE
+from shared.flight_state import (FLIGHT_STATE_SIZE, FLIGHT_STATE_V3_LEGACY_SIZE,
+                                 FLIGHT_STATE_V3_SIZE)
 from shared.logger import get_logger
 from shared import state_cache
 from config_loader import CONFIG
@@ -22,7 +23,8 @@ def recv_worker():
             if recv_sock is None:
                 return
             data, addr = recv_sock.recvfrom(4096)
-            if len(data) == FLIGHT_STATE_SIZE:
+            if len(data) in (FLIGHT_STATE_SIZE, FLIGHT_STATE_V3_LEGACY_SIZE,
+                             FLIGHT_STATE_V3_SIZE):
                 state_cache.update(data)
             else:
                 logger.warning(f"Bad size: {len(data)}")

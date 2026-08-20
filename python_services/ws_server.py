@@ -22,8 +22,10 @@ from shared.model_package import PackageError, controlled_path, sha256_file, val
 from shared.ws_framing import FrameError, read_frame, write_frame
 from shared.flight_state import parse_flight_state
 import bridge_tcp_client as bridge
+from fixed_wing_v3_bridge import get_hud_state as get_v3_hud_state
 from core_client import core_request as _core_request
 import dev_runner
+from hil_adapters import virtual_quad_fc
 
 logger = get_logger('ws_v2')
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +36,8 @@ ACCEPTANCE_ROOT = os.environ.get('HIL_ACCEPTANCE_ROOT',
                                  os.path.join(PROJECT_ROOT, 'artifacts', 'acceptance'))
 ACTIVE_CORE = None
 DEPLOY_MODE = os.environ.get('HIL_DEPLOY_MODE', 'development')
+ACTIVE_VEHICLE_CONTRACT_PATH = os.environ.get(
+    'HIL_ACTIVE_CONTRACT_PATH', os.path.join(PROJECT_ROOT, 'runtime', 'active_vehicle_contract.json'))
 
 
 def _utc_id(request_id):
@@ -58,6 +62,24 @@ def _matlab_binary():
 def _write_json(path, value):
     with open(path, 'w') as output:
         json.dump(value, output, indent=2, sort_keys=True); output.write('\n')
+
+
+def _publish_active_vehicle_contract(contract, contract_sha256):
+    """Publish the exact verified V3 contract for optional virtual UUTs."""
+    directory = os.path.dirname(ACTIVE_VEHICLE_CONTRACT_PATH)
+    if not os.path.isdir(directory): os.makedirs(directory)
+    pending = ACTIVE_VEHICLE_CONTRACT_PATH + '.pending'
+    _write_json(pending, {'contract': contract, 'contract_sha256': contract_sha256})
+    os.replace(pending, ACTIVE_VEHICLE_CONTRACT_PATH)
+    return ACTIVE_VEHICLE_CONTRACT_PATH
+
+
+def _validate_bridge_contract_compatibility(contract):
+    """Reject a V3 bridge selection before an incompatible model is built."""
+    if CONFIG.get('bridge', {}).get('protocol_version', '2.0') != '3.0':
+        return
+    if contract.get('vehicle_kind') != 'fixed_wing' or not contract.get('protocol_v3'):
+        raise PackageError('bridge.protocol_version=3.0 requires a fixed-wing package with protocol_v3')
 
 
 def _wait_for_healthy_core(timeout_seconds=10):
@@ -126,6 +148,7 @@ def _build_or_deploy(request):
         transitions.append('VALIDATING')
         package = validate_package(request['package_path'], CONTROLLED_PACKAGE_ROOT,
                                    request['package_sha256'])
+        _validate_bridge_contract_compatibility(package['contract'])
         manifest = package['manifest']
         if manifest['model_ref'] != request['model_ref'] or manifest['model_revision_ref'] != request['model_revision_ref']:
             raise PackageError('request model_ref/model_revision_ref does not match manifest')
@@ -196,6 +219,13 @@ def _build_or_deploy(request):
             response['status'] = 'DEV_DEPLOYED'; transitions.extend(['READY', 'DEV_DEPLOYED'])
         else:
             raise PackageError('HIL_DEPLOY_MODE must be development or systemd')
+        if package['contract'].get('contract_version') == 3:
+            response['active_vehicle_contract_path'] = _publish_active_vehicle_contract(
+                package['contract'], response['contract_sha256'])
+            virtual_result = virtual_quad_fc.activate_deployed_contract(
+                response['active_vehicle_contract_path'])
+            if virtual_result is not None:
+                response['virtual_fc_contract_reload'] = virtual_result
         _write_json(os.path.join(evidence_path, 'build-result.json'), response)
         return response
     except Exception as exc:
@@ -266,11 +296,16 @@ async def command_loop(reader, writer):
         elif cmd == 'set_inputs': await _handle_core_command('set_inputs', dict(params), writer)
         elif cmd in ('select_control_source', 'actuator_command'):
             await _handle_core_command(cmd, dict(params), writer)
+        elif cmd in ('virtual_fc_start', 'virtual_fc_stop', 'virtual_fc_status', 'virtual_fc_inject_fault',
+                     'virtual_fc_set_target', 'virtual_fc_load_route', 'virtual_fc_reload_contract'):
+            await ws_send(writer, json.dumps(virtual_quad_fc.handle_command(cmd, dict(params))))
         elif cmd == 'load_mission': await _handle_load_mission(dict(params), writer)
         elif cmd in ('pause', 'resume', 'reset', 'mission_end'):
             await _handle_core_command(cmd, dict(params), writer, cmd)
         elif cmd == 'get_state':
-            state = state_cache.get_state_dict(); await ws_send(writer, json.dumps(state or {'status': 'error', 'message': 'no state available'}))
+            state = (get_v3_hud_state() if CONFIG.get('bridge', {}).get('protocol_version') == '3.0'
+                     else state_cache.get_state_dict())
+            await ws_send(writer, json.dumps(state or {'status': 'error', 'message': 'no state available'}))
         else:
             await ws_send(writer, json.dumps({'status': 'error', 'message': 'unsupported command'}))
 

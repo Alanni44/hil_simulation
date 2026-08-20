@@ -26,6 +26,22 @@ class GenericContractTemplateTests(unittest.TestCase):
                          "'wind_d_bias_mps'"):
             self.assertIn(expected, self.source)
 
+    def test_fixed_wing_template_declares_v3_phase_thresholds_without_fake_surfaces(self):
+        self.assertIn("contract.protocol_v3", self.source)
+        self.assertIn("'c_core_state_machine'", self.source)
+        self.assertIn("'tas_min_mps'", self.source)
+        self.assertIn('Surfaces are intentionally omitted', self.source)
+
+    def test_build_emits_surface_values_only_from_explicit_v3_mapping(self):
+        source = (ROOT / 'matlab_scripts' / 'build_script.m').read_text()
+        self.assertIn("isfield(contract.protocol_v3, 'control_surfaces')", source)
+        self.assertIn('#define HIL_SURFACE_OUTPUT_VALID 1', source)
+        self.assertIn('surfaces.aileron.scale_rad', source)
+        self.assertIn("strcmp(surfaces.source, 'model_output')", source)
+        self.assertIn('HIL_READ_FLIGHT_PHASE_MODEL', source)
+        self.assertIn('fixed_environment.wind_n_mps.field', source)
+        self.assertIn('fixed_control.throttle.field', source)
+
 
 if __name__ == '__main__':
     unittest.main()

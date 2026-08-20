@@ -5,10 +5,12 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
 from shared.model_package import PackageError, package_sha256, validate_package  # noqa
+import ws_server  # noqa
 
 
 FIELDS = ('north_m east_m down_m vn_mps ve_mps vd_mps q_w q_x q_y q_z '
@@ -121,11 +123,74 @@ class ModelPackageTests(unittest.TestCase):
                 for name in ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
             ]},
         })
+        contract['inputs']['flight_control']['ports']['throttle']['min'] = 0.0
+        contract['inputs']['flight_control']['ports']['throttle']['max'] = 1.0
         with open(contract_path, 'w') as output:
             json.dump(contract, output)
         self._write_manifest()
         result = validate_package(self.package, self.root, package_sha256(self.package))
         self.assertEqual('fixed_wing', result['contract']['vehicle_kind'])
+
+    def test_v3_fixed_wing_rejects_non_normalized_throttle_range(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract.update({
+            'contract_version': 3, 'vehicle_kind': 'fixed_wing',
+            'control_sources': ['px4_sitl'], 'sensors': {},
+            'actuators': {'channels': [
+                {'name': name, 'unit': '1', 'min': -1.0, 'max': 1.0,
+                 'safe_value': 0.0,
+                 'binding': {'input': 'flight_control.{}'.format(name), 'index': 0}}
+                for name in ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
+            ]},
+            'protocol_v3': {'flight_state': {
+                'source': 'c_core_state_machine', 'takeoff_throttle_min': 0.05,
+                'landing_throttle_max': 0.05, 'tas_min_mps': 0.1}},
+        })
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        with self.assertRaises(PackageError):
+            validate_package(self.package, self.root, package_sha256(self.package))
+
+    def test_v3_fixed_wing_accepts_native_surface_contract(self):
+        contract_path = os.path.join(self.package, 'hil_contract.json')
+        with open(contract_path, 'r') as source:
+            contract = json.load(source)
+        contract.update({
+            'contract_version': 3, 'vehicle_kind': 'fixed_wing',
+            'control_sources': ['px4_sitl'], 'sensors': {},
+            'actuators': {'channels': [
+                {'name': name, 'unit': '1', 'min': -1.0, 'max': 1.0,
+                 'safe_value': 0.0,
+                 'binding': {'input': 'flight_control.{}'.format(name), 'index': 0}}
+                for name in ('throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd')
+            ]},
+            'protocol_v3': {'flight_state': {
+                'source': 'model_output', 'field': 'flight_phase',
+                'takeoff_throttle_min': 0.05, 'landing_throttle_max': 0.05,
+                'tas_min_mps': 0.1},
+                'control_surfaces': {'source': 'model_output',
+                    'aileron': {'field': 'aileron_rad', 'unit': 'rad', 'positive_definition': 'right_down'},
+                    'elevator': {'field': 'elevator_rad', 'unit': 'rad', 'positive_definition': 'trailing_edge_down'},
+                    'rudder': {'field': 'rudder_rad', 'unit': 'rad', 'positive_definition': 'trailing_edge_right'}}},
+        })
+        contract['inputs']['flight_control']['ports']['throttle']['min'] = 0.0
+        contract['inputs']['flight_control']['ports']['throttle']['max'] = 1.0
+        with open(contract_path, 'w') as output:
+            json.dump(contract, output)
+        self._write_manifest()
+        result = validate_package(self.package, self.root, package_sha256(self.package))
+        self.assertEqual('model_output', result['contract']['protocol_v3']['control_surfaces']['source'])
+
+    def test_v3_bridge_requires_fixed_wing_protocol_projection(self):
+        with self.assertRaises(PackageError):
+            with mock.patch.dict(ws_server.CONFIG, {'bridge': {'protocol_version': '3.0'}}, clear=False):
+                ws_server._validate_bridge_contract_compatibility({'vehicle_kind': 'multirotor'})
+        with mock.patch.dict(ws_server.CONFIG, {'bridge': {'protocol_version': '3.0'}}, clear=False):
+            ws_server._validate_bridge_contract_compatibility({
+                'vehicle_kind': 'fixed_wing', 'protocol_v3': {'flight_state': {}}})
 
     def test_v3_actuator_without_explicit_binding_is_rejected(self):
         contract_path = os.path.join(self.package, 'hil_contract.json')

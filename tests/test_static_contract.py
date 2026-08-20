@@ -35,15 +35,12 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn(
             'active_parameter_or_default("motor_efficiency", 1.0)', runtime)
 
-    def test_axis_command_contract_does_not_require_motor_command_setter(self):
+    def test_actuator_commands_use_contract_bound_generic_setter(self):
         runtime = read('c_core/src/main_rt.c')
 
-        self.assertIn(
-            'if (!hil_contract_find_input("flight_control.motor_command")) '
-            'return;', runtime)
-        self.assertIn(
-            'hil_contract_set_input(&active_input, '
-            '"flight_control.motor_command", values, 4U)', runtime)
+        self.assertIn('hil_contract_set_actuators(&active_input, values, count)', runtime)
+        self.assertIn('HIL_ACTUATOR_COUNT', runtime)
+        self.assertIn('HIL_ACTUATOR_SPECS', runtime)
 
     def test_acceptance_submits_complete_task_4_mission_schema(self):
         tree = ast.parse(read('scripts/accept_runtime_contract.py'))
@@ -145,7 +142,11 @@ class RuntimeContractStaticTests(unittest.TestCase):
         cache = read('python_services/shared/state_cache.py')
         self.assertIn("unsupported state version", parser)
         self.assertIn("state simulation time regressed", cache)
-        self.assertNotIn("'acceleration'", cache)
+        # V2 must remain limited to its frozen payload; V3 intentionally
+        # adds acceleration in a separate fixed-wing builder.
+        v2_builder = cache[cache.index('def vehicle_state_v2_from_state'):cache.index('def _frd_velocity_from_ned')]
+        self.assertNotIn("'acceleration'", v2_builder)
+        self.assertIn('def vehicle_state_v3_from_state', cache)
         self.assertIn("'flight_state' not", read('tests/test_v2_protocol.py'))
 
     def test_bridge_does_not_fabricate_default_mission_or_nonfinite_values(self):
@@ -156,6 +157,19 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('validate_mission_plan', source)
         self.assertIn("state_rate_hz': 50", source)
         self.assertIn("state_cache.v2_event_name", source)
+
+    def test_v3_fixed_wing_uses_protocol_defined_tcp_roles(self):
+        source = read('python_services/fixed_wing_v3_bridge.py')
+        core = read('c_core/src/fixed_wing_v3_tcp.c')
+        main = read('python_services/main.py')
+        self.assertIn('self._server.listen(1)', source)
+        self.assertIn('HIL_V3_TCP_HOST', core)
+        self.assertIn('fixed_wing_v3_server', main)
+        self.assertIn('simSetKinematics', source)
+        self.assertLess(core.index('if (has_event && !send_event'),
+                        core.index('if (!has_mission)'))
+        self.assertTrue((ROOT / 'tests' / 'fixtures' / 'fixed_wing_v3_compile' /
+                         'model_contract.h').is_file())
 
     def test_build_request_is_controlled_and_auditable(self):
         source = read('python_services/ws_server.py')

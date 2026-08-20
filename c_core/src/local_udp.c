@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -11,8 +12,10 @@
 static int cmd_sock = -1;
 static int status_sock = -1;
 static int monitor_sock = -1;
+static int sensor_sock = -1;
 static struct sockaddr_in status_addr;
 static struct sockaddr_in monitor_addr;
+static struct sockaddr_in sensor_addr;
 
 static int set_close_on_exec(int fd) {
     int flags = fcntl(fd, F_GETFD);
@@ -29,6 +32,15 @@ int udp_init(int command_port, int status_port) {
         return -1;
     }
 
+    sensor_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sensor_sock < 0 || set_close_on_exec(sensor_sock) < 0) {
+        if (sensor_sock >= 0) close(sensor_sock);
+        sensor_sock = -1;
+    } else {
+        memset(&sensor_addr, 0, sizeof(sensor_addr)); sensor_addr.sin_family = AF_INET;
+        sensor_addr.sin_port = htons(UDP_SENSOR_PORT); sensor_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    }
+
     struct timeval tv = {0, 100000};
     setsockopt(cmd_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
@@ -40,6 +52,7 @@ int udp_init(int command_port, int status_port) {
     if (bind(cmd_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         close(cmd_sock);
         cmd_sock = -1;
+        if (sensor_sock >= 0) { close(sensor_sock); sensor_sock = -1; }
         return -1;
     }
     printf("[UDP] Command socket bound to 127.0.0.1:%d\n", command_port);
@@ -48,6 +61,7 @@ int udp_init(int command_port, int status_port) {
     if (status_sock < 0) {
         close(cmd_sock);
         cmd_sock = -1;
+        if (sensor_sock >= 0) { close(sensor_sock); sensor_sock = -1; }
         return -1;
     }
     if (set_close_on_exec(status_sock) < 0) {
@@ -55,6 +69,7 @@ int udp_init(int command_port, int status_port) {
         status_sock = -1;
         close(cmd_sock);
         cmd_sock = -1;
+        if (sensor_sock >= 0) { close(sensor_sock); sensor_sock = -1; }
         return -1;
     }
     memset(&status_addr, 0, sizeof(status_addr));
@@ -82,16 +97,20 @@ int udp_init(int command_port, int status_port) {
     return 0;
 }
 
-void udp_send_status(const FlightState_t* state) {
+void udp_send_status(const void* state, size_t state_size) {
     if (status_sock < 0) return;
-    sendto(status_sock, state, sizeof(FlightState_t), 0,
+    sendto(status_sock, state, state_size, 0,
            (struct sockaddr*)&status_addr, sizeof(status_addr));
 }
 
-void udp_send_monitor(const FlightState_t* state) {
+void udp_send_monitor(const void* state, size_t state_size) {
     if (monitor_sock < 0) return;
-    sendto(monitor_sock, state, sizeof(FlightState_t), 0,
+    sendto(monitor_sock, state, state_size, 0,
            (struct sockaddr*)&monitor_addr, sizeof(monitor_addr));
+}
+void udp_send_sensor(const void* state, size_t state_size) {
+    if (sensor_sock >= 0) sendto(sensor_sock, state, state_size, 0,
+                                 (struct sockaddr*)&sensor_addr, sizeof(sensor_addr));
 }
 
 int udp_recv_command(char* buffer, int buffer_size, struct sockaddr_in* sender) {
@@ -118,4 +137,5 @@ void udp_close(void) {
     if (cmd_sock >= 0) { close(cmd_sock); cmd_sock = -1; }
     if (status_sock >= 0) { close(status_sock); status_sock = -1; }
     if (monitor_sock >= 0) { close(monitor_sock); monitor_sock = -1; }
+    if (sensor_sock >= 0) { close(sensor_sock); sensor_sock = -1; }
 }

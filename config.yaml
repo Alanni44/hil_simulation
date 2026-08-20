@@ -4,6 +4,8 @@
 local_udp:
   command_port: 9997
   status_port: 9998
+  # Must match UDP_SENSOR_PORT in c_core/src/local_udp.h.
+  sensor_port: 9996
 
 spring_boot:
   host: "192.168.100.138"
@@ -13,6 +15,21 @@ spring_boot:
 ue4_tcp:
   host: "127.0.0.1"
   port: 5000
+
+# Preserve deployed V2 multirotor sessions by default.  Select "3.0" only
+# for a fixed-wing V3 deployment, which requires a rebuilt V3 C-core model.
+bridge:
+  protocol_version: "2.0"
+
+# V3 formal role: this process listens, while the fixed-wing C-core/Simulink
+# executable is the TCP client.  Set bridge.protocol_version to "3.0" and
+# rebuild/deploy a fixed-wing package before enabling this endpoint.
+fixed_wing_v3:
+  host: "0.0.0.0"
+  port: 5000
+  airsim_enabled: false
+  airsim_host: "127.0.0.1"
+  airsim_vehicle_name: "FixedWing01"
 
 # Dedicated terminal debug target; normal services keep ue4_tcp above.
 debug_ue4_tcp:
@@ -35,6 +52,31 @@ px4_hil:
   origin_lat_deg: 31.2304
   origin_lon_deg: 121.4737
   origin_alt_m: 10.0
+
+virtual_quad_fc:
+  # Enable the local virtual-UUT path for closed-loop and live-tuning demos.
+  # It does not require a UE4 connection.
+  enabled: true
+  hardware_id: "virtual_quad_fc_01"
+  command_rate_hz: 250
+  imu_rate_hz: 250
+  barometer_rate_hz: 50
+  gps_rate_hz: 20
+  health_rate_hz: 10
+  # Keep virtual-FC raw evidence bounded during long soak tests. Completed
+  # chunks are gzip-compressed; no more raw data is recorded after max_run_mb.
+  recording:
+    max_file_mb: 64
+    max_run_mb: 512
+    retention_days: 14
+  origin_lat_deg: 31.2304
+  origin_lon_deg: 121.4737
+  origin_alt_m: 10.0
+  # Closed-loop virtual flight-controller vehicle estimates.  They are only
+  # used by the virtual UUT control law; model parameters remain authoritative.
+  mass_kg: 1.5
+  thrust_coefficient_n: 4.2
+  motor_efficiency: 1.0
 
 logging:
   level: "INFO"
