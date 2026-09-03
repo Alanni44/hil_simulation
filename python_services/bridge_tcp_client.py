@@ -549,6 +549,14 @@ def _run(host=None, port=None):
         mission_completed = False
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Disable Nagle so 20 ms vehicle_state frames leave immediately
+            # instead of being buffered behind delayed-ACKs (which would
+            # burst them and break the strict 50 Hz interval contract).
+            if s.family == socket.AF_INET:
+                try:
+                    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                except OSError:
+                    pass
             s.settimeout(0.2)
             s.connect((host, port))
             with _sock_lock:
