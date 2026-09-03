@@ -33,7 +33,7 @@ fixed_wing_v3:
 
 # Dedicated terminal debug target; normal services keep ue4_tcp above.
 debug_ue4_tcp:
-  host: "192.168.100.172"
+  host: "192.168.3.122"
   port: 5000
 
 # PX4 MAVLink HIL is opt-in.  It only transports sensors/actuators; selecting

@@ -11,7 +11,7 @@ MISSION_FILE="$ROOT/missions/z_mission.json"
 STOP_SCRIPT="$ROOT/scripts/stop_z_debug.sh"
 BUILD_SCRIPT="$ROOT/scripts/build_quadrotor_demo.sh"
 BUILD_RESULT="$ROOT/artifacts/z_mission/logs/build_result.json"
-EXPECTED_TARGET="192.168.100.172:5000"
+EXPECTED_TARGET="192.168.3.122:5000"
 
 usage() {
     echo "Usage: $0" >&2
