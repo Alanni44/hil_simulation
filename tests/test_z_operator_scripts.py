@@ -29,7 +29,7 @@ class ZOperatorScriptStaticTests(unittest.TestCase):
     def test_start_preflights_exact_target_and_scopes_failure_cleanup(self):
         source = read('scripts/start_z_debug.sh')
 
-        self.assertIn('192.168.100.172:5000', source)
+        self.assertIn('192.168.3.122:5000', source)
         self.assertIn('runtime/z_debug', source)
         self.assertIn('sys.version_info[:3] == (3, 6, 9)', source)
         self.assertIn('load_mission(sys.argv[1])', source)
@@ -74,7 +74,7 @@ class ZOperatorScriptStaticTests(unittest.TestCase):
         self.assertIn('MATLAB R2018b', runbook)
         self.assertIn('GCC 7.x', runbook)
         self.assertIn('Python 3.6.9', runbook)
-        self.assertIn('192.168.100.172:5000', runbook)
+        self.assertIn('192.168.3.122:5000', runbook)
         self.assertIn('LOCAL SIMULATOR PASSED', runbook)
         self.assertIn('REAL UE4 ACKNOWLEDGED', runbook)
         self.assertIn("grep -q '^VERSION_ID=\"18.04\"$' /etc/os-release",

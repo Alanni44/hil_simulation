@@ -95,7 +95,7 @@ test -x "$MODEL_EXECUTABLE"
 ```
 
 Finally, `config.yaml` must resolve `debug_ue4_tcp` to exactly
-`192.168.100.172:5000`.
+`192.168.3.122:5000`.
 
 ## 3. Start the real-target run
 
@@ -113,10 +113,10 @@ the debug service and model.
 
 The real-target evidence threshold is stronger than the local check. Only
 after the debug log/dashboard reports accepted `hello` and `mission_plan`
-ACKs from `192.168.100.172:5000` may the operator record:
+ACKs from `192.168.3.122:5000` may the operator record:
 
 ```text
-REAL UE4 ACKNOWLEDGED: hello and mission_plan accepted by 192.168.100.172:5000
+REAL UE4 ACKNOWLEDGED: hello and mission_plan accepted by 192.168.3.122:5000
 ```
 
 The start script itself does not print or claim that result.
@@ -143,7 +143,7 @@ tail -n 100 runtime/z_debug/model.log
 ```
 
 Confirm that the real UE4-side bridge is listening on
-`192.168.100.172:5000`, the network route/firewall permits the TCP connection,
+`192.168.3.122:5000`, the network route/firewall permits the TCP connection,
 and its ACK has `accepted=true` with both `ref_type` and `ref_seq` matching the
 request. A rejected, mismatched, timed-out, or missing ACK must be treated as a
 failed real-target verification.

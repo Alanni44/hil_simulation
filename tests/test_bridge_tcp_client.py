@@ -94,12 +94,12 @@ class BridgeTcpClientTests(unittest.TestCase):
         with mock.patch.object(bridge_tcp_client.threading, 'Thread',
                                return_value=worker) as thread_factory:
             result = bridge_tcp_client.start_bridge(
-                '192.168.100.172', 5000)
+                '192.168.3.122', 5000)
 
         self.assertIs(worker, result)
         thread_factory.assert_called_once_with(
             target=bridge_tcp_client._run,
-            args=('192.168.100.172', 5000),
+            args=('192.168.3.122', 5000),
             daemon=True,
             name='bridge_v2')
         worker.start.assert_called_once_with()

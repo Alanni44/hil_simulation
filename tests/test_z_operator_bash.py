@@ -43,7 +43,7 @@ class ZOperatorBashBehaviorTests(unittest.TestCase):
         (self.repo / 'python_services' / 'debug_main.py').write_text(
             '# hermetic test placeholder\n', encoding='utf-8')
         (self.repo / 'config.yaml').write_text(
-            'debug_ue4_tcp: {host: 192.168.100.172, port: 5000}\n',
+            'debug_ue4_tcp: {host: 192.168.3.122, port: 5000}\n',
             encoding='utf-8')
         (self.repo / 'missions' / 'z_mission.json').write_text(
             '{}\n', encoding='utf-8')
@@ -64,7 +64,7 @@ class ZOperatorBashBehaviorTests(unittest.TestCase):
             'if [ "${1:-}" = "-c" ]; then\n'
             '  case "${2:-}" in\n'
             '    *sys.version_info*) exit 0 ;;\n'
-            '    *) printf "192.168.100.172:5000\\n"; exit 0 ;;\n'
+            '    *) printf "192.168.3.122:5000\\n"; exit 0 ;;\n'
             '  esac\n'
             'fi\n'
             'printf "launched\\n" >>"%s"\n'

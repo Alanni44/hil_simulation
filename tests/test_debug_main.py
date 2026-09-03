@@ -84,19 +84,19 @@ class FakeRuntime(object):
 class DebugMainTests(unittest.TestCase):
     def setUp(self):
         self.config = {
-            'debug_ue4_tcp': {'host': '192.168.100.172', 'port': 5000},
+            'debug_ue4_tcp': {'host': '192.168.3.122', 'port': 5000},
         }
 
     def test_repository_debug_target_is_explicit_and_valid(self):
         config = debug_main.load_config()
         target = debug_main.get_debug_target(config)
-        self.assertEqual(('192.168.100.172', 5000), target)
+        self.assertEqual(('192.168.3.122', 5000), target)
         with self.assertRaises(ValueError):
             debug_main.get_debug_target(
                 {'debug_ue4_tcp': {'host': '', 'port': 5000}})
         with self.assertRaises(ValueError):
             debug_main.get_debug_target(
-                {'debug_ue4_tcp': {'host': '192.168.100.172', 'port': 70000}})
+                {'debug_ue4_tcp': {'host': '192.168.3.122', 'port': 70000}})
 
     def test_run_composes_only_udp_bridge_and_existing_z_mission(self):
         runtime = FakeRuntime()
@@ -119,7 +119,7 @@ class DebugMainTests(unittest.TestCase):
                 'params': expected_mission,
             }),
              'submit_mission', 'start_udp',
-             ('start_bridge', '192.168.100.172', 5000),
+             ('start_bridge', '192.168.3.122', 5000),
              'stop_bridge', 'stop_udp'],
             runtime.calls)
         mission_id, waypoints = runtime.submitted
@@ -162,14 +162,14 @@ class DebugMainTests(unittest.TestCase):
 
     def test_dashboard_snapshot_formats_target_v2_state_pose_and_error(self):
         rendered = debug_main.format_dashboard_snapshot(
-            '192.168.100.172', 5000, 'z_mission_001',
+            '192.168.3.122', 5000, 'z_mission_001',
             {'phase': 'state streaming', 'connected': True,
              'last_error': 'none'},
             {'position': {'x': 40.0, 'y': 20.0, 'height': 19.75},
              'attitude': {'roll': 0.01, 'pitch': -0.02, 'yaw': 1.5}})
 
         self.assertEqual(
-            'UE4 192.168.100.172:5000 | V2 state streaming | connected\n'
+            'UE4 192.168.3.122:5000 | V2 state streaming | connected\n'
             'Mission z_mission_001\n'
             'Position x=40.00 y=20.00 height=19.75 m\n'
             'Attitude roll=0.010 pitch=-0.020 yaw=1.500 rad\n'
@@ -178,7 +178,7 @@ class DebugMainTests(unittest.TestCase):
 
     def test_dashboard_snapshot_handles_absent_state(self):
         rendered = debug_main.format_dashboard_snapshot(
-            '192.168.100.172', 5000, 'z_mission_001',
+            '192.168.3.122', 5000, 'z_mission_001',
             {'phase': 'connecting', 'connected': False,
              'last_error': 'connection refused'}, None)
 

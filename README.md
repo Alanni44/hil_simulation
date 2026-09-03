@@ -47,7 +47,7 @@ TCP 连接
 
 消息帧格式: `[4 字节大端长度头][UTF-8 JSON]`
 
-Python Bridge 为 TCP Server (192.168.100.172:5000)，Simulink / HIL 为 TCP Client。
+Python Bridge 为 TCP Server (192.168.3.122:5000)，Simulink / HIL 为 TCP Client。
 
 ## 固定翼 V3.0
 
