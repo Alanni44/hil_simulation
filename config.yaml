@@ -81,3 +81,14 @@ virtual_quad_fc:
 logging:
   level: "INFO"
   file: "logs/hil.log"
+
+# GitLab release integration is intentionally disabled until the self-hosted
+# instance URL, approved project path and HIL_GITLAB_TOKEN are configured.
+# The token must only be supplied through the service environment, never here.
+gitlab_release:
+  enabled: false
+  base_url: "https://gitlab.example.invalid"
+  projects: []
+  release_asset_name: "hil_model_package.zip"
+  timeout_seconds: 15
+  max_download_mb: 512

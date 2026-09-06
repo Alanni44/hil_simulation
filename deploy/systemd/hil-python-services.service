@@ -10,6 +10,7 @@ Group=hil
 WorkingDirectory=/opt/hil/python_services
 ExecStart=/opt/hil/venv/bin/python3 /opt/hil/python_services/main.py
 Environment=HIL_CONTROLLED_PACKAGE_ROOT=/opt/hil/packages
+EnvironmentFile=-/etc/hil/gitlab-release.env
 Restart=on-failure
 RestartSec=2
 UMask=0077
@@ -17,7 +18,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts
+ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts /opt/hil/packages
 
 [Install]
 WantedBy=multi-user.target

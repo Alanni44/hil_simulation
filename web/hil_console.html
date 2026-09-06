@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>硬件在环仿真飞行验证控制台</title>
+  <style>
+    :root { --nav:#0c243e; --blue:#2164a4; --bg:#f3f6fa; --line:#d9e3ed; --text:#1f2937; --muted:#64748b; --green:#168c46; --red:#b93434; }
+    * { box-sizing:border-box; } body { margin:0; font-family:"Microsoft YaHei","Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+    .app { display:flex; min-height:100vh; } aside { width:252px; padding:22px 17px; color:#d6e5f1; background:linear-gradient(180deg,var(--nav),#071827); }
+    h1 { font-size:19px; margin:0 0 6px; color:#fff; } h2 { color:#183e60; font-size:16px; margin:0 0 12px; } .sub { color:#9bb2c8; font-size:12px; line-height:1.7; }
+    nav { margin-top:26px; } nav div { padding:11px; border-radius:7px; margin-bottom:4px; font-size:13px; } nav .active { background:#1e4c76; color:#fff; box-shadow:inset 3px 0 #56b9ff; }
+    main { flex:1; min-width:0; padding:28px; } .header { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:18px; }
+    .header h1 { color:#163b5e; } .connection { display:flex; gap:8px; align-items:center; } input, select, button { font:inherit; border-radius:6px; border:1px solid #cad7e4; padding:8px 10px; }
+    input, select { min-width:200px; background:#fff; } button { cursor:pointer; background:#fff; color:#31465b; } button.primary { background:var(--blue); color:#fff; border-color:var(--blue); } button.success { background:var(--green); color:#fff; border-color:var(--green); } button.danger { background:var(--red); color:#fff; border-color:var(--red); } button:disabled { cursor:not-allowed; opacity:.55; }
+    .grid { display:grid; grid-template-columns:1.3fr .9fr; gap:14px; } .card { background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 2px 8px rgba(15,23,42,.05); padding:17px; margin-bottom:14px; }
+    .note { border-left:4px solid #3e83bd; background:#eef6fd; color:#34516a; padding:11px; border-radius:5px; font-size:12px; line-height:1.7; } .warning { border-left-color:#e99a1e; background:#fff8e7; }
+    .row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; } .row + .row { margin-top:11px; } label { font-size:12px; color:var(--muted); } .status { font-size:13px; font-weight:700; color:var(--muted); }
+    table { width:100%; border-collapse:collapse; font-size:12px; margin-top:12px; } th { text-align:left; background:#edf3f8; color:#395169; } th,td { padding:9px; border-bottom:1px solid #e8edf2; } tr.selected td { background:#eaf4fc; }
+    pre { min-height:118px; max-height:260px; overflow:auto; padding:11px; border-radius:7px; background:#0e1721; color:#b6d1e2; font:12px/1.6 Consolas,monospace; white-space:pre-wrap; }
+    .pill { display:inline-block; border-radius:999px; padding:4px 8px; background:#e8f2ff; color:#255db1; font-size:11px; } .muted { color:var(--muted); font-size:12px; }
+    @media (max-width:900px) { aside { display:none; } main { padding:16px; } .grid { grid-template-columns:1fr; } .header { display:block; } .connection { margin-top:12px; flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <h1>硬件在环仿真飞行验证</h1>
+      <div class="sub">3.6 HIL Flight Verification<br>管理面 + 本地实时执行面</div>
+      <nav><div>验证总览</div><div class="active">模型工程管理</div><div>代码生成与模型下载</div><div>模型运算设备运行控制</div><div>参数显示与在线调参</div><div>任务与场景规划</div><div>数据存储与回放</div></nav>
+      <div class="sub" style="margin-top:34px">GitLab 只用于读取已批准的模型发布包。实时闭环仍独立运行于模型运算设备。</div>
+    </aside>
+    <main>
+      <div class="header">
+        <div><h1>GitLab 受控发布</h1><div class="muted">选择已批准版本，验证并暂存后再执行原有代码生成或部署流程。</div></div>
+        <div class="connection"><input id="wsUrl" aria-label="WebSocket 地址" value="ws://127.0.0.1:8080/ws/hil"><button id="connectBtn" class="primary">连接服务</button></div>
+      </div>
+      <div class="grid">
+        <section>
+          <div class="card">
+            <h2>发布包选择</h2>
+            <div class="row"><label for="project">已批准项目</label><input id="project" value="" placeholder="例如：group/hil-models"><button id="refreshBtn">查询发布版本</button></div>
+            <div class="row"><label for="release">模型发布版本</label><select id="release" disabled><option>请先查询</option></select><button id="stageBtn" class="success" disabled>验证并暂存</button></div>
+            <table><thead><tr><th>标签</th><th>提交</th><th>发布时间</th><th>发布资产</th></tr></thead><tbody id="releaseRows"><tr><td colspan="4" class="muted">尚未读取发布版本。</td></tr></tbody></table>
+          </div>
+          <div class="card">
+            <h2>构建与部署</h2>
+            <div class="note warning">只有“验证并暂存”成功的包才能继续。构建/部署仍调用既有服务端校验、MATLAB 代码生成和单实例运行控制。</div>
+            <div class="row" style="margin-top:12px"><button id="buildBtn" class="primary" disabled>代码生成</button><button id="deployBtn" class="danger" disabled>下载并部署到模型运算设备</button><span id="stagedLabel" class="muted">尚未暂存模型包。</span></div>
+          </div>
+          <div class="card"><h2>操作审计</h2><div class="row"><button id="historyBtn">刷新本地审计</button><span class="muted">审计仅保存项目、标签、哈希和模型版本，不保存访问令牌。</span></div><pre id="history">[]</pre></div>
+        </section>
+        <section>
+          <div class="card"><h2>连接与配置状态</h2><div id="status" class="status">未连接</div><div class="note" style="margin-top:12px">访问令牌仅由服务进程从环境变量读取；浏览器端不配置、保存或展示令牌。</div></div>
+          <div class="card"><h2>操作日志</h2><pre id="log">等待连接服务。</pre></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="hil_api.js"></script>
+  <script src="hil_console_gitlab.js"></script>
+</body>
+</html>

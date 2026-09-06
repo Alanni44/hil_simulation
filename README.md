@@ -105,6 +105,29 @@ MATLAB/GCC 并运行唯一的已验证核心。它不提供模型上传、注册
 `.slx` 和显式 `hil_contract.json`；详细边界见
 [`models/README.md`](models/README.md)。
 
+### GitLab 受控模型发布（可选）
+
+系统可从企业自建 GitLab 的**已发布版本**读取一个不可变模型包。该功能默认关闭；
+它不上传、修改、删除 GitLab 内容，也不替代 GitLab 的分支、合并请求或权限管理。
+
+1. 在 `config.yaml` 的 `gitlab_release` 中设置 `enabled: true`、企业 GitLab 的 HTTPS
+   `base_url`、允许使用的 `projects` 白名单，以及统一发布资产名
+   `hil_model_package.zip`。
+2. 将 `deploy/systemd/gitlab-release.env.example` 复制为
+   `/etc/hil/gitlab-release.env`，填入仅有 `read_api` 权限的项目或群组访问令牌，并设置
+   `root:hil` 所有者和 `0640` 权限。令牌仅由 Python 服务进程读取，不写入 YAML、浏览器、
+   审计文件或 Git 仓库。
+3. 重启 `hil-python-services`。打开 `web/hil_console.html` 后，连接 WebSocket，输入
+   白名单内项目路径，选择 Release，执行“验证并暂存”。
+4. 暂存会限制下载大小、拒绝非 HTTPS/跨源地址、拒绝 ZIP 路径穿越和符号链接，并通过现有
+   `package_manifest.json` 与 `hil_contract.json` 校验。校验成功后，包才会原子发布到
+   `/opt/hil/packages/gitlab/<project>/<tag>/`；同一版本不可覆盖。
+5. 控制台返回现有 `build_package` / `deploy_package` 所需参数。代码生成、单实例停止旧核、
+   启动新核及健康检查仍完全遵循原有执行链路。
+
+若尚未填写自建实例地址、项目或令牌，控制台会显示“未配置”，且不会发起 GitLab 网络请求。
+本地审计记录位于 `artifacts/gitlab-audit/`，仅包含项目、标签、提交、哈希和模型版本。
+
 ### 3. 开发启动
 
 `start_all.sh` 只接受已经完整验证的可执行程序，默认不请求 sudo。

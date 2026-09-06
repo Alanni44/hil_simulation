@@ -18,6 +18,8 @@ import tempfile
 from config_loader import CONFIG
 from shared import state_cache
 from shared.logger import get_logger
+from shared.gitlab_release import GitLabReleaseClient, GitLabReleaseError
+from shared.gitlab_stage import GitLabStageError, stage_release
 from shared.model_package import PackageError, controlled_path, sha256_file, validate_package
 from shared.ws_framing import FrameError, read_frame, write_frame
 from shared.flight_state import parse_flight_state
@@ -38,6 +40,10 @@ ACTIVE_CORE = None
 DEPLOY_MODE = os.environ.get('HIL_DEPLOY_MODE', 'development')
 ACTIVE_VEHICLE_CONTRACT_PATH = os.environ.get(
     'HIL_ACTIVE_CONTRACT_PATH', os.path.join(PROJECT_ROOT, 'runtime', 'active_vehicle_contract.json'))
+GITLAB_AUDIT_ROOT = os.environ.get(
+    'HIL_GITLAB_AUDIT_ROOT', os.path.join(PROJECT_ROOT, 'artifacts', 'gitlab-audit'))
+GITLAB_CLIENT = GitLabReleaseClient.from_config(
+    CONFIG.get('gitlab_release', {}), os.environ.get('HIL_GITLAB_TOKEN', ''))
 
 
 def _utc_id(request_id):
@@ -268,6 +274,90 @@ async def _handle_load_mission(params, writer):
     await ws_send(writer, json.dumps(receipt))
 
 
+def _write_gitlab_audit(event):
+    """Persist only non-secret release provenance for local traceability."""
+    if not os.path.isdir(GITLAB_AUDIT_ROOT):
+        os.makedirs(GITLAB_AUDIT_ROOT)
+    audit_event = {
+        'timestamp_utc': datetime.datetime.utcnow().isoformat() + 'Z',
+        'action': event['action'],
+        'request_id': event.get('request_id', ''),
+        'project': event.get('project'),
+        'tag_name': event.get('tag_name'),
+        'package_sha256': event.get('package_sha256'),
+        'model_ref': event.get('model_ref'),
+        'model_revision_ref': event.get('model_revision_ref'),
+        'commit_id': event.get('commit_id'),
+    }
+    filename = '{}.json'.format(_utc_id(event.get('request_id', 'gitlab')))
+    _write_json(os.path.join(GITLAB_AUDIT_ROOT, filename), audit_event)
+    return audit_event
+
+
+def _gitlab_history():
+    if not os.path.isdir(GITLAB_AUDIT_ROOT):
+        return []
+    events = []
+    for filename in sorted(os.listdir(GITLAB_AUDIT_ROOT), reverse=True)[:50]:
+        if not filename.endswith('.json'):
+            continue
+        try:
+            with open(os.path.join(GITLAB_AUDIT_ROOT, filename), 'r') as source:
+                value = json.load(source)
+            if isinstance(value, dict):
+                events.append(value)
+        except (IOError, ValueError):
+            logger.warning('Skipping unreadable GitLab audit record %s', filename)
+    return events
+
+
+def _required_gitlab_string(params, name):
+    value = params.get(name)
+    if not isinstance(value, str) or not value:
+        raise ValueError('missing {}'.format(name))
+    return value
+
+
+def _handle_gitlab_command(cmd, params):
+    """Handle the read-only release workflow without exposing credentials."""
+    try:
+        if cmd == 'gitlab_status':
+            return {'status': 'OK', 'gitlab': GITLAB_CLIENT.status()}
+        if cmd == 'gitlab_history':
+            return {'status': 'OK', 'events': _gitlab_history()}
+        project = _required_gitlab_string(params, 'project')
+        if cmd == 'gitlab_list_releases':
+            return {'status': 'OK', 'project': project,
+                    'releases': GITLAB_CLIENT.list_releases(project)}
+        if cmd == 'gitlab_stage_release':
+            tag_name = _required_gitlab_string(params, 'tag_name')
+            staged = stage_release(GITLAB_CLIENT, project, tag_name, CONTROLLED_PACKAGE_ROOT)
+            _write_gitlab_audit({
+                'action': 'stage_release', 'request_id': params.get('request_id', ''),
+                'project': project, 'tag_name': tag_name,
+                'package_sha256': staged.get('package_sha256'),
+                'model_ref': staged.get('model_ref'),
+                'model_revision_ref': staged.get('model_revision_ref'),
+                'commit_id': staged.get('commit_id'),
+            })
+            return {
+                'status': 'READY', 'staged': staged,
+                'build_request': {
+                    'request_id': params.get('request_id', secrets.token_hex(12)),
+                    'model_ref': staged.get('model_ref'),
+                    'model_revision_ref': staged.get('model_revision_ref'),
+                    'package_path': staged.get('package_path'),
+                    'package_sha256': staged.get('package_sha256'),
+                },
+            }
+        return {'status': 'FAILED', 'message': 'unsupported GitLab command'}
+    except (GitLabReleaseError, GitLabStageError, ValueError) as exc:
+        return {'status': 'FAILED', 'message': str(exc)}
+    except Exception as exc:
+        logger.exception('GitLab command failed: %s', exc.__class__.__name__)
+        return {'status': 'FAILED', 'message': 'GitLab operation failed; inspect server logs.'}
+
+
 async def command_loop(reader, writer):
     while True:
         try:
@@ -291,6 +381,8 @@ async def command_loop(reader, writer):
         if cmd in ('build_package', 'deploy_package'):
             request_body = dict(params); request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
             await ws_send(writer, json.dumps(_build_or_deploy(request_body)))
+        elif cmd in ('gitlab_status', 'gitlab_list_releases', 'gitlab_stage_release', 'gitlab_history'):
+            await ws_send(writer, json.dumps(_handle_gitlab_command(cmd, dict(params))))
         elif cmd in ('tune', 'get_parameter_registry'):
             await _handle_core_command(cmd, dict(params), writer)
         elif cmd == 'set_inputs': await _handle_core_command('set_inputs', dict(params), writer)
