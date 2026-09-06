@@ -18,6 +18,7 @@ class GitLabWebUiTests(unittest.TestCase):
         self.assertIn('gitlab_stage_release', client)
         self.assertIn('build_package', client)
         self.assertIn('deploy_package', client)
+        self.assertIn('elements.refresh.disabled = !state.configured', client)
         self.assertNotIn('HIL_GITLAB_TOKEN', html + client)
         self.assertNotIn('type="password"', html)
 

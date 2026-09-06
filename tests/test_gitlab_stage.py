@@ -92,6 +92,29 @@ class GitLabStageTests(unittest.TestCase):
 
         self.assertEqual(client.downloaded_urls, [])
 
+    def test_rejects_archive_with_excessive_member_count_before_validation(self):
+        entries = {'release/{:05}.txt'.format(index): b'x' for index in range(10001)}
+        client = FakeClient(package_zip(entries))
+        validated = []
+
+        with self.assertRaises(GitLabStageError):
+            stage_release(client, 'uav/hil-models', 'v1.0.0', self.controlled_root,
+                          lambda *args: validated.append(True))
+
+        self.assertEqual(validated, [])
+
+    def test_rejects_high_compression_ratio_before_validation(self):
+        client = FakeClient(package_zip({'release/repetitive.bin': b'0' * (128 * 1024)}))
+        validated = []
+
+        with self.assertRaises(GitLabStageError):
+            stage_release(client, 'uav/hil-models', 'v1.0.0', self.controlled_root,
+                          lambda *args: validated.append(True))
+
+        self.assertEqual(validated, [])
+        staging_parent = os.path.join(self.controlled_root, '.gitlab-stage')
+        self.assertFalse(os.path.exists(staging_parent) and os.listdir(staging_parent))
+
 
 if __name__ == '__main__':
     unittest.main()

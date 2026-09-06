@@ -10,15 +10,30 @@ import json
 
 try:
     from urllib.parse import quote, urlparse
-    from urllib.request import Request, urlopen
+    from urllib.request import Request, build_opener, HTTPRedirectHandler
+    from urllib.error import HTTPError
 except ImportError:  # pragma: no cover - retained for legacy Python runtime
     from urllib import quote
     from urlparse import urlparse
-    from urllib2 import Request, urlopen
+    from urllib2 import Request, build_opener, HTTPRedirectHandler, HTTPError
 
 
 class GitLabReleaseError(ValueError):
     """Raised when a requested release cannot be accessed safely."""
+
+
+class NoRedirectHandler(HTTPRedirectHandler):
+    """Reject redirects before urllib can resend PRIVATE-TOKEN elsewhere."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_DEFAULT_OPENER = build_opener(NoRedirectHandler())
+
+
+def _open_without_redirects(request, timeout):
+    return _DEFAULT_OPENER.open(request, timeout=timeout)
 
 
 class GitLabReleaseClient(object):
@@ -29,7 +44,7 @@ class GitLabReleaseClient(object):
     def __init__(self, config, token, opener=None):
         self._config = config if isinstance(config, dict) else {}
         self._token = token or ''
-        self._opener = opener or urlopen
+        self._opener = opener or _open_without_redirects
         self._validation_code = self._validate_config()
 
     @classmethod
@@ -64,11 +79,14 @@ class GitLabReleaseClient(object):
 
     def status(self):
         """Return a browser-safe configuration state without making a request."""
+        projects = self._config.get('projects')
+        project_count = len(projects) if isinstance(projects, list) else 0
         if self._validation_code is None:
             return {
                 'configured': True,
                 'code': 'READY',
                 'message': 'GitLab release integration is ready.',
+                'allowed_project_count': project_count,
             }
         messages = {
             'NOT_CONFIGURED': 'GitLab release integration is disabled.',
@@ -83,6 +101,7 @@ class GitLabReleaseClient(object):
             'configured': False,
             'code': self._validation_code,
             'message': messages[self._validation_code],
+            'allowed_project_count': project_count,
         }
 
     @property
@@ -111,9 +130,20 @@ class GitLabReleaseClient(object):
             status = response.getcode() if hasattr(response, 'getcode') else 200
             if status is not None and (status < 200 or status >= 300):
                 raise GitLabReleaseError('GitLab returned HTTP status {0}.'.format(status))
+            # urllib follows redirects by default.  Verify the final response
+            # URL as well as the release asset URL we originally approved.
+            final_url = response.geturl() if hasattr(response, 'geturl') else None
+            if final_url and not self.is_safe_asset_url(final_url):
+                if hasattr(response, 'close'):
+                    response.close()
+                raise GitLabReleaseError('GitLab redirected outside the configured origin.')
             return response
         except GitLabReleaseError:
             raise
+        except HTTPError as exc:
+            if 300 <= exc.code < 400:
+                raise GitLabReleaseError('GitLab redirect was rejected.')
+            raise GitLabReleaseError('GitLab returned HTTP status {0}.'.format(exc.code))
         except Exception as exc:
             raise GitLabReleaseError('GitLab request failed: {0}'.format(exc.__class__.__name__))
 

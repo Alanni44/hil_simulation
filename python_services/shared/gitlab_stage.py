@@ -14,6 +14,11 @@ class GitLabStageError(ValueError):
     """Raised when a GitLab release cannot be staged safely."""
 
 
+MAX_ARCHIVE_MEMBERS = 10000
+MAX_SINGLE_MEMBER_BYTES = 256 * 1024 * 1024
+MAX_COMPRESSION_RATIO = 100
+
+
 def _safe_component(value, label):
     if not isinstance(value, str) or not value or value in ('.', '..'):
         raise GitLabStageError('{0} is invalid.'.format(label))
@@ -44,7 +49,10 @@ def _validated_archive_members(archive, limit):
     members = []
     total_size = 0
     root_name = None
-    for info in archive.infolist():
+    archive_members = archive.infolist()
+    if len(archive_members) > MAX_ARCHIVE_MEMBERS:
+        raise GitLabStageError('GitLab archive contains too many members.')
+    for info in archive_members:
         name = info.filename.replace('\\', '/')
         if not name or name.startswith('/') or name.startswith('../'):
             raise GitLabStageError('GitLab archive contains an unsafe path.')
@@ -54,6 +62,11 @@ def _validated_archive_members(archive, limit):
         if _is_symlink(info):
             raise GitLabStageError('GitLab archive may not contain symbolic links.')
         if not info.is_dir():
+            if info.file_size > min(limit, MAX_SINGLE_MEMBER_BYTES):
+                raise GitLabStageError('GitLab archive contains an oversized member.')
+            if info.file_size and (not info.compress_size or
+                                   float(info.file_size) / info.compress_size > MAX_COMPRESSION_RATIO):
+                raise GitLabStageError('GitLab archive contains an unsafe compression ratio.')
             total_size += info.file_size
             if total_size > limit:
                 raise GitLabStageError('GitLab archive exceeds the configured size limit.')

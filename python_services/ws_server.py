@@ -281,15 +281,18 @@ def _write_gitlab_audit(event):
     audit_event = {
         'timestamp_utc': datetime.datetime.utcnow().isoformat() + 'Z',
         'action': event['action'],
+        'outcome': event.get('outcome', 'SUCCEEDED'),
         'request_id': event.get('request_id', ''),
+        'operator_id': event.get('operator_id'),
         'project': event.get('project'),
         'tag_name': event.get('tag_name'),
         'package_sha256': event.get('package_sha256'),
         'model_ref': event.get('model_ref'),
         'model_revision_ref': event.get('model_revision_ref'),
         'commit_id': event.get('commit_id'),
+        'contract_sha256': event.get('contract_sha256'),
     }
-    filename = '{}.json'.format(_utc_id(event.get('request_id', 'gitlab')))
+    filename = '{}-{}.json'.format(_utc_id(event.get('request_id', 'gitlab')), secrets.token_hex(4))
     _write_json(os.path.join(GITLAB_AUDIT_ROOT, filename), audit_event)
     return audit_event
 
@@ -318,29 +321,75 @@ def _required_gitlab_string(params, name):
     return value
 
 
+def _public_gitlab_release(release):
+    """Return only browser-safe release metadata; asset URLs stay server-side."""
+    return {key: release.get(key) for key in
+            ('tag_name', 'released_at', 'commit_id', 'asset_name')}
+
+
+def _finish_gitlab_command(cmd, params, response, staged=None):
+    """Audit every GitLab read/stage outcome without retaining error details."""
+    if cmd == 'gitlab_history':
+        return response
+    action = {
+        'gitlab_status': 'status',
+        'gitlab_list_releases': 'list_releases',
+        'gitlab_stage_release': 'stage_release',
+    }.get(cmd, 'unknown')
+    staged = staged or {}
+    _write_gitlab_audit({
+        'action': action,
+        'outcome': 'SUCCEEDED' if response.get('status') in ('OK', 'READY') else 'FAILED',
+        'request_id': params.get('request_id', ''),
+        'operator_id': params.get('operator_id') if isinstance(params.get('operator_id'), str) else None,
+        'project': staged.get('project', params.get('project')),
+        'tag_name': staged.get('tag_name', params.get('tag_name')),
+        'package_sha256': staged.get('package_sha256'),
+        'model_ref': staged.get('model_ref'),
+        'model_revision_ref': staged.get('model_revision_ref'),
+        'commit_id': staged.get('commit_id'),
+    })
+    return response
+
+
+def _audit_gitlab_build_or_deploy(request, response):
+    """Attach build/deploy evidence to the release selected by the console."""
+    provenance = request.get('gitlab_provenance')
+    if not isinstance(provenance, dict) or request.get('operation') not in ('build', 'deploy'):
+        return
+    action = '{}_package'.format(request['operation'])
+    _write_gitlab_audit({
+        'action': action,
+        'outcome': 'SUCCEEDED' if response.get('status') in ('READY', 'DEPLOYED', 'DEV_DEPLOYED') else 'FAILED',
+        'request_id': request.get('request_id', ''),
+        'project': provenance.get('project'),
+        'tag_name': provenance.get('tag_name'),
+        'package_sha256': provenance.get('package_sha256'),
+        'commit_id': provenance.get('commit_id'),
+        'model_ref': request.get('model_ref'),
+        'model_revision_ref': request.get('model_revision_ref'),
+        'contract_sha256': response.get('contract_sha256'),
+    })
+
+
 def _handle_gitlab_command(cmd, params):
     """Handle the read-only release workflow without exposing credentials."""
     try:
         if cmd == 'gitlab_status':
-            return {'status': 'OK', 'gitlab': GITLAB_CLIENT.status()}
+            return _finish_gitlab_command(cmd, params,
+                                          {'status': 'OK', 'gitlab': GITLAB_CLIENT.status()})
         if cmd == 'gitlab_history':
             return {'status': 'OK', 'events': _gitlab_history()}
         project = _required_gitlab_string(params, 'project')
         if cmd == 'gitlab_list_releases':
-            return {'status': 'OK', 'project': project,
-                    'releases': GITLAB_CLIENT.list_releases(project)}
+            return _finish_gitlab_command(cmd, params, {
+                'status': 'OK', 'project': project,
+                'releases': [_public_gitlab_release(release)
+                             for release in GITLAB_CLIENT.list_releases(project)]})
         if cmd == 'gitlab_stage_release':
             tag_name = _required_gitlab_string(params, 'tag_name')
             staged = stage_release(GITLAB_CLIENT, project, tag_name, CONTROLLED_PACKAGE_ROOT)
-            _write_gitlab_audit({
-                'action': 'stage_release', 'request_id': params.get('request_id', ''),
-                'project': project, 'tag_name': tag_name,
-                'package_sha256': staged.get('package_sha256'),
-                'model_ref': staged.get('model_ref'),
-                'model_revision_ref': staged.get('model_revision_ref'),
-                'commit_id': staged.get('commit_id'),
-            })
-            return {
+            return _finish_gitlab_command(cmd, params, {
                 'status': 'READY', 'staged': staged,
                 'build_request': {
                     'request_id': params.get('request_id', secrets.token_hex(12)),
@@ -348,14 +397,21 @@ def _handle_gitlab_command(cmd, params):
                     'model_revision_ref': staged.get('model_revision_ref'),
                     'package_path': staged.get('package_path'),
                     'package_sha256': staged.get('package_sha256'),
+                    'gitlab_provenance': {
+                        'project': staged.get('project'), 'tag_name': staged.get('tag_name'),
+                        'commit_id': staged.get('commit_id'),
+                        'package_sha256': staged.get('package_sha256'),
+                    },
                 },
-            }
-        return {'status': 'FAILED', 'message': 'unsupported GitLab command'}
+            }, staged)
+        return _finish_gitlab_command(cmd, params,
+                                      {'status': 'FAILED', 'message': 'unsupported GitLab command'})
     except (GitLabReleaseError, GitLabStageError, ValueError) as exc:
-        return {'status': 'FAILED', 'message': str(exc)}
+        return _finish_gitlab_command(cmd, params, {'status': 'FAILED', 'message': str(exc)})
     except Exception as exc:
         logger.exception('GitLab command failed: %s', exc.__class__.__name__)
-        return {'status': 'FAILED', 'message': 'GitLab operation failed; inspect server logs.'}
+        return _finish_gitlab_command(cmd, params,
+                                      {'status': 'FAILED', 'message': 'GitLab operation failed; inspect server logs.'})
 
 
 async def command_loop(reader, writer):
@@ -380,7 +436,9 @@ async def command_loop(reader, writer):
         if not isinstance(params, dict): await ws_send(writer, json.dumps({'status': 'error', 'message': 'params must be object'})); continue
         if cmd in ('build_package', 'deploy_package'):
             request_body = dict(params); request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
-            await ws_send(writer, json.dumps(_build_or_deploy(request_body)))
+            build_response = _build_or_deploy(request_body)
+            _audit_gitlab_build_or_deploy(request_body, build_response)
+            await ws_send(writer, json.dumps(build_response))
         elif cmd in ('gitlab_status', 'gitlab_list_releases', 'gitlab_stage_release', 'gitlab_history'):
             await ws_send(writer, json.dumps(_handle_gitlab_command(cmd, dict(params))))
         elif cmd in ('tune', 'get_parameter_registry'):

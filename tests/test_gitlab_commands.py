@@ -19,7 +19,8 @@ class FakeClient(object):
         return {'configured': True, 'code': 'READY', 'message': 'ready'}
 
     def list_releases(self, project):
-        return [{'tag_name': 'v1.0.0', 'asset_name': 'hil_model_package.zip'}]
+        return [{'tag_name': 'v1.0.0', 'asset_name': 'hil_model_package.zip',
+                 'asset_url': 'https://gitlab.example.test/private/asset.zip'}]
 
 
 class GitLabCommandTests(unittest.TestCase):
@@ -49,6 +50,7 @@ class GitLabCommandTests(unittest.TestCase):
         self.assertEqual(status['gitlab']['code'], 'READY')
         self.assertEqual(releases['status'], 'OK')
         self.assertEqual(releases['releases'][0]['tag_name'], 'v1.0.0')
+        self.assertNotIn('asset_url', releases['releases'][0])
 
     def test_stage_writes_redacted_audit_record_and_returns_build_inputs(self):
         staged = {
@@ -68,6 +70,7 @@ class GitLabCommandTests(unittest.TestCase):
         history = ws_server._handle_gitlab_command('gitlab_history', {})
         self.assertEqual(len(history['events']), 1)
         self.assertEqual(history['events'][0]['action'], 'stage_release')
+        self.assertEqual(history['events'][0]['outcome'], 'SUCCEEDED')
         serialized = repr(history)
         self.assertNotIn('PRIVATE-TOKEN', serialized)
         self.assertNotIn('secret', serialized.lower())
@@ -77,6 +80,43 @@ class GitLabCommandTests(unittest.TestCase):
 
         self.assertEqual(result['status'], 'FAILED')
         self.assertIn('tag_name', result['message'])
+
+    def test_failed_stage_is_recorded_without_error_secrets(self):
+        with mock.patch.object(ws_server, 'stage_release',
+                               side_effect=ws_server.GitLabStageError('secret-token rejected')):
+            result = ws_server._handle_gitlab_command(
+                'gitlab_stage_release',
+                {'request_id': 'request-2', 'project': 'uav/hil-models', 'tag_name': 'v1.0.0'})
+
+        self.assertEqual(result['status'], 'FAILED')
+        history = ws_server._handle_gitlab_command('gitlab_history', {})
+        event = next(item for item in history['events'] if item['action'] == 'stage_release')
+        self.assertEqual(event['outcome'], 'FAILED')
+        self.assertNotIn('secret-token', repr(event))
+
+    def test_build_result_with_release_provenance_is_audited(self):
+        ws_server._audit_gitlab_build_or_deploy({
+            'operation': 'build', 'request_id': 'request-3',
+            'gitlab_provenance': {
+                'project': 'uav/hil-models', 'tag_name': 'v1.0.0',
+                'commit_id': 'abc123', 'package_sha256': 'b' * 64,
+            },
+        }, {'status': 'READY', 'contract_sha256': 'c' * 64})
+
+        history = ws_server._handle_gitlab_command('gitlab_history', {})
+        event = next(item for item in history['events'] if item['action'] == 'build_package')
+        self.assertEqual(event['outcome'], 'SUCCEEDED')
+        self.assertEqual(event['contract_sha256'], 'c' * 64)
+
+    def test_same_request_id_keeps_stage_and_build_audit_events(self):
+        ws_server._write_gitlab_audit({'action': 'stage_release', 'outcome': 'SUCCEEDED',
+                                       'request_id': 'same-request'})
+        ws_server._write_gitlab_audit({'action': 'build_package', 'outcome': 'SUCCEEDED',
+                                       'request_id': 'same-request'})
+
+        events = ws_server._gitlab_history()
+
+        self.assertEqual({event['action'] for event in events}, {'stage_release', 'build_package'})
 
 
 if __name__ == '__main__':

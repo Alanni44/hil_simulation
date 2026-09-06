@@ -24,6 +24,9 @@
   function refreshStatus() {
     return request('gitlab_status', {}).then(function (reply) {
       var state = reply.gitlab; setStatus(state.code + '：' + state.message, !state.configured); log('GitLab 状态：' + state.code);
+      elements.refresh.disabled = !state.configured;
+      elements.project.disabled = !state.configured;
+      if (!state.configured) { elements.release.disabled = true; elements.stage.disabled = true; }
       return state;
     });
   }

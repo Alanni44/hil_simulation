@@ -10,7 +10,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python_services'))
 
-from shared.gitlab_release import GitLabReleaseClient, GitLabReleaseError
+from shared.gitlab_release import GitLabReleaseClient, GitLabReleaseError, NoRedirectHandler
 
 
 READY_CONFIG = {
@@ -31,6 +31,11 @@ class FakeResponse(io.BytesIO):
 
     def getcode(self):
         return self.status
+
+
+class RedirectedResponse(FakeResponse):
+    def geturl(self):
+        return 'https://untrusted.example.test/archive.zip'
 
 
 class RecordingOpener(object):
@@ -57,6 +62,7 @@ class GitLabReleaseClientTests(unittest.TestCase):
 
         self.assertFalse(status['configured'])
         self.assertEqual(status['code'], 'NOT_CONFIGURED')
+        self.assertEqual(status['allowed_project_count'], 0)
         self.assertNotIn('secret-token', status['message'])
 
     def test_missing_token_reports_not_configured_without_network(self):
@@ -68,6 +74,7 @@ class GitLabReleaseClientTests(unittest.TestCase):
 
         self.assertFalse(status['configured'])
         self.assertEqual(status['code'], 'MISSING_TOKEN')
+        self.assertEqual(status['allowed_project_count'], 1)
 
     def test_list_releases_uses_read_only_encoded_project_request(self):
         payload = json.dumps([
@@ -118,6 +125,30 @@ class GitLabReleaseClientTests(unittest.TestCase):
 
         self.assertFalse(status['configured'])
         self.assertEqual(status['code'], 'INVALID_BASE_URL')
+
+    def test_rejects_asset_download_redirected_to_another_origin(self):
+        opener = RecordingOpener(RedirectedResponse(b'package'))
+        client = GitLabReleaseClient.from_config(READY_CONFIG, 'secret-token', opener)
+
+        with self.assertRaises(GitLabReleaseError):
+            client.download_asset('https://gitlab.example.test/releases/v1.2.0.zip')
+
+    def test_default_redirect_handler_never_constructs_a_follow_up_request(self):
+        handler = NoRedirectHandler()
+        request = handler.redirect_request(
+            __import__('urllib.request').request.Request(
+                'https://gitlab.example.test/api/v4/projects/1/releases'),
+            FakeResponse(b'', status=302), 302, 'Found', {},
+            'https://untrusted.example.test/asset.zip')
+
+        self.assertIsNone(request)
+
+    def test_download_is_rejected_when_it_exceeds_configured_byte_limit(self):
+        opener = RecordingOpener(FakeResponse(b'x' * (1024 * 1024 + 1)))
+        client = GitLabReleaseClient.from_config(READY_CONFIG, 'secret-token', opener)
+
+        with self.assertRaises(GitLabReleaseError):
+            client.download_asset('https://gitlab.example.test/releases/v1.2.0.zip')
 
 
 if __name__ == '__main__':
