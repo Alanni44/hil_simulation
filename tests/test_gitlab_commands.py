@@ -27,10 +27,12 @@ class GitLabCommandTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.audit_root = os.path.join(self.temp.name, 'audit')
+        self.receipt_root = os.path.join(self.temp.name, 'receipts')
         self.controlled_root = os.path.join(self.temp.name, 'controlled')
         self.patches = [
             mock.patch.object(ws_server, 'GITLAB_CLIENT', FakeClient()),
             mock.patch.object(ws_server, 'GITLAB_AUDIT_ROOT', self.audit_root),
+            mock.patch.object(ws_server, 'GITLAB_RECEIPT_ROOT', self.receipt_root),
             mock.patch.object(ws_server, 'CONTROLLED_PACKAGE_ROOT', self.controlled_root),
         ]
         for patcher in self.patches:
@@ -65,7 +67,7 @@ class GitLabCommandTests(unittest.TestCase):
                 {'request_id': 'request-1', 'project': 'uav/hil-models', 'tag_name': 'v1.0.0'})
 
         self.assertEqual(result['status'], 'READY')
-        self.assertEqual(result['build_request']['package_sha256'], 'a' * 64)
+        self.assertIn('gitlab_stage_receipt', result['build_request'])
         stage.assert_called_once()
         history = ws_server._handle_gitlab_command('gitlab_history', {})
         self.assertEqual(len(history['events']), 1)
@@ -74,6 +76,30 @@ class GitLabCommandTests(unittest.TestCase):
         serialized = repr(history)
         self.assertNotIn('PRIVATE-TOKEN', serialized)
         self.assertNotIn('secret', serialized.lower())
+
+    def test_stage_receipt_replaces_client_supplied_build_provenance(self):
+        staged = {
+            'project': 'uav/hil-models', 'tag_name': 'v1.0.0',
+            'package_path': os.path.join(self.controlled_root, 'gitlab', 'uav_hil-models', 'v1.0.0'),
+            'package_sha256': 'a' * 64, 'model_ref': 'model-42',
+            'model_revision_ref': 'rev-9', 'commit_id': 'abc123',
+        }
+        with mock.patch.object(ws_server, 'stage_release', return_value=staged):
+            reply = ws_server._handle_gitlab_command(
+                'gitlab_stage_release', {'project': 'uav/hil-models', 'tag_name': 'v1.0.0'})
+        hydrated = ws_server._hydrate_gitlab_stage_receipt({
+            'gitlab_stage_receipt': reply['build_request']['gitlab_stage_receipt'],
+            'package_path': 'forged-path', 'package_sha256': 'f' * 64,
+        })
+
+        self.assertEqual(hydrated['package_path'], staged['package_path'])
+        self.assertEqual(hydrated['package_sha256'], staged['package_sha256'])
+        self.assertTrue(hydrated['_gitlab_receipt_verified'])
+
+    def test_gitlab_enabled_defaults_to_loopback_listener(self):
+        with mock.patch.dict(ws_server.CONFIG, {'gitlab_release': {'enabled': True}}, clear=False):
+            with mock.patch.dict(os.environ, {}, clear=True):
+                self.assertEqual(ws_server._ws_listen_host(), '127.0.0.1')
 
     def test_stage_requires_project_and_tag(self):
         result = ws_server._handle_gitlab_command('gitlab_stage_release', {'project': 'uav/hil-models'})
@@ -96,7 +122,7 @@ class GitLabCommandTests(unittest.TestCase):
 
     def test_build_result_with_release_provenance_is_audited(self):
         ws_server._audit_gitlab_build_or_deploy({
-            'operation': 'build', 'request_id': 'request-3',
+            'operation': 'build', 'request_id': 'request-3', '_gitlab_receipt_verified': True,
             'gitlab_provenance': {
                 'project': 'uav/hil-models', 'tag_name': 'v1.0.0',
                 'commit_id': 'abc123', 'package_sha256': 'b' * 64,

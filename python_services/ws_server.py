@@ -42,6 +42,8 @@ ACTIVE_VEHICLE_CONTRACT_PATH = os.environ.get(
     'HIL_ACTIVE_CONTRACT_PATH', os.path.join(PROJECT_ROOT, 'runtime', 'active_vehicle_contract.json'))
 GITLAB_AUDIT_ROOT = os.environ.get(
     'HIL_GITLAB_AUDIT_ROOT', os.path.join(PROJECT_ROOT, 'artifacts', 'gitlab-audit'))
+GITLAB_RECEIPT_ROOT = os.environ.get(
+    'HIL_GITLAB_RECEIPT_ROOT', os.path.join(PROJECT_ROOT, 'runtime', 'gitlab-stage-receipts'))
 GITLAB_CLIENT = GitLabReleaseClient.from_config(
     CONFIG.get('gitlab_release', {}), os.environ.get('HIL_GITLAB_TOKEN', ''))
 
@@ -314,6 +316,50 @@ def _gitlab_history():
     return events
 
 
+def _gitlab_receipt_path(receipt_id):
+    if not isinstance(receipt_id, str) or len(receipt_id) != 32 or \
+            any(character not in '0123456789abcdef' for character in receipt_id):
+        raise PackageError('GitLab stage receipt is invalid.')
+    return os.path.join(GITLAB_RECEIPT_ROOT, '{}.json'.format(receipt_id))
+
+
+def _create_gitlab_stage_receipt(staged):
+    """Persist server-issued provenance; browsers receive only its opaque ID."""
+    if not os.path.isdir(GITLAB_RECEIPT_ROOT):
+        os.makedirs(GITLAB_RECEIPT_ROOT)
+    receipt_id = secrets.token_hex(16)
+    receipt = {key: staged.get(key) for key in (
+        'project', 'tag_name', 'commit_id', 'package_path', 'package_sha256',
+        'model_ref', 'model_revision_ref')}
+    path = _gitlab_receipt_path(receipt_id)
+    pending_path = path + '.pending'
+    _write_json(pending_path, receipt)
+    os.replace(pending_path, path)
+    return receipt_id
+
+
+def _hydrate_gitlab_stage_receipt(request):
+    """Replace untrusted client fields with a server-issued staging receipt."""
+    receipt_id = request.get('gitlab_stage_receipt')
+    if receipt_id is None:
+        return request
+    path = _gitlab_receipt_path(receipt_id)
+    try:
+        with open(path, 'r') as source:
+            receipt = json.load(source)
+    except (IOError, ValueError):
+        raise PackageError('GitLab stage receipt is unavailable.')
+    required = ('package_path', 'package_sha256', 'model_ref', 'model_revision_ref')
+    if not isinstance(receipt, dict) or any(not receipt.get(key) for key in required):
+        raise PackageError('GitLab stage receipt is invalid.')
+    hydrated = dict(request)
+    for key in required:
+        hydrated[key] = receipt[key]
+    hydrated['gitlab_provenance'] = receipt
+    hydrated['_gitlab_receipt_verified'] = True
+    return hydrated
+
+
 def _required_gitlab_string(params, name):
     value = params.get(name)
     if not isinstance(value, str) or not value:
@@ -355,7 +401,8 @@ def _finish_gitlab_command(cmd, params, response, staged=None):
 def _audit_gitlab_build_or_deploy(request, response):
     """Attach build/deploy evidence to the release selected by the console."""
     provenance = request.get('gitlab_provenance')
-    if not isinstance(provenance, dict) or request.get('operation') not in ('build', 'deploy'):
+    if not request.get('_gitlab_receipt_verified') or not isinstance(provenance, dict) or \
+            request.get('operation') not in ('build', 'deploy'):
         return
     action = '{}_package'.format(request['operation'])
     _write_gitlab_audit({
@@ -389,19 +436,12 @@ def _handle_gitlab_command(cmd, params):
         if cmd == 'gitlab_stage_release':
             tag_name = _required_gitlab_string(params, 'tag_name')
             staged = stage_release(GITLAB_CLIENT, project, tag_name, CONTROLLED_PACKAGE_ROOT)
+            receipt_id = _create_gitlab_stage_receipt(staged)
             return _finish_gitlab_command(cmd, params, {
                 'status': 'READY', 'staged': staged,
                 'build_request': {
                     'request_id': params.get('request_id', secrets.token_hex(12)),
-                    'model_ref': staged.get('model_ref'),
-                    'model_revision_ref': staged.get('model_revision_ref'),
-                    'package_path': staged.get('package_path'),
-                    'package_sha256': staged.get('package_sha256'),
-                    'gitlab_provenance': {
-                        'project': staged.get('project'), 'tag_name': staged.get('tag_name'),
-                        'commit_id': staged.get('commit_id'),
-                        'package_sha256': staged.get('package_sha256'),
-                    },
+                    'gitlab_stage_receipt': receipt_id,
                 },
             }, staged)
         return _finish_gitlab_command(cmd, params,
@@ -435,8 +475,14 @@ async def command_loop(reader, writer):
         cmd, params = request.get('cmd'), request.get('params', {})
         if not isinstance(params, dict): await ws_send(writer, json.dumps({'status': 'error', 'message': 'params must be object'})); continue
         if cmd in ('build_package', 'deploy_package'):
-            request_body = dict(params); request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
-            build_response = _build_or_deploy(request_body)
+            try:
+                request_body = _hydrate_gitlab_stage_receipt(dict(params))
+                request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
+                build_response = _build_or_deploy(request_body)
+            except PackageError as exc:
+                request_body = dict(params)
+                request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
+                build_response = {'status': 'FAILED', 'failed_stage': 'RECEIVED', 'message': str(exc)}
             _audit_gitlab_build_or_deploy(request_body, build_response)
             await ws_send(writer, json.dumps(build_response))
         elif cmd in ('gitlab_status', 'gitlab_list_releases', 'gitlab_stage_release', 'gitlab_history'):
@@ -460,8 +506,18 @@ async def command_loop(reader, writer):
             await ws_send(writer, json.dumps({'status': 'error', 'message': 'unsupported command'}))
 
 
+def _ws_listen_host():
+    configured_host = os.environ.get('HIL_WS_LISTEN_HOST')
+    if CONFIG.get('gitlab_release', {}).get('enabled') is True:
+        host = configured_host or '127.0.0.1'
+        if host not in ('127.0.0.1', '::1', 'localhost'):
+            raise PackageError('GitLab-enabled WebSocket management must bind to loopback; use an authenticated reverse proxy.')
+        return host
+    return configured_host or '0.0.0.0'
+
+
 def start_ws_server():
-    host = os.environ.get('HIL_WS_LISTEN_HOST', '0.0.0.0')
+    host = _ws_listen_host()
     port = int(os.environ.get('HIL_WS_LISTEN_PORT', CONFIG['spring_boot']['websocket_port']))
     loop = asyncio.new_event_loop(); asyncio.set_event_loop(loop)
     async def websocket_client(reader, writer):
