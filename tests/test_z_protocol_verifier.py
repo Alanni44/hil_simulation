@@ -101,6 +101,23 @@ class ProtocolSequenceValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ProtocolViolation, 'vehicle_state.data'):
             validator.observe(invalid, 1.02)
 
+    def test_rejects_out_of_order_vehicle_state_fields(self):
+        validator = ProtocolSequenceValidator()
+        validator.observe(hello(), 1.0)
+        validator.observe(mission(), 1.01)
+        invalid = state(3, 0.0)
+        invalid['data'] = {
+            'mission_id': invalid['data']['mission_id'],
+            'position': invalid['data']['position'],
+            'sim_time': invalid['data']['sim_time'],
+            'attitude': invalid['data']['attitude'],
+            'velocity': invalid['data']['velocity'],
+            'angular_velocity': invalid['data']['angular_velocity'],
+        }
+
+        with self.assertRaisesRegex(ProtocolViolation, 'in order'):
+            validator.observe(invalid, 1.02)
+
     def test_rejects_non_50_hz_recorded_state_stream(self):
         validator = ProtocolSequenceValidator()
         validator.observe(hello(), 1.0)

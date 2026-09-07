@@ -14,11 +14,13 @@ V2.0 TCP Bridge Client — 严格按 Simulink-三维视景通信协议 V2.0
   TCP连接 → hello → ACK → mission_plan → ACK → vehicle_state @50Hz
 """
 import json
+import os
 import socket
 import struct
 import threading
 import time
 import weakref
+from collections import OrderedDict
 from shared.logger import get_logger
 from shared import state_cache
 from config_loader import CONFIG
@@ -52,10 +54,141 @@ _recv_buffer_lock = threading.Lock()
 _recv_buffers = weakref.WeakKeyDictionary()
 
 MAX_FRAME_BYTES = 1048576
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+V2_OUTER_FIELDS = ('protocol_version', 'type', 'seq', 'vehicle_id', 'data')
+V2_ACK_DATA_FIELDS = ('ref_type', 'ref_seq', 'accepted')
+V2_STATE_REQUIRED_FIELDS = ('mission_id', 'sim_time', 'position', 'attitude')
+V2_STATE_OPTIONAL_FIELDS = ('velocity', 'angular_velocity', 'flight_state')
+_wire_log_lock = threading.Lock()
+_wire_log_failure_reported = False
 
 
 class ProtocolFrameError(ValueError):
     pass
+
+
+def _ordered_fields(value, fields, label):
+    if not isinstance(value, dict) or set(value) != set(fields):
+        raise ProtocolFrameError('{} fields must be exactly {}'.format(
+            label, ', '.join(fields)))
+    return OrderedDict((field, value[field]) for field in fields)
+
+
+def _ordered_v2_message(message):
+    """Return a V2 message whose serialized key order is protocol-defined."""
+    ordered = _ordered_fields(message, V2_OUTER_FIELDS, 'V2 envelope')
+    message_type = ordered['type']
+    data = ordered['data']
+    if message_type == 'hello':
+        ordered['data'] = _ordered_fields(
+            data, ('role', 'state_rate_hz', 'coordinate_convention',
+                   'angle_unit'), 'hello.data')
+    elif message_type == 'mission_plan':
+        mission = _ordered_fields(
+            data, ('mission_id', 'replace_previous', 'waypoints'),
+            'mission_plan.data')
+        if not isinstance(mission['waypoints'], list):
+            raise ProtocolFrameError('mission_plan.data.waypoints must be a list')
+        mission['waypoints'] = [
+            _ordered_fields(waypoint,
+                            ('id', 'x', 'y', 'height', 'target_speed'),
+                            'mission_plan waypoint')
+            for waypoint in mission['waypoints']]
+        ordered['data'] = mission
+    elif message_type == 'vehicle_state':
+        if not isinstance(data, dict):
+            raise ProtocolFrameError('vehicle_state.data must be an object')
+        optional = tuple(field for field in V2_STATE_OPTIONAL_FIELDS
+                         if field in data)
+        expected = V2_STATE_REQUIRED_FIELDS + optional
+        if set(data) != set(expected):
+            raise ProtocolFrameError(
+                'vehicle_state.data fields must be {}'.format(
+                    ', '.join(expected)))
+        state = OrderedDict((field, data[field]) for field in expected)
+        state['position'] = _ordered_fields(
+            state['position'], ('x', 'y', 'height'), 'vehicle_state.position')
+        state['attitude'] = _ordered_fields(
+            state['attitude'], ('roll', 'pitch', 'yaw'), 'vehicle_state.attitude')
+        if 'velocity' in state:
+            state['velocity'] = _ordered_fields(
+                state['velocity'], ('vx', 'vy', 'vz'), 'vehicle_state.velocity')
+        if 'angular_velocity' in state:
+            state['angular_velocity'] = _ordered_fields(
+                state['angular_velocity'], ('p', 'q', 'r'),
+                'vehicle_state.angular_velocity')
+        ordered['data'] = state
+    elif message_type == 'simulation_event':
+        fields = ('event', 'mission_id') if 'mission_id' in data else ('event',)
+        ordered['data'] = _ordered_fields(data, fields, 'simulation_event.data')
+    else:
+        raise ProtocolFrameError('unsupported outbound V2 message {}'.format(
+            message_type))
+    return ordered
+
+
+def _wire_log_settings():
+    settings = CONFIG.get('wire_log', {})
+    path = settings.get('path', 'runtime/z_debug/ue4_tcp_wire.jsonl')
+    if not os.path.isabs(path):
+        path = os.path.join(ROOT, path)
+    max_bytes = int(settings.get('max_bytes', 16777216))
+    backup_count = int(settings.get('backup_count', 5))
+    if max_bytes < 1024 or backup_count < 0:
+        raise ValueError('invalid wire_log rotation settings')
+    return path, max_bytes, backup_count
+
+
+def _rotate_wire_log(path, backup_count):
+    if backup_count == 0:
+        os.remove(path)
+        return
+    oldest = '{}.{}'.format(path, backup_count)
+    if os.path.exists(oldest):
+        os.remove(oldest)
+    for index in range(backup_count - 1, 0, -1):
+        source = '{}.{}'.format(path, index)
+        if os.path.exists(source):
+            os.rename(source, '{}.{}'.format(path, index + 1))
+    os.rename(path, '{}.1'.format(path))
+
+
+def _record_wire_frame(direction, sock, header, body, message):
+    """Persist bounded raw-frame evidence without affecting the session."""
+    global _wire_log_failure_reported
+    try:
+        path, max_bytes, backup_count = _wire_log_settings()
+        try:
+            peer_address = sock.getpeername()
+            if isinstance(peer_address, tuple) and len(peer_address) >= 2:
+                peer = '{}:{}'.format(peer_address[0], peer_address[1])
+            else:
+                peer = str(peer_address) or 'local'
+        except (AttributeError, OSError, TypeError):
+            peer = 'unavailable'
+        record = OrderedDict((
+            ('utc', time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())),
+            ('direction', direction), ('peer', peer),
+            ('length_bytes', len(body)), ('length_header_hex', header.hex()),
+            ('json_utf8', body.decode('utf-8')), ('json_utf8_hex', body.hex()),
+            ('message_type', message.get('type') if isinstance(message, dict) else None),
+            ('seq', message.get('seq') if isinstance(message, dict) else None),
+        ))
+        encoded = (json.dumps(record, ensure_ascii=False,
+                              separators=(',', ':')) + '\n').encode('utf-8')
+        with _wire_log_lock:
+            parent = os.path.dirname(path)
+            if not os.path.isdir(parent):
+                os.makedirs(parent)
+            if os.path.exists(path) and os.path.getsize(path) + len(encoded) > max_bytes:
+                _rotate_wire_log(path, backup_count)
+            with open(path, 'ab') as output:
+                output.write(encoded)
+        _wire_log_failure_reported = False
+    except Exception as exc:
+        if not _wire_log_failure_reported:
+            logger.warning('wire-frame logging disabled after error: %s', exc)
+            _wire_log_failure_reported = True
 
 
 def _set_session_status(phase=None, last_error=_STATUS_UNCHANGED):
@@ -142,12 +275,16 @@ def validate_mission_plan(mission_id, waypoints):
 
 
 def _frame_send(sock, data):
+    if data.get('protocol_version') == '2.0':
+        data = _ordered_v2_message(data)
     clean = _sanitize(data)
     body = json.dumps(clean, separators=(',', ':')).encode('utf-8')
     if len(body) > MAX_FRAME_BYTES:
         raise ProtocolFrameError('JSON frame exceeds frame limit')
+    header = struct.pack('>I', len(body))
     with _send_lock:
-        sock.sendall(struct.pack('>I', len(body)) + body)
+        sock.sendall(header + body)
+    _record_wire_frame('outbound', sock, header, body, clean)
 
 
 def _frame_recv(sock, timeout=0.5):
@@ -162,10 +299,15 @@ def _frame_recv(sock, timeout=0.5):
                     body[:] = []
                     raise ProtocolFrameError('JSON frame exceeds frame limit')
                 if len(body) >= 4 + frame_length:
+                    header = bytes(body[:4])
                     frame = bytes(body[4:4 + frame_length])
                     del body[:4 + frame_length]
                     try:
-                        return json.loads(frame.decode('utf-8'))
+                        message = json.loads(
+                            frame.decode('utf-8'), object_pairs_hook=OrderedDict)
+                        _record_wire_frame(
+                            'inbound', sock, header, frame, message)
+                        return message
                     except (UnicodeDecodeError, ValueError) as exc:
                         raise ProtocolFrameError(
                             'invalid UTF-8 JSON frame: {}'.format(exc))
@@ -181,10 +323,17 @@ def _frame_recv(sock, timeout=0.5):
 
 
 def _is_matching_accepted_ack(message, ref_type, ref_seq):
-    if not isinstance(message, dict) or message.get('type') != 'ack':
+    if not isinstance(message, dict) or tuple(message) != V2_OUTER_FIELDS:
+        return False
+    if (message.get('protocol_version') != '2.0'
+            or message.get('type') != 'ack'
+            or message.get('vehicle_id') != 'Drone1'
+            or isinstance(message.get('seq'), bool)
+            or not isinstance(message.get('seq'), int)
+            or message.get('seq') < 1):
         return False
     data = message.get('data')
-    return (isinstance(data, dict)
+    return (isinstance(data, dict) and tuple(data) == V2_ACK_DATA_FIELDS
             and data.get('ref_type') == ref_type
             and type(data.get('ref_seq')) is int
             and data.get('ref_seq') == ref_seq

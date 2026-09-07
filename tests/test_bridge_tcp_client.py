@@ -181,6 +181,57 @@ class BridgeTcpClientTests(unittest.TestCase):
             client.close()
             peer.close()
 
+    def test_v2_state_frame_is_serialized_in_canonical_outer_key_order(self):
+        class CaptureSocket(object):
+            def __init__(self):
+                self.wire = None
+
+            def sendall(self, wire):
+                self.wire = wire
+
+            def getpeername(self):
+                return ('127.0.0.1', 5000)
+
+        message = {
+            'protocol_version': '2.0', 'type': 'vehicle_state',
+            'vehicle_id': 'Drone1',
+            'data': {
+                'mission_id': 'mission-a', 'sim_time': 0.02,
+                'position': {'x': 1.0, 'y': 2.0, 'height': 3.0},
+                'attitude': {'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0},
+                'velocity': {'vx': 0.0, 'vy': 0.0, 'vz': 0.0},
+                'angular_velocity': {'p': 0.0, 'q': 0.0, 'r': 0.0},
+            },
+        }
+        # This reproduces the old producer order, where seq was appended last.
+        message['seq'] = 3
+        capture = CaptureSocket()
+        with mock.patch.object(bridge_tcp_client, '_record_wire_frame'):
+            bridge_tcp_client._frame_send(capture, message)
+        decoded = json.loads(capture.wire[4:].decode('utf-8'))
+        self.assertEqual(
+            ['protocol_version', 'type', 'seq', 'vehicle_id', 'data'],
+            list(decoded))
+        self.assertEqual(
+            ['mission_id', 'sim_time', 'position', 'attitude', 'velocity',
+             'angular_velocity'], list(decoded['data']))
+
+    def test_ack_requires_complete_v2_envelope_and_canonical_key_order(self):
+        valid = {
+            'protocol_version': '2.0', 'type': 'ack', 'seq': 11,
+            'vehicle_id': 'Drone1',
+            'data': {'ref_type': 'hello', 'ref_seq': 1, 'accepted': True},
+        }
+        self.assertTrue(bridge_tcp_client._is_matching_accepted_ack(
+            valid, 'hello', 1))
+        reordered = {
+            'protocol_version': '2.0', 'type': 'ack',
+            'vehicle_id': 'Drone1', 'seq': 11,
+            'data': {'ref_type': 'hello', 'ref_seq': 1, 'accepted': True},
+        }
+        self.assertFalse(bridge_tcp_client._is_matching_accepted_ack(
+            reordered, 'hello', 1))
+
     def test_oversized_length_prefixed_json_is_a_protocol_failure(self):
         client, peer = socket.socketpair()
         try:

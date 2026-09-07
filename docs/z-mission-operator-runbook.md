@@ -140,7 +140,13 @@ claim is valid. Stop the run, then inspect:
 ```bash
 tail -n 100 runtime/z_debug/debug.log
 tail -n 100 runtime/z_debug/model.log
+tail -n 20 runtime/z_debug/ue4_tcp_wire.jsonl
 ```
+
+`ue4_tcp_wire.jsonl` records every completed outbound and inbound TCP frame
+with its 4-byte big-endian length header and raw UTF-8 JSON. It rotates at
+16 MiB with five retained backups, so use it to compare real UE4 traffic
+without allowing a 50 Hz run to consume unbounded disk space.
 
 Confirm that the real UE4-side bridge is listening on
 `192.168.3.122:5000`, the network route/firewall permits the TCP connection,

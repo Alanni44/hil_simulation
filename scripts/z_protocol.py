@@ -7,9 +7,9 @@ import json
 import math
 
 
-OUTER_FIELDS = {'protocol_version', 'type', 'seq', 'vehicle_id', 'data'}
-STATE_REQUIRED_FIELDS = {'mission_id', 'sim_time', 'position', 'attitude'}
-STATE_OPTIONAL_FIELDS = {'velocity', 'angular_velocity', 'flight_state'}
+OUTER_FIELDS = ('protocol_version', 'type', 'seq', 'vehicle_id', 'data')
+STATE_REQUIRED_FIELDS = ('mission_id', 'sim_time', 'position', 'attitude')
+STATE_OPTIONAL_FIELDS = ('velocity', 'angular_velocity', 'flight_state')
 STATE_PERIOD_S = 0.02
 STATE_INTERVAL_TOLERANCE_S = 0.002
 
@@ -21,11 +21,11 @@ class ProtocolViolation(ValueError):
 def _exact_fields(value, expected, label):
     if not isinstance(value, dict):
         raise ProtocolViolation('{} must be an object'.format(label))
-    actual = set(value)
-    if actual != set(expected):
+    actual = tuple(value)
+    if actual != tuple(expected):
         raise ProtocolViolation(
-            '{} fields must be exactly {}; got {}'.format(
-                label, sorted(expected), sorted(actual)))
+            '{} fields must be exactly and in order {}; got {}'.format(
+                label, list(expected), list(actual)))
 
 
 def _finite_number(value, label):
@@ -90,21 +90,19 @@ class ProtocolSequenceValidator(object):
             raise ProtocolViolation('seq must be strictly increasing')
 
     def _validate_hello(self, data):
-        expected = {
-            'role': 'simulink_state_source',
-            'state_rate_hz': 50,
-            'coordinate_convention': 'x_forward_y_right_height_up',
-            'angle_unit': 'rad',
-        }
-        _exact_fields(data, expected, 'hello.data')
-        for field, value in expected.items():
+        expected = (
+            ('role', 'simulink_state_source'), ('state_rate_hz', 50),
+            ('coordinate_convention', 'x_forward_y_right_height_up'),
+            ('angle_unit', 'rad'))
+        _exact_fields(data, tuple(field for field, _ in expected), 'hello.data')
+        for field, value in expected:
             if data[field] != value:
                 raise ProtocolViolation(
                     'hello.data.{} must be {!r}'.format(field, value))
 
     def _validate_mission(self, data):
         _exact_fields(
-            data, {'mission_id', 'replace_previous', 'waypoints'},
+            data, ('mission_id', 'replace_previous', 'waypoints'),
             'mission_plan.data')
         mission_id = data['mission_id']
         if not isinstance(mission_id, str) or not mission_id:
@@ -117,7 +115,7 @@ class ProtocolSequenceValidator(object):
         for index, waypoint in enumerate(waypoints):
             label = 'mission_plan.data.waypoints[{}]'.format(index)
             _exact_fields(
-                waypoint, {'id', 'x', 'y', 'height', 'target_speed'}, label)
+                waypoint, ('id', 'x', 'y', 'height', 'target_speed'), label)
             if not isinstance(waypoint['id'], str) or not waypoint['id']:
                 raise ProtocolViolation('{}.id is required'.format(label))
             for field in ('x', 'y', 'height', 'target_speed'):
@@ -127,13 +125,13 @@ class ProtocolSequenceValidator(object):
     def _validate_state(self, data, timestamp_s):
         if not isinstance(data, dict):
             raise ProtocolViolation('vehicle_state.data must be an object')
-        fields = set(data)
-        if not STATE_REQUIRED_FIELDS.issubset(fields) or not fields.issubset(
-                STATE_REQUIRED_FIELDS | STATE_OPTIONAL_FIELDS):
+        fields = tuple(data)
+        optional = tuple(field for field in STATE_OPTIONAL_FIELDS if field in data)
+        if fields != STATE_REQUIRED_FIELDS + optional:
             raise ProtocolViolation(
-                'vehicle_state.data fields must be required V2 fields plus only '
-                'velocity, angular_velocity, or flight_state; got {}'.format(
-                    sorted(fields)))
+                'vehicle_state.data fields must be in order: required V2 fields '
+                'followed by optional velocity, angular_velocity, flight_state; got {}'.format(
+                    list(fields)))
         if data['mission_id'] != self.mission_id:
             raise ProtocolViolation('vehicle_state mission_id does not match mission_plan')
         _finite_number(data['sim_time'], 'vehicle_state.data.sim_time')
@@ -141,18 +139,18 @@ class ProtocolSequenceValidator(object):
                 data['sim_time'] <= self.last_sim_time):
             raise ProtocolViolation('vehicle_state sim_time must strictly increase')
         _validate_vector(
-            data['position'], {'x', 'y', 'height'},
+            data['position'], ('x', 'y', 'height'),
             'vehicle_state.data.position')
         _validate_vector(
-            data['attitude'], {'roll', 'pitch', 'yaw'},
+            data['attitude'], ('roll', 'pitch', 'yaw'),
             'vehicle_state.data.attitude')
         if 'velocity' in data:
             _validate_vector(
-                data['velocity'], {'vx', 'vy', 'vz'},
+                data['velocity'], ('vx', 'vy', 'vz'),
                 'vehicle_state.data.velocity')
         if 'angular_velocity' in data:
             _validate_vector(
-                data['angular_velocity'], {'p', 'q', 'r'},
+                data['angular_velocity'], ('p', 'q', 'r'),
                 'vehicle_state.data.angular_velocity')
         if 'flight_state' in data and not isinstance(data['flight_state'], str):
             raise ProtocolViolation('vehicle_state.data.flight_state must be a string')
@@ -163,7 +161,7 @@ class ProtocolSequenceValidator(object):
         self.state_times.append(float(timestamp_s))
 
     def _validate_mission_end(self, data):
-        _exact_fields(data, {'event', 'mission_id'}, 'simulation_event.data')
+        _exact_fields(data, ('event', 'mission_id'), 'simulation_event.data')
         if data['event'] != 'mission_end':
             raise ProtocolViolation('only optional mission_end is valid here')
         if data['mission_id'] != self.mission_id:

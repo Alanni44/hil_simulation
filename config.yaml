@@ -36,6 +36,14 @@ debug_ue4_tcp:
   host: "192.168.3.122"
   port: 5000
 
+# Raw framed TCP evidence for real UE4 debugging. Every fully sent and fully
+# received V2 frame is recorded with its length header and UTF-8 JSON. The
+# bounded rotation prevents a 50 Hz long-running session from filling disk.
+wire_log:
+  path: "runtime/z_debug/ue4_tcp_wire.jsonl"
+  max_bytes: 16777216
+  backup_count: 5
+
 # PX4 MAVLink HIL is opt-in.  It only transports sensors/actuators; selecting
 # px4_sitl remains an explicit WebSocket control-source action.
 px4_hil:

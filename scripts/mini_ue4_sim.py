@@ -9,6 +9,7 @@ import socket
 import struct
 import sys
 import time
+from collections import OrderedDict
 
 from z_protocol import (ProtocolSequenceValidator, ProtocolViolation,
                         build_self_test_session)
@@ -41,7 +42,7 @@ def receive_frame(connection):
     if wire is None:
         raise ProtocolViolation('length-prefixed JSON frame is incomplete')
     try:
-        message = json.loads(wire.decode('utf-8'))
+        message = json.loads(wire.decode('utf-8'), object_pairs_hook=OrderedDict)
     except (UnicodeDecodeError, ValueError) as exc:
         raise ProtocolViolation('invalid UTF-8 JSON frame: {}'.format(exc))
     return message
