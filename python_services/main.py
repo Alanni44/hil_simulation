@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from shared.logger import get_logger
-from ws_server import start_ws_server
+from ws_server import start_ws_server, _ws_listen_host
 from udp_forwarder import start_udp_forwarder
 from bridge_tcp_client import start_bridge
 from fixed_wing_v3_bridge import FixedWingV3BridgeServer
@@ -19,6 +19,9 @@ logger = get_logger('main')
 
 
 def main():
+    # Fail the complete service before any worker starts when GitLab management
+    # would violate its loopback-only boundary.
+    _ws_listen_host()
     bridge_version = CONFIG.get('bridge', {}).get('protocol_version', '2.0')
     print("=" * 60)
     print("  HIL Python Services (V{} protocol)".format(bridge_version))

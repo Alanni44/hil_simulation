@@ -13,7 +13,9 @@ spring_boot:
   path: "/ws/hil"
 
 ue4_tcp:
-  host: "127.0.0.1"
+  # Formal V2 bridge target.  This is the UE4/AirSimBridge host, not a
+  # local test endpoint; debug_ue4_tcp below is only used by debug tooling.
+  host: "192.168.3.122"
   port: 5000
 
 # Preserve deployed V2 multirotor sessions by default.  Select "3.0" only
@@ -90,13 +92,19 @@ logging:
   level: "INFO"
   file: "logs/hil.log"
 
-# GitLab release integration is intentionally disabled until the self-hosted
-# instance URL, approved project path and HIL_GITLAB_TOKEN are configured.
-# The token must only be supplied through the service environment, never here.
+# Internal GitLab release integration. The token must only be supplied through
+# the service environment, never here.
 gitlab_release:
-  enabled: false
-  base_url: "https://gitlab.example.invalid"
-  projects: []
+  enabled: true
+  # Internal GitLab currently provides only HTTP. Keep this false for every
+  # HTTPS-capable deployment; enabling it sends the read-only token in cleartext.
+  allow_insecure_http: true
+  base_url: "http://192.168.100.181:3000"
+  projects:
+    - "hil/model-releases"
   release_asset_name: "hil_model_package.zip"
   timeout_seconds: 15
   max_download_mb: 512
+  # A staged package may be built once and deployed once within this window.
+  # Stage it again after the window expires or after either action is retried.
+  stage_receipt_ttl_seconds: 1800

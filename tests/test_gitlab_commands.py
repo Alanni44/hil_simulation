@@ -90,11 +90,42 @@ class GitLabCommandTests(unittest.TestCase):
         hydrated = ws_server._hydrate_gitlab_stage_receipt({
             'gitlab_stage_receipt': reply['build_request']['gitlab_stage_receipt'],
             'package_path': 'forged-path', 'package_sha256': 'f' * 64,
-        })
+        }, 'build')
 
         self.assertEqual(hydrated['package_path'], staged['package_path'])
         self.assertEqual(hydrated['package_sha256'], staged['package_sha256'])
         self.assertTrue(hydrated['_gitlab_receipt_verified'])
+
+    def test_stage_receipt_expires_and_each_operation_can_only_run_once(self):
+        staged = {
+            'project': 'uav/hil-models', 'tag_name': 'v1.0.0',
+            'package_path': os.path.join(self.controlled_root, 'gitlab', 'uav_hil-models', 'v1.0.0'),
+            'package_sha256': 'a' * 64, 'model_ref': 'model-42',
+            'model_revision_ref': 'rev-9', 'commit_id': 'abc123',
+        }
+        with mock.patch.dict(ws_server.CONFIG['gitlab_release'],
+                             {'stage_receipt_ttl_seconds': 60}, clear=False), \
+                mock.patch.object(ws_server.time, 'time', return_value=1000):
+            receipt_id = ws_server._create_gitlab_stage_receipt(staged)
+            request = {'gitlab_stage_receipt': receipt_id}
+            self.assertTrue(ws_server._hydrate_gitlab_stage_receipt(request, 'build')['_gitlab_receipt_verified'])
+            self.assertTrue(ws_server._hydrate_gitlab_stage_receipt(request, 'deploy')['_gitlab_receipt_verified'])
+            with self.assertRaisesRegex(ws_server.PackageError, 'already used'):
+                ws_server._hydrate_gitlab_stage_receipt(request, 'build')
+        with mock.patch.object(ws_server.time, 'time', return_value=1060):
+            with self.assertRaisesRegex(ws_server.PackageError, 'expired'):
+                ws_server._hydrate_gitlab_stage_receipt({'gitlab_stage_receipt': receipt_id}, 'deploy')
+
+    def test_build_and_deploy_are_rejected_when_another_operation_holds_lock(self):
+        self.assertTrue(ws_server.BUILD_DEPLOY_LOCK.acquire(False))
+        try:
+            request, result = ws_server._run_gitlab_build_or_deploy(
+                {'gitlab_stage_receipt': 'a' * 32}, 'build')
+        finally:
+            ws_server.BUILD_DEPLOY_LOCK.release()
+        self.assertEqual(result['status'], 'FAILED')
+        self.assertIn('already running', result['message'])
+        self.assertEqual(request['gitlab_stage_receipt'], 'a' * 32)
 
     def test_gitlab_enabled_defaults_to_loopback_listener(self):
         with mock.patch.dict(ws_server.CONFIG, {'gitlab_release': {'enabled': True}}, clear=False):

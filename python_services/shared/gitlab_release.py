@@ -58,7 +58,9 @@ class GitLabReleaseClient(object):
         if not isinstance(base_url, str) or not base_url.strip():
             return 'INVALID_BASE_URL'
         parsed = urlparse(base_url.strip())
-        if parsed.scheme != 'https' or not parsed.netloc:
+        allow_insecure_http = self._config.get('allow_insecure_http') is True
+        allowed_schemes = ('https', 'http') if allow_insecure_http else ('https',)
+        if parsed.scheme not in allowed_schemes or not parsed.netloc:
             return 'INVALID_BASE_URL'
         projects = self._config.get('projects')
         if not isinstance(projects, list) or not projects or not all(
@@ -90,7 +92,7 @@ class GitLabReleaseClient(object):
             }
         messages = {
             'NOT_CONFIGURED': 'GitLab release integration is disabled.',
-            'INVALID_BASE_URL': 'GitLab base URL must be a valid HTTPS URL.',
+            'INVALID_BASE_URL': 'GitLab base URL must be HTTPS, or HTTP with allow_insecure_http=true.',
             'INVALID_PROJECTS': 'GitLab project allowlist is invalid.',
             'INVALID_ASSET_NAME': 'GitLab release asset name is invalid.',
             'INVALID_TIMEOUT': 'GitLab request timeout is invalid.',
@@ -221,12 +223,12 @@ class GitLabReleaseClient(object):
         }
 
     def is_safe_asset_url(self, asset_url):
-        """Require HTTPS and the exact configured GitLab origin for assets."""
+        """Require the configured scheme and exact GitLab origin for assets."""
         if not isinstance(asset_url, str):
             return False
         expected = urlparse(self._base_url())
         actual = urlparse(asset_url)
-        return actual.scheme == 'https' and actual.netloc == expected.netloc
+        return actual.scheme == expected.scheme and actual.netloc == expected.netloc
 
     def download_asset(self, asset_url):
         """Download an already-verified release asset with a strict byte limit."""

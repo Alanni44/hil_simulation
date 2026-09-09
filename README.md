@@ -113,6 +113,10 @@ MATLAB/GCC 并运行唯一的已验证核心。它不提供模型上传、注册
 1. 在 `config.yaml` 的 `gitlab_release` 中设置 `enabled: true`、企业 GitLab 的 HTTPS
    `base_url`、允许使用的 `projects` 白名单，以及统一发布资产名
    `hil_model_package.zip`。
+
+   若内部 GitLab 暂时只提供 HTTP，必须额外显式设置
+   `allow_insecure_http: true`；此时访问令牌和模型包会以明文经过内网，只应在确认隔离的
+   内部网段临时使用，恢复 HTTPS 后应立即删除该开关或设为 `false`。
 2. 将 `deploy/systemd/gitlab-release.env.example` 复制为
    `/etc/hil/gitlab-release.env`，填入仅有 `read_api` 权限的项目或群组访问令牌，并设置
    `root:hil` 所有者和 `0640` 权限。令牌仅由 Python 服务进程读取，不写入 YAML、浏览器、
@@ -125,11 +129,29 @@ MATLAB/GCC 并运行唯一的已验证核心。它不提供模型上传、注册
 5. 控制台返回现有 `build_package` / `deploy_package` 所需参数。代码生成、单实例停止旧核、
    启动新核及健康检查仍完全遵循原有执行链路。
 
+发布前不要手工拼接 ZIP。使用 `scripts/create_model_release_package.py` 由已经批准的
+`.slx`、匹配的 `hil_contract.json` 和显式依赖生成资产；该脚本会先调用与服务端相同的严格
+校验器。例如：
+
+```bash
+python3 scripts/create_model_release_package.py \
+  --model /path/to/approved/aircraft.slx \
+  --contract /path/to/approved/hil_contract.json \
+  --model-ref aircraft-model \
+  --model-revision-ref <immutable-revision> \
+  --output /tmp/hil_model_package.zip
+```
+
+如有依赖，重复添加 `--dependency KIND:PATH`（例如
+`--dependency data_dictionary:/path/to/aircraft.sldd`）。在 GitLab 创建 Release 时，
+资产名称必须严格为 `hil_model_package.zip`。
+
 启用 GitLab 后，WebSocket 管理面默认只绑定 `127.0.0.1`，防止内网任意主机借用
 服务端令牌权限。远程浏览器访问必须通过具备身份认证（建议 mTLS 或企业 SSO）和来源限制的
 反向代理转发到本机回环地址；若设置了非回环的 `HIL_WS_LISTEN_HOST`，服务会拒绝启动。
 暂存成功后服务端会签发不透明收据，后续构建/部署只接受此收据并从服务端读取包路径、哈希与
-Release 溯源，浏览器无法伪造这些字段。
+Release 溯源，浏览器无法伪造这些字段。收据默认有效 30 分钟，并且构建、部署各只能使用一次；
+失败后重试需要重新暂存。服务端同一时间只允许一个构建或部署任务运行。
 
 若尚未填写自建实例地址、项目或令牌，控制台会显示“未配置”，且不会发起 GitLab 网络请求。
 本地审计记录位于 `artifacts/gitlab-audit/`，仅包含项目、标签、提交、哈希和模型版本。

@@ -18,7 +18,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts /opt/hil/packages
+ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts /opt/hil/packages /opt/hil/logs
 
 [Install]
 WantedBy=multi-user.target

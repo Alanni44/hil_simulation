@@ -116,7 +116,7 @@ class GitLabReleaseClientTests(unittest.TestCase):
         with self.assertRaises(GitLabReleaseError):
             client.list_releases('different/project')
 
-    def test_rejects_non_https_base_url_without_network(self):
+    def test_rejects_http_base_url_without_explicit_opt_in(self):
         config = dict(READY_CONFIG)
         config['base_url'] = 'http://gitlab.example.test'
         client = GitLabReleaseClient.from_config(config, 'secret-token', unexpected_open)
@@ -125,6 +125,18 @@ class GitLabReleaseClientTests(unittest.TestCase):
 
         self.assertFalse(status['configured'])
         self.assertEqual(status['code'], 'INVALID_BASE_URL')
+
+    def test_allows_http_only_when_explicitly_configured(self):
+        config = dict(READY_CONFIG)
+        config.update({'base_url': 'http://192.168.100.181:3000',
+                       'allow_insecure_http': True})
+        client = GitLabReleaseClient.from_config(config, 'secret-token', unexpected_open)
+
+        self.assertTrue(client.status()['configured'])
+        self.assertTrue(client.is_safe_asset_url(
+            'http://192.168.100.181:3000/releases/v1.2.0.zip'))
+        self.assertFalse(client.is_safe_asset_url(
+            'https://192.168.100.181:3000/releases/v1.2.0.zip'))
 
     def test_rejects_asset_download_redirected_to_another_origin(self):
         opener = RecordingOpener(RedirectedResponse(b'package'))

@@ -14,6 +14,8 @@ import socket
 import struct
 import subprocess
 import tempfile
+import threading
+import time
 
 from config_loader import CONFIG
 from shared import state_cache
@@ -46,6 +48,8 @@ GITLAB_RECEIPT_ROOT = os.environ.get(
     'HIL_GITLAB_RECEIPT_ROOT', os.path.join(PROJECT_ROOT, 'runtime', 'gitlab-stage-receipts'))
 GITLAB_CLIENT = GitLabReleaseClient.from_config(
     CONFIG.get('gitlab_release', {}), os.environ.get('HIL_GITLAB_TOKEN', ''))
+BUILD_DEPLOY_LOCK = threading.Lock()
+GITLAB_RECEIPT_LOCK = threading.Lock()
 
 
 def _utc_id(request_id):
@@ -323,14 +327,25 @@ def _gitlab_receipt_path(receipt_id):
     return os.path.join(GITLAB_RECEIPT_ROOT, '{}.json'.format(receipt_id))
 
 
+def _gitlab_receipt_ttl_seconds():
+    value = CONFIG.get('gitlab_release', {}).get('stage_receipt_ttl_seconds', 1800)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 60 or value > 86400:
+        raise PackageError('GitLab stage receipt TTL must be an integer from 60 to 86400 seconds.')
+    return value
+
+
 def _create_gitlab_stage_receipt(staged):
     """Persist server-issued provenance; browsers receive only its opaque ID."""
     if not os.path.isdir(GITLAB_RECEIPT_ROOT):
         os.makedirs(GITLAB_RECEIPT_ROOT)
     receipt_id = secrets.token_hex(16)
+    now = int(time.time())
     receipt = {key: staged.get(key) for key in (
         'project', 'tag_name', 'commit_id', 'package_path', 'package_sha256',
         'model_ref', 'model_revision_ref')}
+    receipt.update({'created_at_unix': now,
+                    'expires_at_unix': now + _gitlab_receipt_ttl_seconds(),
+                    'used_operations': []})
     path = _gitlab_receipt_path(receipt_id)
     pending_path = path + '.pending'
     _write_json(pending_path, receipt)
@@ -338,22 +353,39 @@ def _create_gitlab_stage_receipt(staged):
     return receipt_id
 
 
-def _hydrate_gitlab_stage_receipt(request):
-    """Replace untrusted client fields with a server-issued staging receipt."""
+def _hydrate_gitlab_stage_receipt(request, operation):
+    """Consume one permitted operation and replace untrusted client fields."""
     receipt_id = request.get('gitlab_stage_receipt')
     if receipt_id is None:
         return request
+    if operation not in ('build', 'deploy'):
+        raise PackageError('GitLab stage receipt operation is invalid.')
     path = _gitlab_receipt_path(receipt_id)
-    try:
-        with open(path, 'r') as source:
-            receipt = json.load(source)
-    except (IOError, ValueError):
-        raise PackageError('GitLab stage receipt is unavailable.')
-    required = ('package_path', 'package_sha256', 'model_ref', 'model_revision_ref')
-    if not isinstance(receipt, dict) or any(not receipt.get(key) for key in required):
-        raise PackageError('GitLab stage receipt is invalid.')
+    with GITLAB_RECEIPT_LOCK:
+        try:
+            with open(path, 'r') as source:
+                receipt = json.load(source)
+        except (IOError, ValueError):
+            raise PackageError('GitLab stage receipt is unavailable.')
+        required = ('package_path', 'package_sha256', 'model_ref', 'model_revision_ref',
+                    'expires_at_unix', 'used_operations')
+        nonempty = ('package_path', 'package_sha256', 'model_ref', 'model_revision_ref')
+        if (not isinstance(receipt, dict) or any(key not in receipt for key in required)
+                or any(not receipt.get(key) for key in nonempty)):
+            raise PackageError('GitLab stage receipt is invalid.')
+        if not isinstance(receipt['expires_at_unix'], int) or time.time() >= receipt['expires_at_unix']:
+            raise PackageError('GitLab stage receipt has expired; stage the release again.')
+        if (not isinstance(receipt['used_operations'], list) or
+                any(item not in ('build', 'deploy') for item in receipt['used_operations'])):
+            raise PackageError('GitLab stage receipt is invalid.')
+        if operation in receipt['used_operations']:
+            raise PackageError('GitLab stage receipt was already used for {}.'.format(operation))
+        receipt['used_operations'].append(operation)
+        pending_path = path + '.pending'
+        _write_json(pending_path, receipt)
+        os.replace(pending_path, path)
     hydrated = dict(request)
-    for key in required:
+    for key in ('package_path', 'package_sha256', 'model_ref', 'model_revision_ref'):
         hydrated[key] = receipt[key]
     hydrated['gitlab_provenance'] = receipt
     hydrated['_gitlab_receipt_verified'] = True
@@ -371,6 +403,13 @@ def _public_gitlab_release(release):
     """Return only browser-safe release metadata; asset URLs stay server-side."""
     return {key: release.get(key) for key in
             ('tag_name', 'released_at', 'commit_id', 'asset_name')}
+
+
+def _public_staged_release(staged):
+    """Keep server package paths inside the service boundary."""
+    return {key: staged.get(key) for key in
+            ('project', 'tag_name', 'asset_name', 'package_sha256', 'model_ref',
+             'model_revision_ref', 'model_name', 'commit_id')}
 
 
 def _finish_gitlab_command(cmd, params, response, staged=None):
@@ -438,7 +477,7 @@ def _handle_gitlab_command(cmd, params):
             staged = stage_release(GITLAB_CLIENT, project, tag_name, CONTROLLED_PACKAGE_ROOT)
             receipt_id = _create_gitlab_stage_receipt(staged)
             return _finish_gitlab_command(cmd, params, {
-                'status': 'READY', 'staged': staged,
+                'status': 'READY', 'staged': _public_staged_release(staged),
                 'build_request': {
                     'request_id': params.get('request_id', secrets.token_hex(12)),
                     'gitlab_stage_receipt': receipt_id,
@@ -452,6 +491,26 @@ def _handle_gitlab_command(cmd, params):
         logger.exception('GitLab command failed: %s', exc.__class__.__name__)
         return _finish_gitlab_command(cmd, params,
                                       {'status': 'FAILED', 'message': 'GitLab operation failed; inspect server logs.'})
+
+
+def _run_gitlab_build_or_deploy(params, operation):
+    """Serialize receipt consumption with the disruptive build/deploy action."""
+    request_body = dict(params)
+    request_body['operation'] = operation
+    if not BUILD_DEPLOY_LOCK.acquire(False):
+        return request_body, {'status': 'FAILED', 'failed_stage': 'RECEIVED',
+                              'message': 'another build or deployment is already running'}
+    try:
+        try:
+            request_body = _hydrate_gitlab_stage_receipt(request_body, operation)
+            request_body['operation'] = operation
+            response = _build_or_deploy(request_body)
+        except PackageError as exc:
+            response = {'status': 'FAILED', 'failed_stage': 'RECEIVED',
+                        'message': str(exc)}
+        return request_body, response
+    finally:
+        BUILD_DEPLOY_LOCK.release()
 
 
 async def command_loop(reader, writer):
@@ -475,14 +534,9 @@ async def command_loop(reader, writer):
         cmd, params = request.get('cmd'), request.get('params', {})
         if not isinstance(params, dict): await ws_send(writer, json.dumps({'status': 'error', 'message': 'params must be object'})); continue
         if cmd in ('build_package', 'deploy_package'):
-            try:
-                request_body = _hydrate_gitlab_stage_receipt(dict(params))
-                request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
-                build_response = _build_or_deploy(request_body)
-            except PackageError as exc:
-                request_body = dict(params)
-                request_body['operation'] = 'deploy' if cmd == 'deploy_package' else 'build'
-                build_response = {'status': 'FAILED', 'failed_stage': 'RECEIVED', 'message': str(exc)}
+            operation = 'deploy' if cmd == 'deploy_package' else 'build'
+            request_body, build_response = _run_gitlab_build_or_deploy(
+                dict(params), operation)
             _audit_gitlab_build_or_deploy(request_body, build_response)
             await ws_send(writer, json.dumps(build_response))
         elif cmd in ('gitlab_status', 'gitlab_list_releases', 'gitlab_stage_release', 'gitlab_history'):
