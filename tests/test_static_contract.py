@@ -127,10 +127,29 @@ class RuntimeContractStaticTests(unittest.TestCase):
 
     def test_production_deploy_uses_systemd_and_health_gate(self):
         source = read('python_services/ws_server.py')
-        self.assertIn("['systemctl', 'restart', 'hil-deploy@current.service']", source)
         self.assertIn('_wait_for_healthy_core()', source)
         self.assertNotIn('subprocess.Popen', source)
         self.assertIn('DEV_DEPLOYED', source)
+
+    def test_production_core_is_independent_and_has_a_narrow_deploy_boundary(self):
+        service = read('deploy/systemd/hil-python-services.service')
+        core = read('deploy/systemd/hil-core@.service')
+        deploy = read('deploy/systemd/hil-deploy@.service')
+        deploy_path = read('deploy/systemd/hil-deploy.path')
+        helper = read('deploy/systemd/hil-deploy')
+        runtime = read('deploy/systemd/hil-runtime.conf')
+
+        self.assertIn('Environment=HIL_DEPLOY_MODE=systemd', service)
+        self.assertNotIn('Requires=hil-python-services.service', core)
+        self.assertIn('ConditionPathExists=/opt/hil/runtime/verified/%i_rt', core)
+        self.assertIn('User=root', deploy)
+        self.assertIn('ExecStart=/opt/hil/bin/hil-deploy %i', deploy)
+        self.assertIn('PathExists=/opt/hil/runtime/pending/current.json', deploy_path)
+        self.assertIn('Unit=hil-deploy@current.service', deploy_path)
+        self.assertIn('O_NOFOLLOW', helper)
+        self.assertIn('deployment executable checksum mismatch', helper)
+        self.assertIn("'hil-core@{}.service'.format(instance)", helper)
+        self.assertIn('/opt/hil/runtime/verified       0750  root hil', runtime)
 
     def test_python_only_location_of_ned_to_ue4_conversion(self):
         source = read('python_services/shared/state_cache.py')
@@ -177,8 +196,8 @@ class RuntimeContractStaticTests(unittest.TestCase):
             self.assertIn(value, source)
         self.assertIn('validate_package(', source)
         self.assertIn("_handle_load_mission", source)
-        self.assertIn("previous_core_stopped_before_build", source)
-        self.assertLess(source.index("previous_core_stopped_before_build"),
+        self.assertIn("previous_core_running_before_deploy", source)
+        self.assertLess(source.index("previous_core_running_before_deploy"),
                         source.index("transitions.append('BUILDING')"))
 
     def test_acceptance_refuses_wrong_target_or_unconfirmed_lifecycle_event(self):

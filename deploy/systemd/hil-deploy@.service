@@ -1,13 +1,15 @@
 [Unit]
 Description=Install verified HIL core (%i)
 After=local-fs.target
+Before=hil-core@%i.service
 
 [Service]
 Type=oneshot
-User=hil
-Group=hil
+# The helper alone needs root to install into root-owned verified/ and request
+# the core restart. It never executes package content as root.
+User=root
+Group=root
 ExecStart=/opt/hil/bin/hil-deploy %i
-CapabilityBoundingSet=CAP_SYS_NICE CAP_IPC_LOCK
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

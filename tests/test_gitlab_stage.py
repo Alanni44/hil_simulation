@@ -72,6 +72,25 @@ class GitLabStageTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(len(client.downloaded_urls), 1)
 
+    def test_restage_revalidates_immutable_package_without_redownloading(self):
+        client = FakeClient(package_zip({'release/example.slx': b'model'}))
+        calls = []
+
+        def validator(package_path, controlled_root, expected_sha256):
+            calls.append((package_path, expected_sha256))
+            return {
+                'manifest': {'model_ref': 'model-42', 'model_revision_ref': 'rev-9'},
+                'contract': {'model_name': 'example'},
+            }
+
+        first = stage_release(client, 'uav/hil-models', 'v1.0.0', self.controlled_root, validator)
+        second = stage_release(client, 'uav/hil-models', 'v1.0.0', self.controlled_root, validator)
+
+        self.assertEqual(first['package_path'], second['package_path'])
+        self.assertEqual(first['package_sha256'], second['package_sha256'])
+        self.assertEqual(len(client.downloaded_urls), 1)
+        self.assertEqual(len(calls), 2)
+
     def test_rejects_zip_path_traversal_before_publish(self):
         client = FakeClient(package_zip({'../escape.txt': b'bad'}))
 

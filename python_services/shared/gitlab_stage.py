@@ -101,6 +101,28 @@ def _bytes_stream(payload):
     return BytesIO(payload)
 
 
+def _staged_result(project, tag_name, release, package_path, controlled_root, validator,
+                   digest=None, validated=None):
+    """Revalidate one immutable local package and return public provenance."""
+    if digest is None:
+        digest = package_sha256(package_path)
+    if validated is None:
+        validated = validator(package_path, controlled_root, digest)
+    manifest = validated.get('manifest', {})
+    contract = validated.get('contract', {})
+    return {
+        'project': project,
+        'tag_name': tag_name,
+        'asset_name': release.get('asset_name'),
+        'package_path': package_path,
+        'package_sha256': digest,
+        'model_ref': manifest.get('model_ref'),
+        'model_revision_ref': manifest.get('model_revision_ref'),
+        'model_name': contract.get('model_name'),
+        'commit_id': release.get('commit_id'),
+    }
+
+
 def stage_release(client, project, tag_name, controlled_root, validator=validate_package):
     """Download, validate and atomically publish one immutable release package.
 
@@ -110,9 +132,23 @@ def stage_release(client, project, tag_name, controlled_root, validator=validate
     if not isinstance(controlled_root, str) or not controlled_root:
         raise GitLabStageError('Controlled package root is invalid.')
     release = _select_release(client, project, tag_name)
-    payload = client.download_asset(release['asset_url'])
     controlled_root = os.path.abspath(controlled_root)
     os.makedirs(controlled_root, exist_ok=True)
+    project_part = _project_directory(project)
+    tag_part = _safe_component(tag_name, 'GitLab release tag')
+    published_path = os.path.join(controlled_root, 'gitlab', project_part, tag_part)
+    if os.path.exists(published_path):
+        # A receipt is intentionally short-lived and consumable. Re-staging a
+        # previously verified immutable package must therefore issue a fresh
+        # receipt, not require a re-download or permit an overwrite.
+        try:
+            return _staged_result(project, tag_name, release, published_path,
+                                  controlled_root, validator)
+        except Exception as exc:
+            raise GitLabStageError(
+                'Existing immutable GitLab package failed validation: {0}'.format(exc))
+
+    payload = client.download_asset(release['asset_url'])
     staging_parent = os.path.join(controlled_root, '.gitlab-stage')
     staging_root = os.path.join(staging_parent, uuid.uuid4().hex)
     package_path = None
@@ -122,26 +158,12 @@ def stage_release(client, project, tag_name, controlled_root, validator=validate
         package_path = _extract_archive(payload, staging_root, limit)
         digest = package_sha256(package_path)
         validated = validator(package_path, controlled_root, digest)
-        manifest = validated.get('manifest', {})
-        contract = validated.get('contract', {})
-        project_part = _project_directory(project)
-        tag_part = _safe_component(tag_name, 'GitLab release tag')
-        published_path = os.path.join(controlled_root, 'gitlab', project_part, tag_part)
         if os.path.exists(published_path):
             raise GitLabStageError('GitLab release is already staged and immutable.')
         os.makedirs(os.path.dirname(published_path), exist_ok=True)
         os.replace(package_path, published_path)
-        return {
-            'project': project,
-            'tag_name': tag_name,
-            'asset_name': release.get('asset_name'),
-            'package_path': published_path,
-            'package_sha256': digest,
-            'model_ref': manifest.get('model_ref'),
-            'model_revision_ref': manifest.get('model_revision_ref'),
-            'model_name': contract.get('model_name'),
-            'commit_id': release.get('commit_id'),
-        }
+        return _staged_result(project, tag_name, release, published_path,
+                              controlled_root, validator, digest, validated)
     except GitLabStageError:
         raise
     except Exception as exc:

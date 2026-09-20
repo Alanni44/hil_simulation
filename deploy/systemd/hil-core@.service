@@ -1,15 +1,14 @@
 [Unit]
 Description=HIL real-time model core (%i)
-After=network-online.target systemd-tmpfiles-setup.service hil-python-services.service
+After=network-online.target systemd-tmpfiles-setup.service
 Wants=network-online.target
-Requires=hil-python-services.service
+ConditionPathExists=/opt/hil/runtime/verified/%i_rt
 
 [Service]
 Type=simple
 User=hil
 Group=hil
 WorkingDirectory=/opt/hil
-ConditionPathExists=/opt/hil/runtime/verified/%i_rt
 ExecStart=/opt/hil/runtime/verified/%i_rt
 Restart=on-failure
 RestartSec=2

@@ -167,13 +167,14 @@ def _build_or_deploy(request):
         response.update({'model_sha256': manifest['files'][manifest['top_model']],
                          'package_sha256': package['package_sha256'],
                          'contract_sha256': package['contract_sha256']})
-        # A deploy request is deliberately disruptive: the existing core is
-        # stopped before importing/building the next package, so there is no
-        # overlap, hot switch, rollback target or second active instance.
+        # In production the verified old core continues while MATLAB/GCC build
+        # runs.  The privileged deploy unit stops it only after the replacement
+        # executable has been copied and hash-verified.  This avoids granting
+        # the Python service permission to manipulate the core unit directly.
         if request['operation'] == 'deploy' and DEPLOY_MODE == 'systemd':
-            active = subprocess.call(['systemctl', 'is-active', '--quiet', 'hil-core@current.service']) == 0
-            if active: subprocess.check_call(['systemctl', 'stop', 'hil-core@current.service'], timeout=30)
-            response['previous_core_stopped_before_build'] = active
+            response['previous_core_running_before_deploy'] = (
+                subprocess.call(['systemctl', 'is-active', '--quiet',
+                                 'hil-core@current.service']) == 0)
         elif request['operation'] == 'deploy' and ACTIVE_CORE and ACTIVE_CORE.poll() is None:
             ACTIVE_CORE.terminate()
             try: ACTIVE_CORE.wait(timeout=10)
@@ -220,9 +221,15 @@ def _build_or_deploy(request):
             pending_dir = '/opt/hil/runtime/pending'
             pending_path = os.path.join(pending_dir, 'current.json')
             if not os.path.isdir(pending_dir): raise PackageError('production pending directory is unavailable')
-            _write_json(pending_path, {'executable_path': executable,
-                                       'executable_sha256': response['executable_sha256']})
-            subprocess.check_call(['systemctl', 'restart', 'hil-deploy@current.service'], timeout=30)
+            pending = pending_path + '.pending'
+            _write_json(pending, {'format_version': 1, 'request_id': request_id,
+                                  'package_sha256': response['package_sha256'],
+                                  'executable_path': executable,
+                                  'executable_sha256': response['executable_sha256']})
+            os.replace(pending, pending_path)
+            # hil-deploy.path observes this atomically published descriptor and
+            # starts the privileged deploy helper. The Python executor never
+            # receives general systemd-management permission.
             response['health_state'] = _wait_for_healthy_core()
             response['status'] = 'DEPLOYED'; transitions.extend(['READY', 'DEPLOYED'])
         elif DEPLOY_MODE == 'development':

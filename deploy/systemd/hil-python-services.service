@@ -9,7 +9,10 @@ User=hil
 Group=hil
 WorkingDirectory=/opt/hil/python_services
 ExecStart=/opt/hil/venv/bin/python3 /opt/hil/python_services/main.py
+Environment=HIL_DEPLOY_MODE=systemd
 Environment=HIL_CONTROLLED_PACKAGE_ROOT=/opt/hil/packages
+Environment=HIL_WORK_ROOT=/opt/hil/runtime/work
+Environment=HIL_ACCEPTANCE_ROOT=/opt/hil/artifacts/acceptance
 EnvironmentFile=-/etc/hil/gitlab-release.env
 Restart=on-failure
 RestartSec=2

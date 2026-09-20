@@ -1,17 +1,159 @@
-#!/bin/sh
-# Install only the SHA-256 verified descriptor written by the executor.
-set -eu
-name="$1"
-pending="/opt/hil/runtime/pending/${name}.json"
-target="/opt/hil/runtime/verified/${name}_rt"
-test -r "$pending"
-path=$(sed -n 's/.*"executable_path": *"\([^"]*\)".*/\1/p' "$pending")
-sha=$(sed -n 's/.*"executable_sha256": *"\([0-9a-f]*\)".*/\1/p' "$pending")
-test -n "$path" && test -n "$sha"
-test "$(sha256sum "$path" | awk '{print $1}')" = "$sha"
-install -d -m 0750 /opt/hil/runtime/verified
-tmp="${target}.new"
-install -m 0750 "$path" "$tmp"
-test "$(sha256sum "$tmp" | awk '{print $1}')" = "$sha"
-mv -f "$tmp" "$target"
-systemctl restart "hil-core@${name}.service"
+#!/usr/bin/env python3
+"""Install one verified HIL core executable and restart its systemd unit.
+
+This helper is invoked only by ``hil-deploy@.service`` as root.  The Python
+HIL service remains unprivileged: it can request a deployment by creating a
+descriptor below ``runtime/pending``, but this helper re-opens the executable,
+checks its hash while copying, and installs it into a root-owned directory
+before starting the core as the dedicated ``hil`` user.
+"""
+from __future__ import print_function
+
+import argparse
+import grp
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+
+
+RUNTIME_ROOT = os.environ.get('HIL_RUNTIME_ROOT', '/opt/hil/runtime')
+INSTANCE_RE = re.compile(r'^[A-Za-z0-9_-]{1,32}$')
+SHA256_RE = re.compile(r'^[0-9a-f]{64}$')
+
+
+class DeployError(ValueError):
+    pass
+
+
+def _path_below(path, root):
+    try:
+        return os.path.commonpath((path, root)) == root
+    except ValueError:
+        return False
+
+
+def _read_descriptor(instance):
+    pending = os.path.join(RUNTIME_ROOT, 'pending', instance + '.json')
+    try:
+        details = os.lstat(pending)
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+            raise DeployError('deployment descriptor is not a regular file')
+        if details.st_size > 16384:
+            raise DeployError('deployment descriptor is too large')
+        with open(pending, 'r') as source:
+            descriptor = json.load(source)
+    except (IOError, OSError, ValueError) as exc:
+        if isinstance(exc, DeployError):
+            raise
+        raise DeployError('deployment descriptor is invalid: {}'.format(exc))
+    if not isinstance(descriptor, dict):
+        raise DeployError('deployment descriptor must be a JSON object')
+    executable = descriptor.get('executable_path')
+    expected_sha256 = descriptor.get('executable_sha256')
+    if not isinstance(executable, str) or not isinstance(expected_sha256, str):
+        raise DeployError('deployment descriptor is incomplete')
+    if not SHA256_RE.match(expected_sha256):
+        raise DeployError('deployment executable SHA-256 is invalid')
+    work_root = os.path.realpath(os.path.join(RUNTIME_ROOT, 'work'))
+    executable = os.path.realpath(executable)
+    if not _path_below(executable, work_root):
+        raise DeployError('deployment executable is outside the verified work root')
+    return pending, executable, expected_sha256
+
+
+def _copy_checked(source_path, expected_sha256, target_path):
+    no_follow = getattr(os, 'O_NOFOLLOW', 0)
+    if not no_follow:
+        raise DeployError('target platform lacks O_NOFOLLOW support')
+    source = os.open(source_path, os.O_RDONLY | no_follow)
+    temporary = None
+    temporary_path = None
+    try:
+        source_stat = os.fstat(source)
+        if not stat.S_ISREG(source_stat.st_mode):
+            raise DeployError('deployment executable is not a regular file')
+        if not source_stat.st_mode & 0o111:
+            raise DeployError('deployment executable is not executable')
+        temporary, temporary_path = tempfile.mkstemp(prefix='.current-', dir=os.path.dirname(target_path))
+        digest = hashlib.sha256()
+        while True:
+            block = os.read(source, 1024 * 1024)
+            if not block:
+                break
+            digest.update(block)
+            offset = 0
+            while offset < len(block):
+                written = os.write(temporary, block[offset:])
+                if written <= 0:
+                    raise DeployError('failed to write deployment executable')
+                offset += written
+        if digest.hexdigest() != expected_sha256:
+            raise DeployError('deployment executable checksum mismatch')
+        os.fsync(temporary)
+        os.fchmod(temporary, 0o750)
+        os.fchown(temporary, 0, grp.getgrnam('hil').gr_gid)
+        os.close(temporary)
+        temporary = None
+        os.replace(temporary_path, target_path)
+        temporary_path = None
+        directory = os.open(os.path.dirname(target_path), os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    except OSError as exc:
+        raise DeployError('failed to install deployment executable: {}'.format(exc))
+    finally:
+        os.close(source)
+        if temporary is not None:
+            os.close(temporary)
+        if temporary_path is not None and os.path.exists(temporary_path):
+            os.unlink(temporary_path)
+
+
+def deploy(instance):
+    if not INSTANCE_RE.match(instance):
+        raise DeployError('invalid deployment instance')
+    if os.geteuid() != 0:
+        raise DeployError('deployment helper must run as root')
+    if not os.path.exists(os.path.join(RUNTIME_ROOT, 'pending', instance + '.json')):
+        # A PathExists watch can be queued just as a successful deployment
+        # removes its descriptor. Treat that race as a harmless no-op.
+        return
+    pending, executable, expected_sha256 = _read_descriptor(instance)
+    verified_root = os.path.join(RUNTIME_ROOT, 'verified')
+    if not os.path.isdir(verified_root):
+        raise DeployError('verified runtime directory is unavailable')
+    target = os.path.join(verified_root, instance + '_rt')
+    _copy_checked(executable, expected_sha256, target)
+    try:
+        subprocess.check_call(['systemctl', 'restart', 'hil-core@{}.service'.format(instance)],
+                              timeout=30)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise DeployError('failed to restart model core: {}'.format(exc))
+    # A descriptor is a single deployment request, not an active-model pointer.
+    try:
+        os.unlink(pending)
+    except OSError as exc:
+        raise DeployError('core started but pending descriptor could not be cleared: {}'.format(exc))
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Install one verified HIL core executable')
+    parser.add_argument('instance')
+    args = parser.parse_args(argv)
+    try:
+        deploy(args.instance)
+    except DeployError as exc:
+        print('hil-deploy: {}'.format(exc), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
