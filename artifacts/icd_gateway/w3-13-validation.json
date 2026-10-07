@@ -1,0 +1,112 @@
+{
+  "phase": "W3.13_COMMON_CURRENT_GRANT_ORIGINAL_LIVE_TOOL_INPUT_PREPARATION",
+  "date": "2026-10-04",
+  "status": "COMMON_INPUT_PREPARATION_VERIFIED_NOT_TOOL_EXECUTION_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "library_versions": {"cantools": "40.7.1", "python-can": "4.6.1", "scapy": "2.7.0"},
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 561,
+      "suites": {"icd_runtime": 67, "icd_gateway": 487, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "runtime_duration_seconds": 27.976,
+      "gateway_duration_seconds": 272.513,
+      "new_phase_tests": 22,
+      "source_fixed_for_entire_final_run": true,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_TOOL_EXECUTORS_OR_LINUX_RT_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_live_tool_input.py -v", "exit_code": 0, "tests": 22, "duration_seconds": 4.998},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59,
+      "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/session.py": "fcd5336965003979276e68cee7e6be5b74caa5ccb5840ec48ce1c2f8875bccb6",
+    "input_simulator/live_tool_input.py": "cbeb764a92b65a04a383cec5da751d6d54ea86f19440b8ffc59b42b85a4bf53a",
+    "tests/icd_gateway/test_live_tool_input.py": "e90ada26feaf46b38385105927bfe24e4f83841df0a9d690bed7bb67ae249784"
+  },
+  "implemented_scope": {
+    "prepared_branches": ["CANT", "CUTIL_SEND", "ETHGEN_SCAPY"],
+    "retained_original_branches": ["CANT", "CUTIL", "SAVVY", "CANREPLAY", "ETHGEN", "ETHREPLAY"],
+    "current_standard_grant_required": true,
+    "local_reservation_is_standard_authorization": false,
+    "sole_sequence_owner": "EXISTING_SOURCESESSION_WITH_EXCLUSIVE_DISPATCHER_GUARD",
+    "immutable_complete_groups": true,
+    "prevalidation_numeric_type_coercion": false,
+    "packed_negative_zero_preserved": true,
+    "canonical_and_original_snapshot_both_bounded": true,
+    "preallocation_capacity_encoding_lease_failure_consumes_sequence": false,
+    "postallocation_failure_retains_original_source_input_no_counter_rollback": true,
+    "discard_is_remote_reset_stop_queue_cleanup_or_channel_release": false,
+    "can": "ORIGINAL_CANTOOLS_EXACT_WIRE_AND_FRESH_PYTHON_CAN_STANDARD_FD_BRS_DLC64_MESSAGES",
+    "cutil": "CANSEND_FIXED_LITERAL_PER_COMPLETE_GROUP_FRAGMENT_NO_ARBITRARY_OPTIONS",
+    "ethernet": "ORIGINAL_SCAPY_EXPLICIT_UNICAST_MAC_ACTUAL_SESSION_ENDPOINTS_FORMAL_UDP_FRAGMENTS",
+    "structural_protocol_peer_input_groups": {"canfd_to_36": 11, "udp_non_session_open_to_36": 44},
+    "canfd_catalogue_includes_two_feedback_messages_not_sent_as_inputs": true,
+    "actual_udp_session_grant_capabilities": [1, 34],
+    "actual_grant_34_test": "COMPLETE_VIDEO_RESOURCE_INPUT_PREPARED_NO_TOOL_TX_ADMISSION_OR_MODEL_APPLICATION_CLAIM",
+    "actual_original_tool_processes_bus_or_sendp_started": false,
+    "libpcap_qualified": false,
+    "execution_ready": false,
+    "authorized_to_transmit": false,
+    "produces_e1_e2_e3": false,
+    "frozen_sources_wire_format_original_c_or_tool_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_MUST_FIX_SCOPED_FINDINGS",
+    "independent_fixed_regressions_passed": 2,
+    "independent_phase_tests_passed": 22,
+    "independent_existing_source_session_tests_passed": 31,
+    "red_green_fixed": [
+      "STRICT_MESSAGE_ID_FLOAT_BOOL_COERCION_BEFORE_VALIDATION",
+      "PACKED_NEGATIVE_ZERO_LOST_IN_SOURCE_SNAPSHOT_AND_TOOL_SECOND_ENCODING",
+      "MALFORMED_NON_OBJECT_INPUT_ATTRIBUTE_EXCEPTION",
+      "FORGED_INPUT_JSON_PARSED_BEFORE_OWNED_IDENTITY_CHECK"
+    ],
+    "additional_read_only_probes": ["SHARED_EXACT_BYTE_CAPACITY_NO_SEQUENCE_OR_TRANSACTION_CHANGE", "DRAIN_RETAINS_INPUTS_DISCARD_FREES_BYTES_NO_ROLLBACK", "POSTALLOCATION_LEASE_EXPIRY_RETAINS_INPUT_NO_PLAN", "INVALID_ACTUAL_ENDPOINTS", "EXCLUSIVE_DISPATCHER_OWNER", "ORIGINAL_PYTHON_CAN_PREFLIGHT_FAILURE_NO_ALLOCATION"]
+  },
+  "plan_coverage": {"responsibility_rows": 41, "linux_items": 17, "linux_checked": 0},
+  "ledger_history_prefix_expected": {"normalized_utf16_length": 42690, "normalized_utf8_sha256": "e9e44327a15f69a257d6c6a9964ccccd9ed72554467a8a89fdc5b7115145c876"},
+  "remaining_common_work": [
+    "ORIGINAL_TOOL_ACTUAL_AUTHORIZATION_BACKENDS_LIFECYCLE_GLOBAL_TX_ORDER_AND_STANDARD_FEEDBACK_INTEGRATION",
+    "SAVVYCAN_AND_OSTINATO_CONTROLLED_ORIGINAL_BACKENDS",
+    "COMMON_MODEL_STEP_START_OFFSET_MULTI_CHANNEL_SCHEDULER",
+    "FULL_REPLAY_RESET_INITIAL_INPUTS_QUEUE_CLEANUP_FRESH_SESSION_EACH_REPEAT_AND_REAL_64_SID_RETIREMENT",
+    "ENGINEERING_JSONL_TCP_AND_VIDEO_HISTORY_FULL_EXECUTION",
+    "SCENARIO_WAVEFORMS_PERIODICS_WAIT_ASSERTIONS_AND_AUTHORIZED_NEGATIVE_CASES",
+    "25_MANAGEMENT_COMMANDS_EXISTING_CONSOLE_ROBOT_AND_PERSISTENT_ORIGINAL_TX_RX_EVIDENCE",
+    "ACTUAL_CONSUMERS_CLOCK_SYNC_RESOURCE_ACTIVATION_RELEASE_AND_REAL_3_3_REPLACEMENT_GATES"
+  ],
+  "linux_target_work": ["L-001", "L-002", "L-003", "L-005", "L-006", "L-008", "L-010", "L-011", "L-013", "L-014", "L-015", "L-017"],
+  "target_model_hardware_rt_real_3_3": "NOT_EXECUTED_NOT_VERIFIED",
+  "test_duration_is_target_timing_qualification": false,
+  "upstream_parameter_sources": [
+    "https://python-can.readthedocs.io/en/v4.6.1/message.html",
+    "https://raw.githubusercontent.com/linux-can/can-utils/master/cansend.c",
+    "https://scapy.readthedocs.io/en/latest/usage.html"
+  ]
+}

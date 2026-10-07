@@ -1,0 +1,523 @@
+{
+  "status": "SOFTWARE_PROGRESS_NOT_W3_COMPLETE",
+  "date": "2026-10-07",
+  "execution_host": "Windows",
+  "original_task": "W3.26 Task 2 - explicit common Lifecycle consumer",
+  "owned_paths": [
+    "PROTOCOL",
+    "SCENARIO"
+  ],
+  "pause": {
+    "requested_by_user": true,
+    "after": "current closeout",
+    "next_phase_started": false,
+    "resume_requires_user_request": true
+  },
+  "third_path": {
+    "status": "EXTERNAL_OWNER_RETAINED",
+    "further_development": false,
+    "retained": "Existing code, tests, resources, plans and historical artifacts remain in place; historical verdicts unchanged.",
+    "scenario_replay_boundary": "Retained; absent actual external service remains TARGET_MISSING, no skip/native fallback.",
+    "sha256": {
+      "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+      "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+      "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+      "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b",
+      "artifacts/icd_gateway/w3-12-validation.json": "209fe3d7010a185897f6070083c21119a67b1560b46226780294d2b9d3665eb3",
+      "artifacts/icd_gateway/w3-6-validation.json": "ce510eefe91e82e74b2fdd5924a27368af295e6069207689878994c192d3c9d5",
+      "artifacts/icd_gateway/w3-10-validation.json": "40be110133473fa16d2b82309531ff934b8e9b9fadf1778cbc4802d7088f1ff9",
+      "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+      "artifacts/icd_gateway/w3-7-validation.json": "430b306b846f26eda94234a1434ca271ed0a4cb8a8528a3ec5b825f00a381c2d",
+      "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+      "input_simulator/history.py": "c2a5a0ce9f9e119371547a7be3be0e9e7ca994274fd3ec99bab7ddabb2414e41",
+      "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada",
+      "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+      "artifacts/icd_gateway/w3-5-validation.json": "eb96374f22436c951137c41d62c2683e605d5f7d8475067d9d42a20efc5988e0",
+      "tests/icd_gateway/test_history.py": "8fc9d09ca190de7bba5ee03a3e75c29a81a3c6698b7e8ffc83bd893df6351ceb",
+      "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+      "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-regression.log": "c58964bf629630dc55ae149364cf6333bc72508b59f260207e0d122e9a755a5f",
+      "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-progress.json": "8da0720d5156d03d14b7b288a8dcde1056f694acfa73c9e2713618b38249a66a"
+    }
+  },
+  "contract": {
+    "single_file": "docs/interfaces/输入模拟器完整接口定义_v0.3_单文件汇总.md",
+    "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+    "message_id": 4,
+    "transport": "UDP",
+    "wire_changes": false,
+    "C_changes": false,
+    "windows_specific_backend": false
+  },
+  "implementation": {
+    "files": [
+      "icd_gateway/lifecycle_service.py",
+      "tests/icd_gateway/test_lifecycle_service.py",
+      "icd_gateway/receiver.py",
+      "icd_gateway/session.py"
+    ],
+    "actions": [
+      "START",
+      "PAUSE",
+      "RESUME",
+      "STOP",
+      "RESET",
+      "STEP"
+    ],
+    "models": [
+      "quadrotor_hil",
+      "multirotor_6_hil",
+      "fixed_wing_hil"
+    ],
+    "backend": "Mandatory explicitly installed ModelLifecycleBackend; no production/default/CLI backend or hardware capture implementation.",
+    "evidence": "Immutable bounded context and receipt retain complete actual configuration/State132/applied inputs, original identity/request/view/times, model-specific actuator values, owner SID, C queue depth, revision and each STEP observation. Failures and partial local cleanup remain evidence, not rollback.",
+    "cleanup": "Pin/capture original local queue/fragments; verify actual selected removal before APPLIED; RESET/RESUME require all old run-group SIDs retired. Reserve real terminal header before retirement, narrowly owned original cache, no old-network-SID retry or backend automatic retry.",
+    "semantics": "RESET restores complete initial state/inputs, RESUME preserves paused State132/input projection; backend must also preserve hidden complete solver state. STEP every sequential 1000us model step with independent readback, not a single larger step/host timing inference.",
+    "safety": "Validate every actuator payload; safety actions additionally require actual zero outputs and revoked control. Local close/cancel is not nine-item remote cleanup.",
+    "udp": "Real localhost UDP SourceSession RESET/RESUME terminal feedback, old-source epoch retirement, explicit same-owner abandon/open and new SID/current model step; explicit model doubles, not qualified C effects."
+  },
+  "verification": {
+    "commands": [
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_lifecycle_service.py -v",
+        "exit_code": 0,
+        "tests": 28
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_run_retirement.py -v",
+        "exit_code": 0,
+        "tests": 21
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_retirement.py -v",
+        "exit_code": 0,
+        "tests": 27
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_session.py -v",
+        "exit_code": 0,
+        "tests": 13
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v",
+        "exit_code": 0,
+        "tests": 9
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_queue.py -v",
+        "exit_code": 0,
+        "tests": 25
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_worker.py -v",
+        "exit_code": 0,
+        "tests": 20
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_udp.py -v",
+        "exit_code": 0,
+        "tests": 9
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v",
+        "exit_code": 0,
+        "tests": 14
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_configuration_service.py -v",
+        "exit_code": 0,
+        "tests": 30
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_status_service.py -v",
+        "exit_code": 0,
+        "tests": 29
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+        "exit_code": 0,
+        "tests": 31
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_registered_controller.py -v",
+        "exit_code": 0,
+        "tests": 29
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v",
+        "exit_code": 0,
+        "tests": 31
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_runtime_lifecycle.py -v",
+        "exit_code": 0,
+        "tests": 13
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v",
+        "exit_code": 0,
+        "tests": 23
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v",
+        "exit_code": 0,
+        "tests": 28
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_runtime -p test_*.py -v",
+        "exit_code": 0,
+        "tests": 67
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+        "exit_code": 0,
+        "tests": 3
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+        "exit_code": 0,
+        "tests": 4
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "exit_code": 0,
+        "tests": 20
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v",
+        "exit_code": 0,
+        "tests": 7
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "exit_code": 0,
+        "tests": 2
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "exit_code": 0,
+        "tests": 5
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check",
+        "exit_code": 0,
+        "tests": 0
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m pip check",
+        "exit_code": 0,
+        "tests": 0
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m compileall -q input_simulator icd_gateway icd_runtime tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py scripts/build_contract_single_file.py",
+        "exit_code": 0,
+        "tests": 0
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+        "exit_code": 0,
+        "tests": 0
+      }
+    ],
+    "suites": 24,
+    "total": 488,
+    "gateway_related_tests": 380,
+    "complete_runtime_tests": 67,
+    "ledger_tests": 3,
+    "single_file_tests": 4,
+    "static_tests": 34,
+    "new_lifecycle_tests": 28,
+    "all_commands_exit_zero": true,
+    "full_gateway_run": false,
+    "source_count": 160,
+    "source_sha256": {
+      "matlab_scripts/build_script.m": "6019886aba43532380882a2081de14bbd721511559d37c7dec78579f1fb667c8",
+      "tests/icd_gateway/test_scenario_evidence_recorder.py": "5391f43a125215b58fb487edcc2f526c56c2efbfc6c0ec69bf8301838b9f983f",
+      "input_simulator/live_tool_input.py": "4be846fcc8188ddaab338c0860af45263a546bbb965eb7014070661aa031e718",
+      "input_simulator/__main__.py": "0ddc1337c40922aa8f5a743491e3fa4d97a37e5e21ffc507534d4d307bbf6f04",
+      "icd_runtime/reassembly.py": "d9c90e2eaae6c00b2a020c80a387f7aefde119991860bee3defa53655816d70f",
+      "input_simulator/can_signal.py": "d2511899121200d86aadb69dd6e512b7db3b0b89d100c22f100c8412062fda0b",
+      "input_simulator/_scenario_evidence.py": "9d86759534d60be97d5c53919366cbab76a60901833d92813e258e98f7435824",
+      "matlab_scripts/generate_quadrotor_model.m": "4e2025e61216b2817948a94c8f3f5ccf681a200f55ec38652e6ec8919190481e",
+      "tests/icd_gateway/test_assertion.py": "9e4243157de062274188f60d4a8c4387932aad9ed9bd2ecbfd78c13b312683c3",
+      "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+      "tests/icd_runtime/test_video.py": "0e2f4aac15a9166ef74c9071877adc27e2db0014a3c8935ca4032877b279679e",
+      "tests/icd_runtime/test_source_contract.py": "beb35325415046cd1300db84db1045576fec603a25e397520200400eb34d1d06",
+      "tests/icd_gateway/test_native_tools.py": "0af10a94316483f5ccc0a9c8ed8f5de1dabba55e56b97088cebc378d6fc30321",
+      "input_simulator/__init__.py": "f5faaffe178184ae00a5c5c8e7ebbc921f8ef9080dc31d8231ec420844289588",
+      "scripts/test_icd_runtime.py": "436507a02737045204a0030e37aacb3a711343c66f27f46573daf162beee9154",
+      "c_core/src/control_arbiter.h": "c82b8ce1d477117e9df5b82875d272234842557a9c5f49e0abf7cd22e871a577",
+      "tests/icd_gateway/test_model_bindings.py": "4d033087cc9227705d8f17f258d294081f051ac1560b7adcef9fb141528b2d74",
+      "tests/icd_gateway/test_scenario_assertions.py": "13aafe794864ee53b0122946bacd9253b21d33316ceeeb24ce4926881e60e6d3",
+      "tests/icd_gateway/test_tool_commands.py": "ff3b83818045fb46038c90f2e14c9ecbb88aeabe6f484a4a19db156786a7aae0",
+      "tests/icd_gateway/test_native_evidence_recorder.py": "5d3008e8844929c41c925cb3b056cdf26aa3d91082c93b2dca8a2ea719163cb1",
+      "c_core/src/realtime.h": "9ee38d602d8e292f5b6ae0692da502930a3e74ed152c8d7b8d29eac1650b0a66",
+      "matlab_scripts/generate_test_model.m": "07a670d073610dcb7524c56997bbdb64d44316b9cbec1f379eed5a6f07109da4",
+      "icd_runtime/resource_budget.py": "88479dbb5aa94891f4c3f9f130effddd0827709cdde3b0e067f42a94d5e1ccca",
+      "matlab_scripts/create_generic_vehicle_contract.m": "c3b6138336646a6efd72b563b58576f7222adfb9a16363bb371faecb31c983f1",
+      "icd_gateway/__init__.py": "c8fe0cf44f537aace9547d80024f75d01e02611017f8a5b392309dc88df36f86",
+      "tests/icd_gateway/test_semantic_guards.py": "114910a00070ada53cbe7f97e128a633dbb3caa4595d4dbf23f7ab5ae398adbd",
+      "matlab_scripts/generate_multirotor_model.m": "c886aa385ecfdefa9467bae9e648e3155e7485e74bfd0848be5ba93ad426f4f8",
+      "icd_runtime/contract.py": "0b72f43bd33cddfd4299696e0b89a7cf7f95e0f75f9d7c5da4998e202828c19e",
+      "tests/icd_gateway/test_tools.py": "372a464344212afcca53b232954e4bfa02d04a1f320f630df6d7aae830886e3d",
+      "tests/icd_gateway/test_resource_udp.py": "50cb50f599d2a9d4555875000dfa6830b4ce28235a6490cd509cfbc0cd790e97",
+      "input_simulator/scenario_assertions.py": "c40c7d0ae233ae85d8c1d78ad97dabd37e127f3c2f66b764ab1cfe755639bc58",
+      "tests/test_development_backlog.py": "ebc1fea22c7784a8294f77f3aa6b557cfe4e20b2ee2b4a34505f6e369b052fee",
+      "input_simulator/native_tools.py": "1d77f12a3e99c6d845715f241649d5efb54b580fca2f74afbee6ef18b656976b",
+      "tests/test_quadrotor_model_contract.py": "b9e1bacd1b3b9ff0a4b9771b9d1eee3207d5f96a1d01b92682621ad19d23459c",
+      "icd_runtime/json_codec.py": "3f63ae71d2d4561200f48243319e90f275ae11fa0f3e8636bf226ebe9d2f09cc",
+      "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+      "c_core/src/mission_controller.h": "9b4fca3205444ea98e61139bd74350be48bbe93cf66e67e7897d2dddbc790874",
+      "tests/icd_gateway/test_resources.py": "1fbfcc378484c2642c75ccc9865fbfc84ac219dfdcaa4e72f435487c478265c2",
+      "icd_gateway/receiver.py": "8621023389e9d40620de40e0c355e8d3f4cd041bed6d4997f2488361a96948a2",
+      "tests/icd_gateway/test_configuration_service.py": "62241e0fdd2b341c22d809720484385ad33009117964ff7635273e82063cc61c",
+      "input_simulator/_target_evidence.py": "507764f78f2ae12bcb125b81da40b92a34c701476a5f5dd1a9a424128be69774",
+      "tests/icd_gateway/test_history.py": "8fc9d09ca190de7bba5ee03a3e75c29a81a3c6698b7e8ffc83bd893df6351ceb",
+      "tests/icd_runtime/test_reassembly.py": "fd638f22b1e5f12e12317d1295b2865cc290b20a06863db2b46ba4954169a20e",
+      "icd_gateway/configuration_service.py": "049103a5f544e379d45b97583996eff3186ed0443ea0bd19deda5971608d9a9c",
+      "input_simulator/scapy_source.py": "b0124f7c6a6c36f6d5824db5e5da2769ad34a37a75feaa1e0f94afa658baf2ee",
+      "tests/icd_gateway/test_negative.py": "1bd52440bd9f87748b8fbc4c0840fd3cabdac50d305bb09429359c6b7d40b68f",
+      "tests/icd_gateway/test_control_lease.py": "05b74f2c338a60a29c3622928196c82fc2989b291547bfb504faadf3b574baac",
+      "c_core/src/hal_stub.c": "e7bafc8329b8576e9f38167189d3ea2d42857a4d374f4ba0c7a6212ade61e7d1",
+      "tests/test_generic_contract_templates.py": "aa71951debf1d2a04becfad0b69452e5c4393b81839b575a6c37fcba23720057",
+      "input_simulator/evidence.py": "ea362fe5dd642abf227a47b9849cab96082054a0599815dbba688def33d767dc",
+      "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b",
+      "input_simulator/evidence_recorder.py": "fb81ded8e8766bab09291551b95c1f252d4c24c22506b3b7c25dc8313e21aaf6",
+      "input_simulator/scenario.py": "f2de72a6fef85d5726c4f0898b2fc6913d927f74834528e396a180ec95b328ab",
+      "tests/icd_gateway/test_target_evidence_recorder.py": "07e77aaede9eeead8f4488c8fcb18ab61e26954122bb405386423f937157ddb7",
+      "icd_gateway/lifecycle_service.py": "7a3b5b29e32ca1458a58147395eb26ca028460247031f2edefa5b9c30ba760aa",
+      "tests/icd_gateway/test_runtime_targets.py": "3aff80c4b2d760e29cc08892f6c8674b25016e008a48175701081a5572c634a9",
+      "icd_runtime/__main__.py": "5f3ea4c157dcecf90e6abf160b49b858d1d3cc5281c3d95c1258fd2cee5593ad",
+      "tests/icd_gateway/test_resource_exchange.py": "c7f3d9c240cf8d00b4bf1098d9a92cc653ab7c9f77cd3f900039d4d0729dfe84",
+      "tests/icd_runtime/test_cli.py": "226a5458a26fe34cf3280c226236fa67e9e9e24ea1fd33613648475ccbb26679",
+      "tests/icd_gateway/test_runtime_lifecycle.py": "794f94f12fa9bdb88b4b8337341aa64fc2dc9b909572130a59d2d424f00d631d",
+      "tests/icd_gateway/test_evidence_archive.py": "a5e888b62b842302ceb2045cecce8164ca7ae69695146a898bfbe5eb57a5aed7",
+      "icd_gateway/session.py": "a4c80defe8f1a9415f3efd22bb3ee5efc0efba6d5512847c81cfa300884190f7",
+      "icd_runtime/video.py": "87ffb6ed39be937f3c86738ac98d7445802f539da89207a4aa35acdcb4c02eae",
+      "c_core/src/local_udp.c": "5df383a17f5c5010585d267f8d73a9d2266e239763d3fa84059d02b6b745d5f6",
+      "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+      "tests/icd_gateway/test_scenario_driver.py": "0fbc60e60a1c99aea23b0f72f69e29376677b75ca65dc4dfef4f923119119e4b",
+      "tests/icd_gateway/test_model_queue.py": "1f8de0bfeeb9344716beb026ca8bac113d162e11938efe616a996cca9588cf23",
+      "tests/icd_gateway/test_native_evidence_archive.py": "ae828f9a0d4fb7d1d699949fdc971000ad8d03a0dfea8b16dc2882b1b773e399",
+      "input_simulator/waveform.py": "959cda3dd139c0a5e03b58e14ab8e0fd9261b741b8c4364c5540438d732600d1",
+      "c_core/src/hal_stub.h": "43402097c1e604db277444c62b1aa2ad3514c214c803751f092c25ddbba2146d",
+      "tests/icd_gateway/test_dispatch.py": "e121119b19176f681bc59c98197bef77ca6d57121f1aad60ebc244a83a926a87",
+      "c_core/src/fixed_wing_v3_tcp.h": "b936219f0e1f3d3ccf3508cb10c950769146db58d31dd7358cc0c7d8dca333e9",
+      "icd_gateway/model_bindings.py": "9850bedbaddbec48b393b7c14254b73c91ff29c73c061f32d0cd976847733251",
+      "tests/icd_runtime/common.py": "ee95623a17e2b6fdf6e21d7cec9af888f671ee917997112df9550d072d2955ff",
+      "icd_runtime/payload.py": "4dfbafaf337343c96e4ab2decc7bfe28fea41ad71508b027abcc207459309104",
+      "tests/icd_gateway/test_receiver.py": "53d716351a44740a79d8685e17bca610ec71704fe09fa280069323422f294f56",
+      "tests/test_static_contract.py": "a08962ce845ff253199bff79d4a15f116439d35bfb697a76982209cb6ba95f4c",
+      "c_core/src/model_rt_wrapper.c": "f05125ba9528410f7eb7991b9546391fa807a49fe6f48bc15637ba41ab92fb94",
+      "scripts/accept_runtime_contract.py": "5eb58d6c5aad08c187d06ba9a685821aca028c548492fbd060fc4fbde44b0cb7",
+      "tests/icd_runtime/test_wire.py": "62520461285f5c56fbeea3847ada343b9424ae87e99ebaa96d62081ff9b40048",
+      "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+      "tests/icd_gateway/test_source_inputs.py": "c21563e629aea5c52a564d84caabc903257b883d7aa15b321072d26819e8faa4",
+      "tests/icd_runtime/test_wire_rewrite.py": "256750c72028b0f7f508a3d5a1a576c057ecd866a123b6c281ee560aacbedca9",
+      "input_simulator/model_clock.py": "eb5e217b0ceb0da4b439e87181f8256aaa926f0464995ed05217af324969f24e",
+      "c_core/src/model_rt_wrapper.h": "a9c758c2ac51d4928b4c2fef7bc778baba10c3357c3815662a9d021c0b61e369",
+      "icd_runtime/selfcheck.py": "5108068be70369d11e5745acc624c4fd7d8c41cc9b632617429dc35bdfd29f51",
+      "tests/icd_gateway/test_scenario.py": "554d9affd272116e89e9ff7fd50e473f2b9bf24283c5e6fe598d44c79db82021",
+      "c_core/src/flight_state.h": "a3e37b82ba6f84e24e9a2c0a40471e7ed270ac92ef8f555ffec33278ed60169a",
+      "icd_gateway/model_queue.py": "784781229f031e21694ae430688c7b9609a57e5ad152d14f33eb37eef131cd47",
+      "tests/icd_gateway/test_resource_worker.py": "b2c4b440ac32cfc219bc1c74e871cc708022cfa7f71c687e178ecbb1130907f7",
+      "input_simulator/protocol.py": "b6f55274c8dde6b9c5fe2b4dc7aa4c626780e5101af7b1ea4248066b4cfacd85",
+      "matlab_scripts/generate_fixed_wing_model.m": "888a798fea13d838379b5c46e0830495f26956a1bab3fdd86265ce79b7b249da",
+      "c_core/src/main_rt.c": "63bf8a61b6a20ca4d9ea2195e292fba4d731a5e22a5efc0850f8dcbb61a4b2e1",
+      "tests/icd_gateway/test_lifecycle_service.py": "90e155703cb04eb40f9a21284bad8d018c04317eaee85ce4b35547d3ac3528b5",
+      "tests/icd_runtime/test_contract_payload.py": "fa2c19720ef14c28887c6006e788b1794df2bcc577bc5763ab73808950e2ad2c",
+      "tests/icd_gateway/test_waveform.py": "7115fc7f4bef966aa2b49bd7a1af1fb0421204183cda6d0861e45834b6e4a995",
+      "input_simulator/negative.py": "e2de85453885c84f0c8cba8bca164ac124489bf58cd60e6139210b1e370cbce4",
+      "tests/icd_gateway/test_native_scenario_actions.py": "2255e091be0025b37cf404644d458006fed69e7ff891662823d578b5c5638699",
+      "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+      "scripts/build_contract_single_file.py": "103daeba31634e083c1109e1dd564bece63d55e540810f4949b5655e4cb2e520",
+      "matlab_scripts/adapt_model.m": "88fd298bf8c0a2dce9d0d19cd002aa299fdbb82c03b816b2c68a300429ea5c68",
+      "icd_gateway/__main__.py": "52cdd805872aa7ba97069c0a49303df093212d66d09e1715b0d1630d8f80c8b9",
+      "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+      "tests/icd_gateway/test_scenario_execution.py": "db67db71db264074d8577825d16f76f879ff7246a45eadc0b716248a1d4b3b7b",
+      "tests/icd_gateway/test_resource_source.py": "f5d6c7d52e053c3cf7a72dd5662e55d87efd4572b79d4ee910838fd7a7f56fdf",
+      "input_simulator/tools.py": "05afdd082ce4cd8a48a68375c38f7b17f183d959f86548842dfaa4b0dda77473",
+      "icd_gateway/resources.py": "b5fef69db9d86dcd86277e98039f3b9b6a10535dfea372c4647b1f23526cc74f",
+      "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+      "tests/icd_gateway/test_retirement.py": "9a5aaf8ad12b623430fec48c7616364934980f6c0dcf9b70b8992e2e526da5c5",
+      "icd_runtime/errors.py": "b418c56eba1787fedc65a1d03691cee88b58a8f9333948346daf4d43c0dd0aa7",
+      "icd_gateway/config.py": "237b0274f4f9fb66db25f99abcc27d366b35190f9e856e19b3c7d74eab0bee94",
+      "input_simulator/dispatch.py": "f45238894a83ca76b2556cfbb481cd7701cf1274a2127089f6345fad218df680",
+      "c_core/src/control_arbiter.c": "3d33e37ad0e6bbf66b893691594b744da95ec9703467423f726029c6850f0325",
+      "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+      "tests/icd_gateway/test_model_clock.py": "fd67108cf6636ec515fa77f568e019fad04176e6797afb9bb038360465b736a8",
+      "input_simulator/udp_source.py": "7fc3ae909f674afa59c2f0e0c43e25e3ae9ccef0caa14340b3e5480c1849741c",
+      "tests/icd_gateway/test_cli.py": "212efc3915bdb8893cab41adbee61896a3968e730a775bead37101c5240ea693",
+      "c_core/src/fixed_wing_v3_tcp.c": "eea119efafdc0b5b44770b023c85a7b1714732ace2fa18f790777a85ba233b3b",
+      "tests/test_parameter_registry_static.py": "10808051f5d83b0e4bac09727b702181774cb790fd2ba45640ac0a0310d42d13",
+      "input_simulator/_native_evidence.py": "49ccf35e38e7bc8d02aa423885c1d831340244e3cbc51fc150b517c0de694c20",
+      "input_simulator/scenario_driver.py": "dc776639eb160d3db05299e3e163e24864d3107f42f07136621b6ac8e89f7dc2",
+      "icd_gateway/status_service.py": "797d5c4ff414fe2ce0be757b85872092d445e9d81c243c369f3be06221d2499a",
+      "tests/icd_gateway/test_scapy_source.py": "719584576ed21e80e4f254fe0be8a8b7b4c3642fc6c3f5d5cfc01676dfa695e4",
+      "c_core/src/mission_controller.c": "5e6d15e77b61f3888cfcb0a2fa1cf3572a3508ba7146e50f34caa4bb15cc9085",
+      "c_core/src/realtime.c": "beee307820e1adc35675faa29d8b9f18e2e73d7d337cae9e26d19856ab81d23f",
+      "icd_runtime/__init__.py": "be6e9526e32a8a73df2a51e6babd03aede7b5aa71ab39b5ef040e1f216ba50b1",
+      "matlab_scripts/analyze_model.m": "602ae9c7797d3cedd9b4db60a02c5a3b6fbe10eb1cd9bbd1773ea9e915907d4a",
+      "tests/icd_gateway/test_evidence_recorder.py": "8a7f5d74d71e4eaccafbcdac1a4ff4382a38cd0a73a6b7d32bab64db9bc504e9",
+      "c_core/src/local_udp.h": "a56fd113b7e84af31286080ef47fc9d5f1227a3dbbeb3286a660a50306d4a732",
+      "tests/icd_gateway/test_source_session.py": "7b68aa36b1d4bf7e254d8a42e5152af09c22bf91aa4658ec1688726854a7a6ba",
+      "input_simulator/_native_scope.py": "cb9f9942bad951bb17e4d2e4653ec74d27fccbc3cd34968cabf1ddd9dc8adf6e",
+      "input_simulator/_assertion_evidence.py": "f25f1b8f43a4aa79dbc9ddb6ab7d076de5b5ce1002c67d47df046abbcecb953b",
+      "icd_runtime/wire.py": "c56d4a74c96c505bf2db9b4c10ecf7b5478b8c676771e2de71cb2d2124467fff",
+      "matlab_scripts/create_quadrotor_contract.m": "a0809c6359a712ab4d017432b10f99fa69608d01a9e60d84c7b456ab871eca10",
+      "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+      "tests/icd_gateway/common.py": "758073e6fa8a597e08e841c57a7ca62b39a08d930904ce3564e591179f174095",
+      "tests/icd_gateway/test_status_service.py": "4ef158ce64b92d1f34167a6fa34a66c9451069b580810a903d295bdf8773d0c9",
+      "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada",
+      "input_simulator/source_inputs.py": "ca28b1a6a60c2993f77fc0cdaaca6c9df2666087f96b99c4b0807c3555363a42",
+      "input_simulator/history.py": "c2a5a0ce9f9e119371547a7be3be0e9e7ca994274fd3ec99bab7ddabb2414e41",
+      "tests/icd_gateway/test_assertion_evidence_recorder.py": "c9fed4564721f45f69ff90c7f5e5e6dc2a4b8123b44e06e45922f21f91f551f4",
+      "input_simulator/evidence_archive.py": "1f9fbf8c1cf216c034f18f4b6a4d3b85f85014634ad93996ff6fbff536564329",
+      "tests/icd_gateway/test_tool_process.py": "838c07bc38db7f5b5f191e7e2fda5eb863befc9e01fa321e229dcd777df5c232",
+      "icd_gateway/semantic_guards.py": "8705d644adb8188c5d29beb655d1c5840cf615c03a183fe2f01aa746d568705f",
+      "tests/test_contract_single_file.py": "0acf48704745f844efe22329d6241833093583f922c01a5fcc36db5792702c2d",
+      "tests/icd_gateway/test_udp.py": "3ab6824f98bf8ffd8474eaf6c1eca5991af54a308458def941e46726184d9fe8",
+      "input_simulator/assertion.py": "6b64602b9add72c2b78d8d39c731673dd3149cf453090be0df2a188c9881d513",
+      "input_simulator/session.py": "e08d51b9834f9f323d3e7f4d5c30fa5052870b2d1a821838db62b25d101c117c",
+      "tests/icd_gateway/test_registered_controller.py": "7006732a45dd070058ac846738f3622fa5bdf9b717653155e8cf2e5b111b0f3d",
+      "input_simulator/scenario_execution.py": "f9ea72adfd5b21baffa27376ce7a73966be279ba4bf97ebb43af4f1ef8f76f2b",
+      "input_simulator/runtime_targets.py": "5f72f9dfc978817d733650cd96ea3b4cf2af8f4e6334594cd46081d59b8dc85d",
+      "tests/icd_gateway/test_live_tool_input.py": "bbb426bd5f097601794332020d6ba44300d9f830b617c223e7fa1b3d30af1520",
+      "input_simulator/native_scenario_actions.py": "61c541487280633c2b86cda1459843c3dd963fcd73c1eed0eea063ee822e4727",
+      "tests/icd_gateway/test_evidence.py": "031dc1e39e68482749e80a378bf7e914faa3b5ec480668f57329802110c6bb74",
+      "tests/icd_gateway/test_can_signal.py": "54ecfc4b44575b3f35e99f2258ca871132f0dd4f0d454d2d0ba4e31b68487812",
+      "icd_gateway/resource_worker.py": "d14460e1c083c716c8e07a75024c8bb9bdae19c6d9349a5ef11466beb8363505",
+      "tests/icd_gateway/test_session.py": "57f3acdd2c51615a7000d721d13bbf5f1b7d846eb42b889d8c8f4f1f3ec08c30",
+      "tests/icd_gateway/test_protocol.py": "307a5055a8a43f02130d99276215579f7a2db79abe550c7510a5a8213d32f4fe",
+      "tests/icd_gateway/test_run_retirement.py": "55abcf767f959480d3c0ea9712be850bca8e5004f6f2caba7496355979afc41b",
+      "icd_gateway/udp.py": "ab6c8851b36301a66b8655f9673edf11e4d16257062a1541cdb98dfb2a55bc90"
+    },
+    "final_log_range": {
+      "start_line": 216,
+      "end_line": 937
+    },
+    "frozen": {
+      "sources": 14,
+      "resolved_references": 663
+    },
+    "offline": {
+      "messages": 59,
+      "transport_completions": 72,
+      "golden_fragments": 85,
+      "raw_video_fragments": 800
+    },
+    "previous_results": "Historical source results are not reused as current full-system proof."
+  },
+  "review": {
+    "bounded_read_only_passes": 1,
+    "further_review_loop": false,
+    "findings": [
+      "Incomplete selected queue/fragment cleanup could falsely produce APPLIED",
+      "START actuator raw bytes were not parsed/validated"
+    ],
+    "root_red_green_fixes": true,
+    "root_additional_fixes": [
+      "Validate original RECEIVED correlation before getter/effects",
+      "Use actual request origin, not an expired earlier group actor"
+    ]
+  },
+  "linux_backlog": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "append_only": true,
+    "previous_prefix_utf16_length": 110854,
+    "previous_prefix_sha256": "3bfaf3c2711085820bca3d84d25049126a8cabd02155f258f2afbe0161f4e237",
+    "responsibilities": 41,
+    "unchecked": 17,
+    "checked": 0,
+    "requirements": [
+      "Actual C/Simulink full-state/configuration/input/output/control-owner/C-queue/revision getters and atomic effects",
+      "RESET/RESUME full internal solver state and C/Python epoch synchronization; explicit new-SID authorization",
+      "Actual per-step 1000us solver execution and all nine cleanup/SessionClose receipts",
+      "Linux original tools/drivers, monotonic domains, failure recovery, resource abort/readback, target-load timing qualification"
+    ]
+  },
+  "remaining_common": [
+    "Complete concrete ScenarioRuntimeServices and non-Status E2/E3 readers",
+    "Nine cleanup/SessionClose orchestration and actual service wiring",
+    "First-two-path negative actions and original tool services",
+    "All receiver/service history persistence, Run/Report and owned-path end-to-end acceptance"
+  ],
+  "qualifications": {
+    "execution_ready": false,
+    "status": "NOT_EVALUATED",
+    "model": "NOT_QUALIFIED_BY_DOUBLES",
+    "hardware": "NOT_EXECUTED",
+    "real_time": "NOT_EXECUTED",
+    "replacement": "NOT_VERIFIED",
+    "owned_acceptance": "0/2",
+    "historical_aggregate": "0/3",
+    "W3_complete": false,
+    "original_tasks_2_3_4_complete": false,
+    "generated_data_configuration": "DEFERRED_UNTIL_ORIGINAL_W3",
+    "W4_W5": "DEFERRED_NOT_DELETED"
+  },
+  "estimates": {
+    "basis": "Single developer, environment/models available; working days, provisional and not a delivery promise; pause/external waits excluded; only owned first two paths.",
+    "common_development_days": [
+      8,
+      12
+    ],
+    "linux_completion_days": [
+      6,
+      10
+    ],
+    "joint_validation_days": [
+      4,
+      7
+    ],
+    "generated_data_configuration_after_W3_days": [
+      2,
+      4
+    ],
+    "total_including_generated_data_days": [
+      20,
+      33
+    ],
+    "data": "After original W3, generated-data configuration takes approximately 2-4 working days for standard software reception; actual 3.6 business consumption needs real model backend. No date promised."
+  },
+  "post_document_guards": [
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "output": "test_all_41_plan_items_have_common_and_linux_ownership (test_development_backlog.BacklogTests.test_all_41_plan_items_have_common_and_linux_ownership) ... ok\r\ntest_removed_or_duplicated_plan_item_cannot_pass_coverage (test_development_backlog.BacklogTests.test_removed_or_duplicated_plan_item_cannot_pass_coverage) ... ok\r\ntest_stage_closeout_is_append_only_and_linux_completion_requires_evidence (test_development_backlog.BacklogTests.test_stage_closeout_is_append_only_and_linux_completion_requires_evidence) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 3 tests in 0.015s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+      "exit_code": 0,
+      "output": "test_all_field_rows_and_management_definitions_present (test_contract_single_file.SingleFileContractTests.test_all_field_rows_and_management_definitions_present) ... ok\r\ntest_all_original_artifacts_are_embedded_byte_exact (test_contract_single_file.SingleFileContractTests.test_all_original_artifacts_are_embedded_byte_exact) ... ok\r\ntest_all_schema_references_resolve_inside_document (test_contract_single_file.SingleFileContractTests.test_all_schema_references_resolve_inside_document) ... ok\r\ntest_missing_or_corrupt_snapshot_fails_verification (test_contract_single_file.SingleFileContractTests.test_missing_or_corrupt_snapshot_fails_verification) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 4 tests in 0.149s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"SINGLE_FILE_CONTENT_VERIFIED\",\r\n  \"embedded_sources\": 14,\r\n  \"resolved_schema_references\": 663,\r\n  \"business_messages\": 59,\r\n  \"management_commands\": 25,\r\n  \"golden_vectors\": 85,\r\n  \"physical_channels\": 56,\r\n  \"model_bindings\": 97,\r\n  \"runtime_hardware_replacement\": \"NOT_VERIFIED_BY_THIS_CONSOLIDATION\"\r\n}\r\n"
+    },
+    {
+      "command": "160 source/20 retained third-path/original ledger prefix integrity guard",
+      "exit_code": 0,
+      "output": "PASS: 160 source hashes, 20 third-path retained hashes, original ledger prefix\r\n"
+    }
+  ],
+  "log": {
+    "path": "artifacts/icd_gateway/w3-26-task2-lifecycle-service-regression.log",
+    "red_green_captured_tails_explicitly_labelled": true,
+    "sha256": "b5498485b4e08419affe22146e69e0d90f3abc2954bccb03acb10336a37b1519",
+    "lines": 980
+  },
+  "published_evidence": {
+  "status": "PUBLISHED_EVIDENCE_VERIFIED",
+  "log_lines": 980,
+  "third_count": 20,
+  "tests": 488,
+  "commands": 28,
+  "suites": 24,
+  "source_count": 160,
+  "log_sha256": "b5498485b4e08419affe22146e69e0d90f3abc2954bccb03acb10336a37b1519"
+},
+  "published_guard_note": "First PowerShell helper used scalar property enumeration Count incorrectly and failed; corrected by explicit array enumeration. No source/data changes; published range totals, exits and every 160/20 hash subsequently verified."
+}

@@ -1,0 +1,159 @@
+{
+  "phase": "W2.3_COMMON_LIFECYCLE_CONTROL_AND_INITIAL_SNAPSHOT_GUARDS",
+  "date": "2026-10-03",
+  "status": "W2_3_SOFTWARE_VERIFIED_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_semantic_guards.py -v",
+      "exit_code": 0,
+      "tests": 23,
+      "scope": "PURE_RULE_DECISIONS_NO_MODEL_EXECUTION"
+    },
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 157,
+      "suites": {
+        "icd_runtime": 54,
+        "icd_gateway_including_source": 96,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "new_semantic_tests": 23,
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "network_scope": "ACTUAL_LOCAL_UDP_AND_INDEPENDENT_PROCESSES_NO_MODEL_QUEUE_OR_GUARD_ACTIVATION"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800,
+      "pending_groups": 0,
+      "reserved_payload_bytes": 0
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427,
+      "model_bindings": 97,
+      "physical_channels": 56,
+      "tool_branches": 6,
+      "runtime_claim": false
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_SYSTEM_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "status": "SINGLE_FILE_CONTENT_VERIFIED",
+      "embedded_sources": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_NEW_PHASE_FILES_ARE_UNTRACKED"
+    }
+  ],
+  "implemented_scope": {
+    "message_ids": [3, 4, 5, 6],
+    "scope": "PURE_SEMANTIC_GUARDS_ONLY",
+    "model_view": "IMMUTABLE_ACTUAL_CONSUMER_INPUT_NOT_REQUEST_DERIVED_STATE",
+    "lifecycle_action_state_matrix": true,
+    "frozen_target": "EXACT_CURRENT_MODEL_STEP",
+    "running_target": "AHEAD_1_TO_1000_AND_WITHIN_RUN_DURATION",
+    "step": "PAUSED_SEQUENTIAL_1MS_1_TO_1000_CONTROL_NONE_NO_PHYSICAL_CLOSED_LOOP",
+    "lifecycle_effect_flags": "REQUIRED_OBLIGATIONS_NOT_EXECUTED_EFFECTS",
+    "control_sender_and_producer_roles": "INDEPENDENT_STIMULUS_SENDER_DOES_NOT_GRANT_CONTROLLER",
+    "active_owner_lease_ms": 100,
+    "none_owner": "REVOCATION_ONLY_NO_ACTIVE_LEASE",
+    "owner_execution": "NOT_IMPLEMENTED_BY_PURE_GUARD",
+    "initial_snapshot": "COMPLETE_EXPLICIT_CANONICAL_BYTES_NO_DEFAULTS_OR_MUTABLE_ALIAS",
+    "initial_control": "ALL_EXPLICIT_VALUES_SAFE_ZERO",
+    "quaternion": "UNIT_NORM_TOLERANCE_1E_MINUS_6_NO_NORMALIZATION",
+    "terrain": "FINITE_ACTUAL_SAMPLE_REQUIRED_IF_RESOURCE_CONFIGURED_NO_IMPLICIT_ZERO",
+    "quad_hex_initial_state": "STATIONARY_ON_GROUND",
+    "fixed_wing_velocity": "EXPLICIT_VALUE_PRESERVED_NOT_DEFAULT_12",
+    "actual_boundary_revalidation": "REQUIRED_NOT_INTEGRATED",
+    "gateway_activated_guards": false,
+    "gateway_implemented_message_ids": [1],
+    "application_or_consumer_feedback_generated": false,
+    "actual_model_ready_claim": false
+  },
+  "review_and_regressions": {
+    "read_only_review_tests": 23,
+    "actionable_scoped_review_findings": 0,
+    "review_scope": "PURE_GUARDS_BEFORE_SUBSEQUENT_HUGE_INTEGER_GROUND_REGRESSION",
+    "subsequent_red_green_test": "test_terrain_requires_actual_sample_and_agrees_with_root_ground_height",
+    "red": "10**400_GROUND_SAMPLE_RAISED_OVERFLOWERROR",
+    "root_cause": "MATH_ISFINITE_INTEGER_TO_FLOAT_CONVERSION_OVERFLOW",
+    "green": "RESOURCE_ICDERROR_NO_CLAMPING_OR_DEFAULT_REPLACEMENT"
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W2.3收尾移交",
+    "linux_transfer": ["L-001", "L-002", "L-004", "L-010", "L-017"],
+    "coverage_means_ownership_not_completion": true
+  },
+  "linux_c_differences_not_fixed": [
+    "Legacy RESET permits RUNNING and returns RUNNING instead of CONFIGURED",
+    "Legacy pending input and lifecycle single slots replace requests rather than4096 queue retention",
+    "Legacy control source selection lacks PAUSED gate and control NONE semantics",
+    "Legacy DEMO_MISSION timeout exemption, deadline comparison and source revocation differ",
+    "Legacy accepted/effective_sequence receipt is not actual frozen ICD application probe"
+  ],
+  "remaining_common_work": [
+    "Actual consumer service contract, fresh-boundary revalidation and network integration",
+    "Lifecycle/reset/session effects and reset queue step-history coordination",
+    "Actual producer authorization, lane qualification and100ms lease/safety effects",
+    "Environment240ms restore/stop and persistent Fault semantics",
+    "Full SessionClose/Cleanup, real Status/ClockSync and asynchronous phase feedback cache",
+    "Extended initialization, subsystem, sensor, resource and video consumers",
+    "Original TX/RX and complete evidence bundle, formal release gates",
+    "W3 three resources, six original tools and scenario/replay execution",
+    "W4 management API, existing console and Robot automation"
+  ],
+  "target_not_executed": [
+    "Linux common-source qualification, real C/Simulink ABI and initialization ports",
+    "Actual lifecycle, queue, source lease, safe output, terrain resolution and model E2/E3",
+    "SocketCAN and six original tool backends, physical device qualification",
+    "Target realtime, long-run, cross-host clocks and actual video injection",
+    "Real3.3 replacement and immutable release"
+  ],
+  "full_W2_M1_M2_complete": false,
+  "overall_goal_complete": false,
+  "automatic_commit_or_merge": false
+}

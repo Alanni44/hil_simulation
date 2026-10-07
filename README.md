@@ -1,5 +1,16 @@
 # HIL 仿真系统
 
+## 输入模拟器开发接续
+
+3.3 临时替代模拟器与标准 ICD 接收模块使用同一份跨平台 Python 代码，不依赖下文旧 HIL 服务的 Python 3.6 环境。接续开发使用 Python 3.12 和 `requirements-icd.txt`。
+
+- Linux 拉取、环境准备和验证：[Linux 接续说明](docs/linux-input-simulator-handoff.md)。
+- 当前收发入口与边界：[接收模块说明](icd_gateway/README.md)。
+- 唯一完整接口定义：[v0.3 单文件汇总](docs/interfaces/输入模拟器完整接口定义_v0.3_单文件汇总.md)。
+- 唯一 Linux 待办与历史记录：[开发台账](docs/superpowers/plans/linux-development-backlog.md)。
+
+当前目标为前两类源自行生成数据，经原工具链和冻结 ICD 送达标准接收路径。第三条 HISTORY 链路的已有代码、测试和记录保留，由接手人员继续；不以 W4/W5 为本次前置，也不把库级联调当作 Linux 实体链路或实际 3.6 验收。
+
 硬件在环（HIL）仿真飞行验证系统，运行于 PXIe 模型运算设备。Simulink 负责无人机动力学计算，Python Bridge 负责坐标转换和三维渲染通信，C 核心负责 1ms 硬实时模型解算。
 
 ## 架构

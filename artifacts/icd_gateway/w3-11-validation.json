@@ -1,0 +1,227 @@
+{
+  "phase": "W3.11_COMMON_ORIGINAL_TOOL_INSTALLATION_AND_PROCESS_LIFECYCLE",
+  "date": "2026-10-04",
+  "status": "COMMON_FOUNDATION_VERIFIED_NOT_SIX_TOOL_EXECUTION_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 522,
+      "suites": {
+        "icd_runtime": 67,
+        "icd_gateway": 448,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "gateway_suite_duration_seconds": 357.666,
+      "new_phase_tests": 29,
+      "source_fixed_for_entire_final_run": true,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_SIX_TOOL_EXECUTORS_OR_LINUX_RT_QUALIFICATION"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tools.py -v",
+      "exit_code": 0,
+      "tests": 10,
+      "duration_seconds": 5.85
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_process.py -v",
+      "exit_code": 0,
+      "tests": 19,
+      "duration_seconds": 2.794
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_cli.py -v",
+      "exit_code": 0,
+      "tests": 6,
+      "duration_seconds": 4.905
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "tests": 3,
+      "responsibility_rows": 41,
+      "linux_unchecked": 17,
+      "linux_checked": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"
+    }
+  ],
+  "verified_source_sha256": {
+    "input_simulator/tools.py": "664381f1201ff0897e1f3f46d8c514348c405a369519a6938fe9cf76121e099e",
+    "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+    "tests/icd_gateway/test_tools.py": "372a464344212afcca53b232954e4bfa02d04a1f320f630df6d7aae830886e3d",
+    "tests/icd_gateway/test_tool_process.py": "838c07bc38db7f5b5f191e7e2fda5eb863befc9e01fa321e229dcd777df5c232"
+  },
+  "implemented_scope": {
+    "catalogue_branches": [
+      "CANT",
+      "CUTIL",
+      "SAVVY",
+      "CANREPLAY",
+      "ETHGEN",
+      "ETHREPLAY"
+    ],
+    "api_branches": [
+      "SIGNAL_CAN",
+      "CAN_UTILS",
+      "SAVVYCAN",
+      "CAN_REPLAY",
+      "ETHERNET_GENERATOR",
+      "PCAP_REPLAY"
+    ],
+    "installed_libraries": {
+      "cantools": "40.7.1",
+      "python-can": "4.6.1",
+      "scapy": "2.7.0"
+    },
+    "installation_statuses": {
+      "SIGNAL_CAN": "UNVERIFIED",
+      "CAN_UTILS": "UNAVAILABLE",
+      "SAVVYCAN": "UNAVAILABLE",
+      "CAN_REPLAY": "UNAVAILABLE",
+      "ETHERNET_GENERATOR": "UNVERIFIED",
+      "PCAP_REPLAY": "UNAVAILABLE"
+    },
+    "installation_probe": "ACTUAL_DISTRIBUTION_RECORD_ORIGIN_VERSION_AND_ABSOLUTE_EXECUTABLE_BYTES_HASH_NO_IMPORT_OR_LAUNCH",
+    "host_os_dispatch": false,
+    "availability_or_transmission_authorization_from_installation": false,
+    "reservation_capacity": 64,
+    "reservation_max_interfaces": 56,
+    "reservations": "LOCAL_ATOMIC_PHYSICAL_INTERFACE_SINGLE_SENDER_OBSERVERS_DO_NOT_OWN_SEND_OPAQUE_IDENTITY_NO_EVICTION",
+    "reservations_are_standard_grants": false,
+    "process_invocation": "TRUSTED_INTERNAL_LITERAL_TUPLE_ABSOLUTE_NATIVE_EXECUTABLE_CWD_SHELL_FALSE_DEVNULL_STDIN",
+    "public_management_arbitrary_exec": false,
+    "process_evidence": "ACTUAL_PID_RETURN_CODE_BINARY_STDOUT_STDERR_MONOTONIC_TIMES_ERRORS_CHILD_TERMINAL_AND_EOF_SEPARATE",
+    "default_output_limit": 1048576,
+    "maximum_output_limit": 67108864,
+    "output_overflow": "BUFFER_FULL_DIRECT_CHILD_KILL_BOUNDED_PREFIX_OBSERVED_BYTES_INCOMPLETE_NO_SILENT_SUCCESS",
+    "process_stop": "TERMINATE_BOUNDED_WAIT_KILL_BOUNDED_WAIT_KEEP_ERRORS_AND_ACTUAL_HANDLE_FOR_RETRY",
+    "late_observation_or_natural_exit_eof_after_original_deadline": "FAILED_TIMEOUT_NOT_EXITED",
+    "process_creation_hard_deadline_guaranteed": false,
+    "poll_requires_cooperative_calls": true,
+    "process_tree_cleanup_verified": false,
+    "actual_six_tool_processes_started": false,
+    "process_tests_use_actual_python_diagnostic_children": true,
+    "diagnostic_output_is_icd_feedback_or_e1_e2_e3": false,
+    "execution_ready": false,
+    "frozen_sources_wire_format_original_c_or_six_tool_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_final_process_tests": 19,
+    "independent_process_duration_seconds": 2.829,
+    "independent_final_inventory_tests": 10,
+    "independent_inventory_duration_seconds": 6.058,
+    "independent_unchanged_cli_tests": 6,
+    "independent_cli_duration_seconds": 5.11,
+    "red_green_fixed": [
+      "EXIT_OBSERVED_AFTER_ORIGINAL_DEADLINE_FALSE_SUCCESS",
+      "NATURAL_EXIT_FALSE_STOPPED_WITH_OR_WITHOUT_LATE_EOF",
+      "SHADOW_MODULE_INHERITED_UNRELATED_DISTRIBUTION_VERSION",
+      "SECOND_WAIT_OSERROR_ESCAPED_AND_LOST_FAILURE_STATE",
+      "ORIGINAL_EXECUTION_DEADLINE_IGNORED_DURING_NATURAL_EXIT_EOF_WAIT",
+      "COMMON_SOURCE_GUARD_HOST_OS_DIAGNOSTIC_BRANCH"
+    ]
+  },
+  "earlier_run_not_acceptance": {
+    "command": "python -X utf8 scripts/test_icd_runtime.py",
+    "exit_code": 1,
+    "gateway_tests": 446,
+    "gateway_duration_seconds": 270.832,
+    "failure": "UNCHANGED_COMMON_SOURCE_GUARD_REJECTED_HOST_OS_BRANCH",
+    "source_changed_during_run": true,
+    "used_as_final_validation": false,
+    "action": "WAITED_FOR_SAME_HANDLE_TERMINAL_FIXED_WITHOUT_WEAKENING_GUARD_THEN_COMPLETE_FINAL_RERUN"
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-04 W3.11",
+    "associated_linux_items": [
+      "L-001",
+      "L-002",
+      "L-003",
+      "L-005",
+      "L-006",
+      "L-007",
+      "L-008",
+      "L-009",
+      "L-010",
+      "L-013",
+      "L-014",
+      "L-017"
+    ],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_TOOL_FOUNDATION"
+  },
+  "not_verified_or_implemented": [
+    "ALL_SIX_TRUSTED_COMMAND_BUILDERS_ACTUAL_BACKEND_QUALIFICATION_STANDARD_GRANTS_ALLOCATION_FEEDBACK_AND_LOCAL_RESERVATION_LINKAGE",
+    "LINUX_PROCESS_TREE_CGROUP_OR_APPLICABLE_POSIX_STOP_PERMISSIONS_GUI_DRONE_DEVICE_SAFETY_AND_TARGET_TIMING",
+    "FULL_THREE_MODE_ENGINEERING_JSONL_TCP_VIDEO_REPLAY_EXECUTORS_RESET_INITIAL_INPUTS_QUEUES_ROUND_CLEANUP",
+    "BOUNDED_ACTUAL_FEEDBACK_SID_RETIREMENT_BEYOND_64_SIDS_FOR_10000_REPEAT",
+    "FULL_SCENARIO_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_NEGATIVES_AND_25API_CONSOLE_ROBOT",
+    "ACTUAL_CONSUMERS_CLOCKSYNC_RESOURCE_ACTIVATION_PERSISTENT_ORIGINAL_TX_RX_FORMAL_RELEASE",
+    "LINUX_C_RT_DRIVERS_PHYSICAL_AND_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

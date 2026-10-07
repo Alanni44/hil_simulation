@@ -1,0 +1,130 @@
+{
+  "phase": "W3.26_TASK_2_CONTROL_LEASE_OBSERVATION_PROGRESS",
+  "date": "2026-10-05",
+  "status": "CONTROL_OBSERVATION_SOFTWARE_VERIFIED_TASK_2_AND_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "focused_tests": 28,
+  "full_runtime_regression_tests": 921,
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 20.471
+    },
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 921,
+      "suites": [
+        {
+          "name": "runtime",
+          "tests": 67,
+          "duration_seconds": 27.442
+        },
+        {
+          "name": "gateway",
+          "tests": 847,
+          "duration_seconds": 577.233
+        },
+        {
+          "name": "development_backlog",
+          "tests": 3,
+          "duration_seconds": 0.009
+        },
+        {
+          "name": "single_file_contract",
+          "tests": 4,
+          "duration_seconds": 0.149
+        }
+      ],
+      "embedded_sources": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m compileall -q input_simulator icd_gateway icd_runtime tests/icd_gateway",
+      "exit_code": 0
+    }
+  ],
+  "red_green_evidence": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -k owner -v",
+      "before_exit_code": 1,
+      "tests": 11,
+      "failures": 3,
+      "reason": "pending owner safety/source and earlier-heartbeat conflicts failed to retain revocation"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -k cache_keeps -v",
+      "before_exit_code": 1,
+      "tests": 1,
+      "failures": 1,
+      "reason": "fresh conflict was ignored when the original model clock retained a newer request sample"
+    },
+    {
+      "after_command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v",
+      "after_exit_code": 0,
+      "tests": 28
+    }
+  ],
+  "log": "artifacts/icd_gateway/w3-26-task2-regression.log",
+  "verified_source_sha256": {
+    "input_simulator/session.py": "543b941a08925ae66fe5b80a60bf65d7592cbfb6fa1d839fed9aaa8067be3c50",
+    "input_simulator/native_scenario_actions.py": "0bdd33ee44786221e6878ad5c67f865dd6e35a8e7609bd8af8733ec1a66ecda3",
+    "input_simulator/scenario_driver.py": "a476bab247c95e82e606c1e6023e3f3345fdf4df6a7b0ae859f53330c3d30bb6",
+    "input_simulator/model_clock.py": "92a05dd82fdf2b2556b89d9781cafd9ff502fde518b26d448994bdc37e3c8e79",
+    "tests/icd_gateway/test_control_lease.py": "05b74f2c338a60a29c3622928196c82fc2989b291547bfb504faadf3b574baac"
+  },
+  "source_hashes_fixed_during_full_regression": true,
+  "review": {
+    "scope": "Observed control lease component only",
+    "method": "Read-only bounded static follow-up, no concurrent tests",
+    "original_P1": "CLOSED",
+    "remaining_confirmed_important_findings": 0
+  },
+  "ledger_prior_prefix": {
+    "normalized_utf16_length": 74902,
+    "normalized_utf8_sha256": "5407641115a25b7e50dce751352c22f9c747ead4c59dd0165e62be2488a17b8d"
+  },
+  "post_save_verification": {
+    "development_backlog_tests": 3,
+    "single_file_contract_tests": 4,
+    "exit_codes": [0, 0],
+    "ledger_historical_prefix_match": true,
+    "source_hashes_match": true,
+    "responsibilities": 41,
+    "unchecked_linux": 17,
+    "checked_linux": 0
+  },
+  "qualification_status": "NOT_EVALUATED",
+  "execution_ready": false,
+  "safety_verified": false,
+  "complete_runtime_services_installed": false,
+  "three_source_end_to_end_acceptances_completed": 0,
+  "limitations": [
+    "Status has no unique owner SID; observed lease is a necessary signal, not configured producer identity or complete authorization.",
+    "Actual model getters, lifecycle effects, target approval and nine actual cleanup receipts remain Task 2 work.",
+    "Complete replay/negative/six-tool services and continuous native Run/Report remain Tasks 3/4.",
+    "UDP protocol peers and CAN VirtualBus prove shared software behavior, not actual C model application, physical transport, safety or RT.",
+    "No libpcap provider is available on this host. No target backend or qualified hardware was installed.",
+    "New self-generated data entry and W4/W5 remain deferred, not deleted."
+  ]
+}

@@ -1,0 +1,20 @@
+# New common ICD runtime only; do not install into the legacy HIL environment.
+jsonschema==4.26.0
+jcs==0.2.1
+attrs==26.1.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.6.3
+typing-extensions==4.16.0
+# Original CAN toolchain parser, isolated from legacy HIL and static QA vendors.
+cantools==40.7.1
+bitstruct==8.23.0
+python-can==4.6.1
+textparser==0.26.2
+diskcache==5.6.3
+argparse-addons==0.12.0
+crccheck==1.3.1
+wrapt==1.17.3
+packaging==26.3
+defusedxml==0.7.1
+scapy==2.7.0

@@ -37,3 +37,16 @@ c_core/build/
 *~
 .DS_Store
 Thumbs.db
+
+# Local environments, browser captures, and duplicate handoff bundles.
+/.venv/
+/.pnpm-store/
+/_shots36/
+/artifacts/code_handoff_33_36_20261006/
+/artifacts/code_handoff_33_36_20261006.zip
+/artifacts/interface_contract_validation/vendor/
+/artifacts/interface_contract_validation/vendor_v03/
+~$*.docx
+
+# Preserve the published, bounded simulator regression evidence.
+!/artifacts/icd_gateway/*.log

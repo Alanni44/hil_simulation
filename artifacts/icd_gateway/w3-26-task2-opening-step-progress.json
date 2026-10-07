@@ -1,0 +1,262 @@
+{
+  "date": "2026-10-06",
+  "task": "ORIGINAL_W3_26_TASK_2_INSTALLED_BACKEND_OPENING_STEP_PROGRESS",
+  "status": "COMMON_OPENING_STEP_ADAPTER_SOFTWARE_VERIFIED_ACTUAL_MODEL_AND_FULL_RUNTIME_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "Original trusted opening preview without new SID allocation, retaining original admission maintenance",
+    "Complete snapshot read and validation before grant, actual completion admission/capacity recheck",
+    "Installed supported backend supplies actual SessionOpened receiver_step and Header target_step",
+    "Opening snapshot seeds same-SID sample-time and model-step floors; fresh Status still required",
+    "Original cached opening retries without resampling, new SID allocation or lease renewal",
+    "Finite shared evidence reservation and retained opening request/sample/reply/failure provenance",
+    "Failed actual opening attempts retain original errors and are not retried against backend",
+    "Full pending retry cache rejected before allocation/read; no orphan SID on this failure",
+    "No-service opening behavior retained with the same necessary no-orphan capacity correction",
+    "Actual standard UDP/source opening and Status-reader integration with labeled model doubles"
+  ],
+  "verified_source_sha256": {
+    "icd_gateway/session.py": "8297144f84970b9a1612417204183f98fe9871e10c6a9c9c7db2510016d15774",
+    "icd_gateway/receiver.py": "61ae88bb161cb2f0a049011b96e2a5d0668d98daa537b06c2287991bc4e79687",
+    "icd_gateway/status_service.py": "797d5c4ff414fe2ce0be757b85872092d445e9d81c243c369f3be06221d2499a",
+    "tests/icd_gateway/test_status_service.py": "4ef158ce64b92d1f34167a6fa34a66c9451069b580810a903d295bdf8773d0c9"
+  },
+  "source_hashes_fixed_during_final_regression": true,
+  "total_related_tests": 348,
+  "nonempty_suites": 14,
+  "focused_gateway_tests": 281,
+  "full_protocol_runtime_tests": 67,
+  "verification": [
+    {
+      "pattern": "test_status_service.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 29,
+      "duration_seconds": 16.996
+    },
+    {
+      "pattern": "test_receiver.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 9,
+      "duration_seconds": 5.03
+    },
+    {
+      "pattern": "test_session.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 13,
+      "duration_seconds": 18.606
+    },
+    {
+      "pattern": "test_udp.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 14,
+      "duration_seconds": 11.526
+    },
+    {
+      "pattern": "test_resource_udp.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 9,
+      "duration_seconds": 5.939
+    },
+    {
+      "pattern": "test_resource_worker.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 20,
+      "duration_seconds": 12.969
+    },
+    {
+      "pattern": "test_retirement.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 27,
+      "duration_seconds": 14.82
+    },
+    {
+      "pattern": "test_source_session.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 6.345
+    },
+    {
+      "pattern": "test_model_clock.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 23,
+      "duration_seconds": 16.305
+    },
+    {
+      "pattern": "test_scenario_assertions.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 33.892
+    },
+    {
+      "pattern": "test_control_lease.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 20.523
+    },
+    {
+      "pattern": "test_scenario_driver.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 54.285
+    },
+    {
+      "pattern": "test_negative.py",
+      "directory": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 19,
+      "duration_seconds": 11.051
+    },
+    {
+      "pattern": "test_*.py",
+      "directory": "tests/icd_runtime",
+      "exit_code": 0,
+      "tests": 67,
+      "duration_seconds": 27.452
+    }
+  ],
+  "additional_guards": [
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "output": "test_all_41_plan_items_have_common_and_linux_ownership (test_development_backlog.BacklogTests.test_all_41_plan_items_have_common_and_linux_ownership) ... ok\r\ntest_removed_or_duplicated_plan_item_cannot_pass_coverage (test_development_backlog.BacklogTests.test_removed_or_duplicated_plan_item_cannot_pass_coverage) ... ok\r\ntest_stage_closeout_is_append_only_and_linux_completion_requires_evidence (test_development_backlog.BacklogTests.test_stage_closeout_is_append_only_and_linux_completion_requires_evidence) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 3 tests in 0.012s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+      "exit_code": 0,
+      "output": "test_all_field_rows_and_management_definitions_present (test_contract_single_file.SingleFileContractTests.test_all_field_rows_and_management_definitions_present) ... ok\r\ntest_all_original_artifacts_are_embedded_byte_exact (test_contract_single_file.SingleFileContractTests.test_all_original_artifacts_are_embedded_byte_exact) ... ok\r\ntest_all_schema_references_resolve_inside_document (test_contract_single_file.SingleFileContractTests.test_all_schema_references_resolve_inside_document) ... ok\r\ntest_missing_or_corrupt_snapshot_fails_verification (test_contract_single_file.SingleFileContractTests.test_missing_or_corrupt_snapshot_fails_verification) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 4 tests in 0.150s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"SINGLE_FILE_CONTENT_VERIFIED\",\r\n  \"embedded_sources\": 14,\r\n  \"resolved_schema_references\": 663,\r\n  \"business_messages\": 59,\r\n  \"management_commands\": 25,\r\n  \"golden_vectors\": 85,\r\n  \"physical_channels\": 56,\r\n  \"model_bindings\": 97,\r\n  \"runtime_hardware_replacement\": \"NOT_VERIFIED_BY_THIS_CONSOLIDATION\"\r\n}\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"OFFLINE_CODEC_PASS\",\r\n  \"baseline_sha256\": \"22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27\",\r\n  \"business_messages\": 59,\r\n  \"business_transport_completions\": 72,\r\n  \"golden_fragments\": 85,\r\n  \"video_raw_fragments\": 800,\r\n  \"pending_groups\": 0,\r\n  \"reserved_payload_bytes\": 0,\r\n  \"runtime_network_model_hardware_replacement\": \"NOT_EXECUTED\"\r\n}\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m pip check",
+      "exit_code": 0,
+      "output": "No broken requirements found.\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m compileall -q icd_runtime icd_gateway input_simulator tests/icd_gateway/test_status_service.py",
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "review": {
+    "bounded_read_only_reviews": 1,
+    "important_findings": [],
+    "reviewer_ran_tests": false,
+    "root_red_green": [
+      "Full pending retry cache returned BUFFER_FULL after leaving a new SID; reproduced in test_full_pending_retry_cache_rejects_open_before_read_or_sid_allocation, corrected before allocation/read",
+      "Payload validation loop shadowed failed-opening identity key; exact EXPIRED retry returned STATE, reproduced in test_failed_open_after_field_validation_retries_original_error_without_read, corrected by distinct field variable"
+    ],
+    "no_repeated_review_loop": true
+  },
+  "evidence_boundaries": [
+    "No concrete production C/Simulink backend/default/CLI model adapter installed",
+    "Model backends in tests are explicitly labeled doubles, not actual target qualification",
+    "New-SID model floor permits a fresh epoch but does not initialize or RESET a model",
+    "No-service interface-origin step is not proof of actual model initialization",
+    "Synchronous reading is not completed 80ms publication scheduling or RT qualification",
+    "Service records still require complete Run/Report persistence",
+    "Preview performs original maintenance; absence of SID allocation is not pure read-only behavior"
+  ],
+  "qualification": {
+    "execution_ready": false,
+    "evidence_complete": false,
+    "actual_model_backend_verified": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED"
+  },
+  "remaining_current_owned_scope": [
+    "Actual Linux C coherent snapshot backend and model epoch/RESET/initialization qualification",
+    "Actual configuration/control producer/getters/target authority/lifecycle/nine cleanup",
+    "Actual publication scheduling, synchronization and target load/timing verification",
+    "Non-Status root/event assertions and E2/E3/140 association",
+    "Negative actual authority/tool TX/rejection/must_not_apply and original CUTIL/SAVVY/Ostinato services",
+    "Service-history persistence, complete Run/Report and PROTOCOL/SCENARIO end-to-end acceptance"
+  ],
+  "third_path": {
+    "name": "HISTORY",
+    "owner": "Other developer designated by user",
+    "implementation_or_test_or_historical_artifact_changes": false,
+    "retained_sha256": {
+      "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+      "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+      "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+      "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b",
+      "artifacts/icd_gateway/w3-12-validation.json": "209fe3d7010a185897f6070083c21119a67b1560b46226780294d2b9d3665eb3",
+      "artifacts/icd_gateway/w3-6-validation.json": "ce510eefe91e82e74b2fdd5924a27368af295e6069207689878994c192d3c9d5",
+      "artifacts/icd_gateway/w3-10-validation.json": "40be110133473fa16d2b82309531ff934b8e9b9fadf1778cbc4802d7088f1ff9",
+      "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+      "artifacts/icd_gateway/w3-7-validation.json": "430b306b846f26eda94234a1434ca271ed0a4cb8a8528a3ec5b825f00a381c2d",
+      "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+      "input_simulator/history.py": "c2a5a0ce9f9e119371547a7be3be0e9e7ca994274fd3ec99bab7ddabb2414e41",
+      "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada",
+      "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+      "artifacts/icd_gateway/w3-5-validation.json": "eb96374f22436c951137c41d62c2683e605d5f7d8475067d9d42a20efc5988e0",
+      "tests/icd_gateway/test_history.py": "8fc9d09ca190de7bba5ee03a3e75c29a81a3c6698b7e8ffc83bd893df6351ceb",
+      "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+      "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-regression.log": "c58964bf629630dc55ae149364cf6333bc72508b59f260207e0d122e9a755a5f",
+      "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-progress.json": "8da0720d5156d03d14b7b288a8dcde1056f694acfa73c9e2713618b38249a66a"
+    },
+    "pins_verified": true,
+    "resources_and_plans_retained": true,
+    "reference": "docs/superpowers/plans/2026-10-02-input-simulator-overall.md: latest ownership section; original W3.26 Task 3; sole Linux ledger",
+    "subsequent_development_in_this_thread": false,
+    "scenario_replay_boundary_retained": true,
+    "missing_external_service": "TARGET_MISSING; no skip/native fallback"
+  },
+  "end_to_end_acceptances": {
+    "PROTOCOL": false,
+    "SCENARIO": false,
+    "HISTORY": false,
+    "current_owned_passed": 0,
+    "current_owned_total": 2,
+    "aggregate_passed": 0,
+    "aggregate_total": 3
+  },
+  "original_w3_complete": false,
+  "tasks_2_3_4_complete": false,
+  "generated_data_entry_still_deferred": true,
+  "w4_w5_still_deferred": true,
+  "full_scripts_test_icd_runtime_executed": false,
+  "legacy_selected_34_executed": false,
+  "linux_ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "historical_prefix_normalized_utf16_length": 94614,
+    "historical_prefix_sha256": "ec4926eb4c9eecafd955e985cc7106e7ab10a4a8bc1b1d9d9bbcb9cf14c4b4b7",
+    "historical_prefix_preserved": true,
+    "responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0
+  },
+  "regression_log": {
+    "path": "artifacts/icd_gateway/w3-26-task2-opening-step-regression.log",
+    "final_fixed_source_verification_starts_line": 1,
+    "line_count": 424,
+    "sha256": "e937ba451959db9317115480a161a8333d78d9a222c54a5b35e102956d1848c0"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "phase": "W3.14_COMMON_FROZEN_WAVEFORM_SEMANTICS_SOURCE_AUDIT",
+  "date": "2026-10-04",
+  "status": "COMMON_WAVEFORM_SAMPLING_VERIFIED_NOT_FULL_SCENARIO_EXECUTION_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 575,
+      "suites": {"icd_runtime": 67, "icd_gateway": 501, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "runtime_duration_seconds": 28.333,
+      "gateway_duration_seconds": 285.452,
+      "new_phase_tests": 14,
+      "source_fixed_for_entire_final_run": true
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_waveform.py -v", "exit_code": 0, "tests": 14, "duration_seconds": 9.056},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_inputs.py -v", "exit_code": 0, "tests": 39, "duration_seconds": 34.426},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/waveform.py": "959cda3dd139c0a5e03b58e14ab8e0fd9261b741b8c4364c5540438d732600d1",
+    "input_simulator/source_inputs.py": "51eccb82b7fc5a34dd77b46558a13340cfe12cf4147c34964524abf34c058e21",
+    "tests/icd_gateway/test_waveform.py": "708bb4ee7bb575cedcec41ba97c0e83fa8fe0706ff62afa14eb9c34bc66ad74c"
+  },
+  "implemented_scope": {
+    "shapes": ["CONSTANT", "STEP", "RAMP", "SINE", "CHIRP"],
+    "models": ["quadrotor_hil", "multirotor_6_hil", "fixed_wing_hil"],
+    "registered_numeric_bindings_tested": 83,
+    "registered_numeric_scalar_and_array_elements_tested": 91,
+    "all_97_bindings_are_numeric_waveform_targets": false,
+    "boolean_enum_feedback_unregistered_or_missing_root_targets_rejected": true,
+    "complete_stimulus_validated_at_compile_and_each_sample": true,
+    "explicit_model_step_only": true,
+    "relative_step_change_and_internal_outer_duration_end_hold": true,
+    "continuous_extrema_from_actual_monotone_phase_interval": true,
+    "ten_times_highest_actual_interval_frequency_required": true,
+    "long_duration_expansion": false,
+    "original_numeric_types_and_packed_signed_zero_preserved": true,
+    "canonical_and_original_input_snapshots_combined_limit_bytes": 16777216,
+    "source_audit_exposes_immutable_compiled_waveforms": true,
+    "allocates_header_sequence_or_transaction": false,
+    "actual_tools_or_network_business_transmission": false,
+    "execution_ready": false,
+    "produces_e1_e2_e3": false,
+    "frozen_sources_wire_original_c_or_six_tool_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_MUST_FIX_SCOPED_FINDINGS",
+    "independent_phase_tests_passed": 14,
+    "independent_duration_seconds": 8.932,
+    "red_green_fixed": ["MISSING_SAMPLER_AND_SOURCE_AUDIT_COMPILATION", "PREVALIDATION_CANONICAL_ROUNDTRIP_NUMERIC_TYPE_AND_SIGNED_ZERO_LOSS", "DIRECT_SAMPLER_REQUIRES_EXPLICIT_FROZEN_MODEL", "RAMP_EXPLICIT_SIGNED_ZERO_ENDPOINTS_MUST_NOT_BE_RECOMPUTED"],
+    "test_fixture_correction": "USED_FROZEN_MULTIROTOR_6_HIL_NAME_NOT_INVENTED_HEXACOPTER_HIL",
+    "additional_read_only_probes": ["SHORT_CHIRP_ACTUAL_MAX_FREQUENCY_AND_INTERNAL_EXTREMA", "DESCENDING_CHIRP_START_FREQUENCY", "INTERNAL_DURATION_HOLD", "BOOL_AND_FLOAT_STEP_REJECTION", "UNMODIFIED_FIELD_SIGNED_ZERO", "CANONICAL_PLUS_ORIGINAL_SNAPSHOT_EXACT_CAPACITY"]
+  },
+  "plan_coverage": {"responsibility_rows": 41, "linux_items": 17, "linux_checked": 0},
+  "ledger_history_prefix_expected": {"normalized_utf16_length": 45209, "normalized_utf8_sha256": "8a61966669221a6db4e8f4fd16bee826e7bd634f622c641458a1a1006ec54e39"},
+  "remaining_common_work": [
+    "ACTUAL_MODEL_STEP_SCENARIO_SCHEDULER_ALL_EVENTS_COLLISIONS_WAIT_ASSERTIONS_NEGATIVE_CASES_AND_END_CLEANUP",
+    "ORIGINAL_TOOL_CURRENT_AUTHORIZATION_LIFECYCLE_GLOBAL_TX_ORDER_STANDARD_FEEDBACK_AND_CONTROL_OWNER",
+    "SAVVYCAN_AND_OSTINATO_CONTROLLED_ORIGINAL_BACKENDS",
+    "FULL_REPLAY_FRESH_SESSION_EACH_REPEAT_RESET_INITIAL_INPUTS_QUEUE_CLEANUP_REAL_64_SID_RETIREMENT_AND_10000_REPEAT",
+    "ENGINEERING_JSONL_TCP_VIDEO_HISTORY_FULL_EXECUTION",
+    "25_MANAGEMENT_COMMANDS_EXISTING_CONSOLE_ROBOT_PERSISTENT_ORIGINAL_TX_RX_EVIDENCE",
+    "ACTUAL_CONSUMERS_CLOCK_SYNC_RESOURCE_ACTIVATION_RELEASE_AND_REAL_3_3_REPLACEMENT_GATES"
+  ],
+  "linux_target_work": ["L-001", "L-002", "L-004", "L-010", "L-011", "L-013", "L-014", "L-017"],
+  "target_model_hardware_rt_real_3_3": "NOT_EXECUTED_NOT_VERIFIED",
+  "mathematical_sampling_rate_is_message_period_network_budget_or_rt_qualification": false,
+  "test_duration_is_target_timing_qualification": false
+}

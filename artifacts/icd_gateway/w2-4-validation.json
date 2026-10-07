@@ -1,0 +1,156 @@
+{
+  "phase": "W2.4_COMMON_RETIREMENT_AND_CLEANUP_BOUNDARY",
+  "date": "2026-10-03",
+  "status": "W2_4_SOFTWARE_VERIFIED_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_retirement.py -v",
+      "exit_code": 0,
+      "tests": 27
+    },
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 187,
+      "suites": {
+        "icd_runtime": 54,
+        "icd_gateway_including_source": 126,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "new_tests": 30,
+      "retirement_cleanup_tests": 27,
+      "all_udp_tests": 13,
+      "new_udp_tests": 3,
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "network_scope": "ACTUAL_UDP_AND_INDEPENDENT_PROCESSES_NO_MODEL_APPLICATION_OR_FULL_CLEANUP_EXECUTION"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427,
+      "model_bindings": 97,
+      "physical_channels": 56,
+      "tool_branches": 6,
+      "runtime_claim": false
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_SYSTEM_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_COMMON_PHASE_FILES_ARE_UNTRACKED"
+    }
+  ],
+  "implemented_scope": {
+    "local_retirement": "NAMED_NONZERO_UINT32_SESSION_QUEUE_AND_FRAGMENT_RELEASE_ORIGINAL_INPUTS_RETURNED",
+    "retirement_is_wire_session_close_success": false,
+    "other_sessions_and_model_steps_preserved": true,
+    "idle_queue_and_reassembly_expiration": true,
+    "maintenance_preview": "NO_CLOCK_OR_RESOURCE_MUTATION",
+    "maintenance_preflight": "ALL_CLOCK_OPEN_STATES_AND_BUFFER_CAPACITY_BEFORE_DELETION",
+    "maintenance_results": "CUMULATIVE_IMMUTABLE_UNTIL_EXPLICIT_DRAIN",
+    "default_maintenance_input_capacity": 4096,
+    "local_lower_capacity_range": [1, 4096],
+    "expired_session_notification_capacity": 8192,
+    "maintenance_overflow": "BUFFER_FULL_BEFORE_DELETION_NO_EVICTION",
+    "shutdown_record": "SEPARATE_64_SESSION_4096_INPUT_BOUNDED_RESULT_UNTIL_DRAIN",
+    "registry_shutdown": "PERMANENT_NO_REOPEN_OR_MODEL_QUEUE_REPLACEMENT",
+    "pre_session_zero": "PRESERVED_ON_INACTIVE_FILTER_RELEASED_ON_SHUTDOWN",
+    "cleanup_decisions": "COMPLETE_NINE_REQUIRED_TRUE_OPERATIONS_ONLY_NOT_ACTUAL_EFFECTS",
+    "cleanup_37_boundary": "TARGET_MODEL_STEP_RUNNING_AHEAD_1_TO_1000_OR_FROZEN_CURRENT",
+    "session_close_38_boundary": "SERVICE_BOUNDARY_ACTUAL_CURRENT_STEP_NOT_HEADER_FUTURE_SCHEDULING",
+    "cleanup_failed_state": "SAFETY_CLEANUP_PERMITTED",
+    "gateway_implemented_message_ids": [1],
+    "wire_37_38_without_actual_consumers": "RECEIVED_THEN_FAILED_NOT_PARTIAL_SUCCESS",
+    "application_or_consumer_feedback_generated": false,
+    "actual_cleanup_execution": "NOT_EXECUTED",
+    "nonce_scope": "FRESH_NONCE_SOURCE_OBLIGATION_RECEIVER_CONFLICT_CACHE_5S_NOT_LIFETIME_CRYPTO_ANTI_REPLAY",
+    "retired_session_ids_reused": false,
+    "persistent_raw_evidence_bundle": "NOT_IMPLEMENTED"
+  },
+  "review_and_regressions": {
+    "initial_review_tests": 19,
+    "initial_actionable_findings": [
+      "IMPLICIT_INGRESS_AND_UDP_MAINTENANCE_DISCARDS_ORIGINAL_REJECTION_RECORDS",
+      "CLOCK_REJECTION_AFTER_REGISTRY_AND_QUEUE_RESOURCE_DELETION"
+    ],
+    "red_green_tests": [
+      "test_implicit_ingress_maintenance_keeps_original_rejection_until_drained",
+      "test_failed_maintenance_clock_preflight_does_not_delete_any_resource",
+      "test_maintenance_mailbox_full_refuses_deletion_until_prior_records_drained",
+      "test_session_close_uses_actual_service_boundary_not_future_or_late_header_target"
+    ],
+    "followup_retirement_tests": 23,
+    "followup_udp_tests": 12,
+    "followup_instance_probe": "8192_SESSION_NOTIFICATION_FULL_NO_STATE_QUEUE_OR_CLOCK_MUTATION_SHUTDOWN_RECORDS_RETAINED",
+    "remaining_actionable_code_findings": 0,
+    "final_expanded_tests_run_by_primary": "27_RETIREMENT_13_UDP_IN_FULL_COMMON_RUNNER",
+    "nonce_policy_documented_without_false_receiver_guarantee": true
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W2.4收尾移交",
+    "linux_transfer": ["L-001", "L-002", "L-004", "L-006", "L-007", "L-008", "L-009", "L-010", "L-012", "L-017"],
+    "coverage_means_ownership_not_completion": true
+  },
+  "remaining_common_work": [
+    "Actual consumer service integration, atomic writes and lifecycle execution",
+    "ControlOwner authorization,100ms lease and real safe-output effects",
+    "All nine cleanup effects coordinated across model/device/source tools",
+    "Reliable final cleanup/close feedback cache after session invalidation",
+    "Real Status/ClockSync, resources/video and extended consumers",
+    "Original TX/RX persistent evidence bundle and formal release gates",
+    "W3 three resource types, six retained tools, scenario and replay execution",
+    "W4 management API, existing console and Robot automation"
+  ],
+  "target_not_executed": [
+    "Linux same-source qualification and actual C/Simulink lifecycle/ABI/probes",
+    "Actual model/sensor/bus fault cleanup, actuator/DA/TTL safety and control revocation",
+    "Original tool/video/replay/device stop and final close-feedback acceptance",
+    "Physical links, target realtime, long-run and cross-host clocks",
+    "Immutable release and real3.3 replacement"
+  ],
+  "full_W2_M1_M2_complete": false,
+  "overall_goal_complete": false,
+  "automatic_commit_or_merge": false
+}

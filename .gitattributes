@@ -8,3 +8,12 @@
 *.yml text eol=lf
 *.json text eol=lf
 *.md text eol=lf
+
+# Frozen ICD sources and published evidence are hashed as raw file bytes.
+/docs/interfaces/** -text
+/artifacts/icd_gateway/** -text
+/artifacts/icd_runtime/** -text
+
+# Preserve the two existing CRLF source snapshots named in historical evidence.
+/c_core/src/hal_stub.c text eol=crlf
+/c_core/src/hal_stub.h text eol=crlf

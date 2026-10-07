@@ -1,0 +1,5777 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hil:input-simulator:package-contract:0.2",
+  "title": "Input Simulator Package Contract 0.2 Review Draft",
+  "$comment": "Internal resource and configuration contract. Actual wire values require joint ICD confirmation. No API implementation or conformance claim.",
+  "$ref": "#/$defs/Package",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "UInt64": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+    },
+    "PositiveUInt64": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,19}$",
+      "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Value": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "maxLength": 4096
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "items": {
+            "type": "number"
+          }
+        }
+      ]
+    },
+    "Values": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1024,
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Value"
+      }
+    },
+    "ResourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "sha256"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash"
+        }
+      }
+    },
+    "ProfileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "version",
+        "profile_hash"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "profile_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      }
+    },
+    "ScenarioRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "revision",
+        "scenario_hash"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "scenario_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      }
+    },
+    "PackageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_id",
+        "revision",
+        "package_hash"
+      ],
+      "properties": {
+        "package_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "package_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      }
+    },
+    "Pending": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "pending_fields",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "const": "PENDING"
+        },
+        "pending_fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "Rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "kind",
+        "applicability",
+        "definition_resource",
+        "definition_key",
+        "reason"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "enum": [
+            "CRC",
+            "COUNTER",
+            "SESSION",
+            "AUTH",
+            "MULTIFRAME",
+            "DEDUP",
+            "SYNC",
+            "TIMEOUT",
+            "SAFETY"
+          ]
+        },
+        "applicability": {
+          "enum": [
+            "REQUIRED",
+            "NOT_APPLICABLE",
+            "PENDING"
+          ]
+        },
+        "definition_resource": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition_key": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "const": "REQUIRED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "definition_resource": {
+                "$ref": "#/$defs/ResourceRef"
+              },
+              "definition_key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "enum": [
+                  "PENDING",
+                  "NOT_APPLICABLE"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "definition_resource": {
+                "const": null
+              },
+              "definition_key": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_id",
+        "name",
+        "value_type",
+        "unit",
+        "coordinate_frame",
+        "minimum",
+        "maximum",
+        "dimension",
+        "writable",
+        "decimal_minimum",
+        "decimal_maximum"
+      ],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "value_type": {
+          "enum": [
+            "NUMBER",
+            "INTEGER",
+            "BOOLEAN",
+            "STRING",
+            "NUMBER_VECTOR",
+            "INT64_DECIMAL",
+            "UINT64_DECIMAL"
+          ]
+        },
+        "unit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "coordinate_frame": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimum": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maximum": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dimension": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "writable": {
+          "type": "boolean"
+        },
+        "decimal_minimum": {
+          "oneOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DecimalInt64"
+                },
+                {
+                  "$ref": "#/$defs/DecimalUInt64"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decimal_maximum": {
+          "oneOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DecimalInt64"
+                },
+                {
+                  "$ref": "#/$defs/DecimalUInt64"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "NUMBER_VECTOR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dimension": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1024
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "dimension": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "enum": [
+                  "INT64_DECIMAL",
+                  "UINT64_DECIMAL"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "minimum": {
+                "const": null
+              },
+              "maximum": {
+                "const": null
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "decimal_minimum": {
+                "const": null
+              },
+              "decimal_maximum": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "UINT64_DECIMAL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decimal_minimum": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DecimalUInt64"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decimal_maximum": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DecimalUInt64"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_type": {
+                "const": "INT64_DECIMAL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decimal_minimum": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DecimalInt64"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decimal_maximum": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DecimalInt64"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Layout": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start_bit",
+            "bit_length",
+            "byte_order",
+            "bit_numbering"
+          ],
+          "properties": {
+            "kind": {
+              "const": "FIXED_BITS"
+            },
+            "start_bit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1048576
+            },
+            "bit_length": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576
+            },
+            "byte_order": {
+              "enum": [
+                "LITTLE_ENDIAN",
+                "BIG_ENDIAN"
+              ]
+            },
+            "bit_numbering": {
+              "enum": [
+                "LSB0",
+                "MSB0",
+                "DBC_MOTOROLA"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "definition_resource",
+            "definition_key"
+          ],
+          "properties": {
+            "kind": {
+              "const": "RESOURCE_DEFINED"
+            },
+            "definition_resource": {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            "definition_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        }
+      ]
+    },
+    "WireField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "signal_id",
+        "role",
+        "raw_type",
+        "layout",
+        "scale",
+        "offset",
+        "invalid_definition_key"
+      ],
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "signal_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "role": {
+          "enum": [
+            "SIGNAL",
+            "COUNTER",
+            "CRC",
+            "SESSION",
+            "LENGTH",
+            "TIMESTAMP",
+            "DISCRIMINATOR",
+            "OTHER"
+          ]
+        },
+        "raw_type": {
+          "enum": [
+            "UINT",
+            "INT",
+            "FLOAT",
+            "BOOLEAN",
+            "STRING",
+            "BYTES"
+          ]
+        },
+        "layout": {
+          "$ref": "#/$defs/Layout"
+        },
+        "scale": {
+          "type": "number"
+        },
+        "offset": {
+          "type": "number"
+        },
+        "invalid_definition_key": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "SIGNAL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "signal_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CanSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "arbitration_id",
+        "extended_id",
+        "payload_length",
+        "fd",
+        "brs"
+      ],
+      "properties": {
+        "kind": {
+          "const": "CAN"
+        },
+        "arbitration_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 536870911
+        },
+        "extended_id": {
+          "type": "boolean"
+        },
+        "payload_length": {
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            12,
+            16,
+            20,
+            24,
+            32,
+            48,
+            64
+          ]
+        },
+        "fd": {
+          "type": "boolean"
+        },
+        "brs": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "extended_id": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "arbitration_id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2047
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "fd": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload_length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8
+              },
+              "brs": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Wire": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Pending"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "transport",
+            "definition_resource",
+            "definition_key",
+            "codec_binding_id",
+            "selector",
+            "fields",
+            "rules",
+            "golden_vectors"
+          ],
+          "properties": {
+            "status": {
+              "const": "CONFIRMED"
+            },
+            "transport": {
+              "enum": [
+                "CAN",
+                "CANFD",
+                "ETHERNET",
+                "SERIAL",
+                "AD",
+                "DA",
+                "IO",
+                "VIDEO"
+              ]
+            },
+            "definition_resource": {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            "definition_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "codec_binding_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "selector": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/CanSelector"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "definition_key"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RESOURCE_DEFINED"
+                    },
+                    "definition_key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                }
+              ]
+            },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 10000,
+              "items": {
+                "$ref": "#/$defs/WireField"
+              }
+            },
+            "rules": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 10000,
+              "items": {
+                "$ref": "#/$defs/Rule"
+              }
+            },
+            "golden_vectors": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 10000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "vector_id",
+                  "engineering_values",
+                  "wire_hex",
+                  "expected",
+                  "reason_code"
+                ],
+                "properties": {
+                  "vector_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "engineering_values": {
+                    "$ref": "#/$defs/Values"
+                  },
+                  "wire_hex": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{2})+$"
+                  },
+                  "expected": {
+                    "enum": [
+                      "VALID",
+                      "REJECTED"
+                    ]
+                  },
+                  "reason_code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "transport": {
+                    "enum": [
+                      "CAN",
+                      "CANFD"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "selector": {
+                    "$ref": "#/$defs/CanSelector"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "transport": {
+                    "const": "CAN"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "selector": {
+                    "properties": {
+                      "fd": {
+                        "const": false
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "transport": {
+                    "const": "CANFD"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "selector": {
+                    "properties": {
+                      "fd": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "transport": {
+                    "not": {
+                      "enum": [
+                        "CAN",
+                        "CANFD"
+                      ]
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "selector": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "definition_key"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "RESOURCE_DEFINED"
+                      },
+                      "definition_key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "Timing": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Pending"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "trigger",
+            "period_us",
+            "deadline_us",
+            "jitter_tolerance_us",
+            "validity_us",
+            "max_burst",
+            "timeout_rule_id"
+          ],
+          "properties": {
+            "status": {
+              "const": "CONFIRMED"
+            },
+            "trigger": {
+              "enum": [
+                "PERIODIC",
+                "EVENT"
+              ]
+            },
+            "period_us": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]{0,19}$",
+                  "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "deadline_us": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,19}$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "jitter_tolerance_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "validity_us": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,19}$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "max_burst": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "timeout_rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "trigger": {
+                    "const": "PERIODIC"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "period_us": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,19}$",
+                    "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "period_us": {
+                    "const": null
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "Feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "message_ids",
+        "correlation_rule_id",
+        "application_evidence_binding_id"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "NONE",
+            "PERIODIC",
+            "PER_REQUEST",
+            "PENDING"
+          ]
+        },
+        "message_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "correlation_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "application_evidence_binding_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "PERIODIC",
+                  "PER_REQUEST"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "message_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10000,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "uniqueItems": true
+              },
+              "correlation_rule_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "NONE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "message_ids": {
+                "maxItems": 0
+              },
+              "correlation_rule_id": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message_id",
+        "name",
+        "required",
+        "direction",
+        "category",
+        "transport_profile_id",
+        "control_role",
+        "signals",
+        "wire",
+        "timing",
+        "feedback"
+      ],
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "direction": {
+          "enum": [
+            "TO_36",
+            "FROM_36"
+          ]
+        },
+        "category": {
+          "enum": [
+            "MISSION",
+            "CONTROL",
+            "PARAMETER",
+            "ENVIRONMENT",
+            "FAULT",
+            "SENSOR",
+            "ACTUATOR",
+            "STATE",
+            "FEEDBACK"
+          ]
+        },
+        "transport_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "control_role": {
+          "enum": [
+            "STIMULUS",
+            "CONTROLLER",
+            "OBSERVER",
+            "FEEDBACK"
+          ]
+        },
+        "signals": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Signal"
+          }
+        },
+        "wire": {
+          "$ref": "#/$defs/Wire"
+        },
+        "timing": {
+          "$ref": "#/$defs/Timing"
+        },
+        "feedback": {
+          "$ref": "#/$defs/Feedback"
+        }
+      }
+    },
+    "ProtocolDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "name",
+        "icd_document_ref",
+        "messages"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "protocol-0.2"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "icd_document_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "messages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Message"
+          }
+        }
+      }
+    },
+    "Profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "approval",
+        "approval_ref",
+        "definition"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "approval": {
+          "enum": [
+            "DRAFT",
+            "FROZEN"
+          ]
+        },
+        "approval_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition": {
+          "$ref": "#/$defs/ProtocolDefinition"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "approval": {
+                "const": "FROZEN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "approval_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "definition": {
+                "properties": {
+                  "messages": {
+                    "items": {
+                      "properties": {
+                        "wire": {
+                          "properties": {
+                            "status": {
+                              "const": "CONFIRMED"
+                            },
+                            "rules": {
+                              "items": {
+                                "properties": {
+                                  "applicability": {
+                                    "not": {
+                                      "const": "PENDING"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "timing": {
+                          "properties": {
+                            "status": {
+                              "const": "CONFIRMED"
+                            }
+                          }
+                        },
+                        "feedback": {
+                          "properties": {
+                            "mode": {
+                              "not": {
+                                "const": "PENDING"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CanConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "driver_binding_id",
+        "channel_binding_id",
+        "nominal_bitrate",
+        "data_bitrate",
+        "fd",
+        "driver_config_ref",
+        "feedback_transport_id",
+        "synchronization_rule_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "CAN"
+        },
+        "driver_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "channel_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "nominal_bitrate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "data_bitrate": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fd": {
+          "type": "boolean"
+        },
+        "driver_config_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "feedback_transport_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "synchronization_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "fd": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data_bitrate": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20000000
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "data_bitrate": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "EthernetConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "driver_binding_id",
+        "link_binding_id",
+        "stack",
+        "local_endpoint_binding_id",
+        "remote_endpoint_binding_id",
+        "feedback_transport_id",
+        "session_rule_id",
+        "synchronization_rule_id",
+        "driver_config_ref"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ETHERNET"
+        },
+        "driver_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "link_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stack": {
+          "enum": [
+            "L2",
+            "UDP",
+            "TCP",
+            "SOMEIP",
+            "CUSTOM"
+          ]
+        },
+        "local_endpoint_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "remote_endpoint_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "feedback_transport_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "session_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "synchronization_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "driver_config_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        }
+      }
+    },
+    "OtherConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "driver_binding_id",
+        "channel_binding_id",
+        "interface_definition_ref",
+        "feedback_transport_id",
+        "synchronization_rule_id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "SERIAL",
+            "AD",
+            "DA",
+            "IO",
+            "VIDEO"
+          ]
+        },
+        "driver_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "channel_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "interface_definition_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "feedback_transport_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "synchronization_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport_profile_id",
+        "medium",
+        "configuration"
+      ],
+      "properties": {
+        "transport_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "medium": {
+          "enum": [
+            "CAN",
+            "CANFD",
+            "ETHERNET",
+            "SERIAL",
+            "AD",
+            "DA",
+            "IO",
+            "VIDEO"
+          ]
+        },
+        "configuration": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Pending"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "parameters"
+              ],
+              "properties": {
+                "status": {
+                  "const": "CONFIRMED"
+                },
+                "parameters": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/CanConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/EthernetConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/OtherConfig"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "enum": [
+                  "CAN",
+                  "CANFD"
+                ]
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "$ref": "#/$defs/CanConfig"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "CAN"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "fd": {
+                        "const": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "CANFD"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "fd": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "ETHERNET"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "$ref": "#/$defs/EthernetConfig"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "SERIAL"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "kind": {
+                        "const": "SERIAL"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "AD"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "kind": {
+                        "const": "AD"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "DA"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "kind": {
+                        "const": "DA"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "IO"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "kind": {
+                        "const": "IO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "medium": {
+                "const": "VIDEO"
+              },
+              "configuration": {
+                "properties": {
+                  "status": {
+                    "const": "CONFIRMED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "parameters": {
+                    "properties": {
+                      "kind": {
+                        "const": "VIDEO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "kind",
+        "tick_unit",
+        "synchronization_ref"
+      ],
+      "properties": {
+        "domain_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "enum": [
+            "DEVICE",
+            "HOST_MONOTONIC",
+            "UTC",
+            "SIMULATION",
+            "CAPTURE_RELATIVE"
+          ]
+        },
+        "tick_unit": {
+          "const": "us"
+        },
+        "synchronization_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapping_id",
+        "message_id",
+        "signal_id",
+        "target_kind",
+        "model_contract_ref",
+        "target_path",
+        "source_unit",
+        "target_unit",
+        "source_frame",
+        "target_frame",
+        "conversion",
+        "atomic_group_id",
+        "apply_boundary",
+        "invalid_action",
+        "safe_default",
+        "evidence_binding_id"
+      ],
+      "properties": {
+        "mapping_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "signal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "target_kind": {
+          "enum": [
+            "MODEL_INPUT",
+            "TASK_INPUT",
+            "PARAMETER",
+            "FAULT_INPUT",
+            "CONTROLLER_INPUT"
+          ]
+        },
+        "model_contract_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "target_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "source_unit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_unit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_frame": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_frame": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conversion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "scale",
+            "offset",
+            "conversion_binding_id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "IDENTITY",
+                "AFFINE",
+                "APPROVED"
+              ]
+            },
+            "scale": {
+              "type": "number"
+            },
+            "offset": {
+              "type": "number"
+            },
+            "conversion_binding_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "atomic_group_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "apply_boundary": {
+          "enum": [
+            "MODEL_STEP",
+            "TASK_COMMIT"
+          ]
+        },
+        "invalid_action": {
+          "enum": [
+            "REJECT",
+            "HOLD",
+            "SAFE_DEFAULT"
+          ]
+        },
+        "safe_default": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "invalid_action": {
+                "const": "SAFE_DEFAULT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "safe_default": {
+                "$ref": "#/$defs/Value"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "safe_default": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "conversion": {
+                "properties": {
+                  "kind": {
+                    "const": "APPROVED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conversion": {
+                "properties": {
+                  "conversion_binding_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "conversion": {
+                "properties": {
+                  "kind": {
+                    "const": "IDENTITY"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "conversion": {
+                "properties": {
+                  "scale": {
+                    "const": 1
+                  },
+                  "offset": {
+                    "const": 0
+                  },
+                  "conversion_binding_id": {
+                    "const": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "HistoryStream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "original_channel",
+        "direction",
+        "medium",
+        "message_ids"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "original_channel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "direction": {
+          "enum": [
+            "TO_36",
+            "FROM_36",
+            "UNKNOWN"
+          ]
+        },
+        "medium": {
+          "enum": [
+            "CAN",
+            "CANFD",
+            "ETHERNET"
+          ]
+        },
+        "message_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "History": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "history_id",
+        "resource_ref",
+        "format",
+        "profile_ref",
+        "origin_clock",
+        "streams",
+        "integrity",
+        "engineering_schema_version"
+      ],
+      "properties": {
+        "history_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "resource_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "format": {
+          "enum": [
+            "CAN_LOG",
+            "PCAP",
+            "PCAPNG",
+            "ENGINEERING_JSONL"
+          ]
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "origin_clock": {
+          "$ref": "#/$defs/Clock"
+        },
+        "streams": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/HistoryStream"
+          }
+        },
+        "integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "capture_loss",
+            "truncated",
+            "first_timestamp_us",
+            "last_timestamp_us"
+          ],
+          "properties": {
+            "capture_loss": {
+              "enum": [
+                "NONE",
+                "DETECTED",
+                "UNKNOWN"
+              ]
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "first_timestamp_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "last_timestamp_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            }
+          }
+        },
+        "engineering_schema_version": {
+          "oneOf": [
+            {
+              "const": "engineering-history-0.2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "ENGINEERING_JSONL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "engineering_schema_version": {
+                "const": "engineering-history-0.2"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "engineering_schema_version": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "EngineeringRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "sequence",
+        "timestamp_us",
+        "stream_id",
+        "message_id",
+        "values"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "engineering-history-0.2"
+        },
+        "sequence": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "timestamp_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "values": {
+          "$ref": "#/$defs/Values"
+        }
+      }
+    },
+    "ReplayPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replay_policy_id",
+        "history_id",
+        "stream_ids",
+        "source_range",
+        "clock_mode",
+        "rate",
+        "repeat_count",
+        "payload_mode",
+        "late_action",
+        "max_lateness_us",
+        "channel_map",
+        "rewrites",
+        "approval_ref",
+        "repeat_gap_us",
+        "repeat_session_rule_id"
+      ],
+      "properties": {
+        "replay_policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "history_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stream_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "source_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from_us",
+            "to_us"
+          ],
+          "properties": {
+            "from_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "to_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            }
+          }
+        },
+        "clock_mode": {
+          "const": "SIM_RELATIVE"
+        },
+        "rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            }
+          }
+        },
+        "repeat_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "payload_mode": {
+          "enum": [
+            "RAW_VALIDATED",
+            "REENCODE",
+            "SESSION_REBUILD"
+          ]
+        },
+        "late_action": {
+          "enum": [
+            "STOP",
+            "DROP_APPROVED"
+          ]
+        },
+        "max_lateness_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "channel_map": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "stream_id",
+              "transport_profile_id"
+            ],
+            "properties": {
+              "stream_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "transport_profile_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        },
+        "rewrites": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field_id",
+              "role",
+              "rule_id"
+            ],
+            "properties": {
+              "field_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "role": {
+                "enum": [
+                  "COUNTER",
+                  "SESSION",
+                  "CRC",
+                  "TIMESTAMP",
+                  "ENDPOINT"
+                ]
+              },
+              "rule_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        },
+        "approval_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repeat_gap_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "repeat_session_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "payload_mode": {
+                "const": "RAW_VALIDATED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "rewrites": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "payload_mode": {
+                "const": "SESSION_REBUILD"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "repeat_session_rule_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Waveform": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shape",
+            "initial_value",
+            "final_value",
+            "step_after_us"
+          ],
+          "properties": {
+            "shape": {
+              "const": "STEP"
+            },
+            "initial_value": {
+              "type": "number"
+            },
+            "final_value": {
+              "type": "number"
+            },
+            "step_after_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shape",
+            "start_value",
+            "end_value",
+            "max_slew_per_second"
+          ],
+          "properties": {
+            "shape": {
+              "const": "RAMP"
+            },
+            "start_value": {
+              "type": "number"
+            },
+            "end_value": {
+              "type": "number"
+            },
+            "max_slew_per_second": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shape",
+            "offset",
+            "amplitude",
+            "start_frequency_hz",
+            "end_frequency_hz",
+            "phase_rad"
+          ],
+          "properties": {
+            "shape": {
+              "const": "SINE_SWEEP"
+            },
+            "offset": {
+              "type": "number"
+            },
+            "amplitude": {
+              "type": "number",
+              "minimum": 0
+            },
+            "start_frequency_hz": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "end_frequency_hz": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "phase_rad": {
+              "type": "number"
+            }
+          }
+        }
+      ]
+    },
+    "SendAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "message_id",
+        "values"
+      ],
+      "properties": {
+        "kind": {
+          "const": "SEND"
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "values": {
+          "$ref": "#/$defs/Values"
+        }
+      }
+    },
+    "WaveAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "message_id",
+        "signal_id",
+        "unit",
+        "duration_us",
+        "update_period_us",
+        "waveform"
+      ],
+      "properties": {
+        "kind": {
+          "const": "WAVEFORM"
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "signal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "duration_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "update_period_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "waveform": {
+          "$ref": "#/$defs/Waveform"
+        }
+      }
+    },
+    "PeriodicStartAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schedule_id",
+        "message_id",
+        "values"
+      ],
+      "properties": {
+        "kind": {
+          "const": "PERIODIC_START"
+        },
+        "schedule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "values": {
+          "$ref": "#/$defs/Values"
+        }
+      }
+    },
+    "PeriodicStopAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schedule_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "PERIODIC_STOP"
+        },
+        "schedule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "WaitAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_event_id",
+        "stage",
+        "timeout_us",
+        "assertion_ids"
+      ],
+      "properties": {
+        "kind": {
+          "const": "WAIT"
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stage": {
+          "enum": [
+            "RECEIVED",
+            "APPLIED",
+            "RESPONSE",
+            "SAFETY"
+          ]
+        },
+        "timeout_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "assertion_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "ReplayAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "history_id",
+        "replay_policy_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "REPLAY"
+        },
+        "history_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "replay_policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "FaultAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "fault_case_id",
+        "duration_us"
+      ],
+      "properties": {
+        "kind": {
+          "const": "FAULT"
+        },
+        "fault_case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "duration_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        }
+      }
+    },
+    "AssertAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_event_id",
+        "assertion_ids"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ASSERT"
+        },
+        "source_event_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assertion_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "CleanupAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "cleanup_rule_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "END_CLEANUP"
+        },
+        "cleanup_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "Event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "at_sim_time_us",
+        "priority",
+        "action",
+        "link_id"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "at_sim_time_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "action": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SendAction"
+            },
+            {
+              "$ref": "#/$defs/WaveAction"
+            },
+            {
+              "$ref": "#/$defs/PeriodicStartAction"
+            },
+            {
+              "$ref": "#/$defs/PeriodicStopAction"
+            },
+            {
+              "$ref": "#/$defs/WaitAction"
+            },
+            {
+              "$ref": "#/$defs/ReplayAction"
+            },
+            {
+              "$ref": "#/$defs/FaultAction"
+            },
+            {
+              "$ref": "#/$defs/AssertAction"
+            },
+            {
+              "$ref": "#/$defs/CleanupAction"
+            }
+          ]
+        },
+        "link_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "SEND",
+                      "WAVEFORM",
+                      "PERIODIC_START",
+                      "REPLAY",
+                      "FAULT"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "link_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "link_id": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ScenarioDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "name",
+        "profile_ref",
+        "model_binding_id",
+        "seed",
+        "resource_refs",
+        "clock_policy",
+        "readiness_assertion_ids",
+        "events",
+        "on_failure",
+        "cleanup_rule_id"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "scenario-0.2"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "model_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "resource_refs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ResourceRef"
+          }
+        },
+        "clock_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "business_clock",
+            "pause_policy",
+            "max_lateness_us",
+            "on_late"
+          ],
+          "properties": {
+            "business_clock": {
+              "const": "HIL_SIMULATION"
+            },
+            "pause_policy": {
+              "enum": [
+                "SCENARIO_ONLY",
+                "COORDINATED"
+              ]
+            },
+            "max_lateness_us": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+            },
+            "on_late": {
+              "const": "SAFE_STOP"
+            }
+          }
+        },
+        "readiness_assertion_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Event"
+          }
+        },
+        "on_failure": {
+          "const": "SAFE_STOP"
+        },
+        "cleanup_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "ValidationError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(|/.*)$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "Scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "definition",
+        "validation_status",
+        "validation_errors"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        },
+        "definition": {
+          "$ref": "#/$defs/ScenarioDefinition"
+        },
+        "validation_status": {
+          "enum": [
+            "PENDING",
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "validation_errors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ValidationError"
+          }
+        }
+      }
+    },
+    "FaultCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_case_id",
+        "scope",
+        "kind",
+        "message_ids",
+        "signal_ids",
+        "parameters",
+        "implementation_binding_id",
+        "allowed_modes",
+        "approval_ref",
+        "evidence_binding_ids"
+      ],
+      "properties": {
+        "fault_case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "enum": [
+            "APPLICATION",
+            "PHYSICAL"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "DROP",
+            "DUPLICATE",
+            "REORDER",
+            "DELAY",
+            "INVALID_VALUE",
+            "BAD_APP_CRC",
+            "STOP_TX",
+            "GPS_LOSS",
+            "CUSTOM"
+          ]
+        },
+        "message_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "signal_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "parameters": {
+          "$ref": "#/$defs/Values"
+        },
+        "implementation_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "allowed_modes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "enum": [
+              "EXPLORE",
+              "FORMAL"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "approval_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_binding_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "Assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_id",
+        "stage",
+        "observable_binding_id",
+        "field_path",
+        "operator",
+        "expected",
+        "lower",
+        "upper",
+        "absolute_tolerance",
+        "unit",
+        "window_us"
+      ],
+      "properties": {
+        "assertion_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stage": {
+          "enum": [
+            "RECEIVED",
+            "APPLIED",
+            "RESPONSE",
+            "SAFETY"
+          ]
+        },
+        "observable_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "field_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "operator": {
+          "enum": [
+            "EQUAL",
+            "IN_RANGE",
+            "DELTA_WITHIN",
+            "COUNT_AT_LEAST",
+            "ABSENT"
+          ]
+        },
+        "expected": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Value"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lower": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "upper": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "absolute_tolerance": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "window_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "enum": [
+                  "EQUAL",
+                  "DELTA_WITHIN",
+                  "COUNT_AT_LEAST"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "$ref": "#/$defs/Value"
+              },
+              "lower": {
+                "const": null
+              },
+              "upper": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "IN_RANGE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": null
+              },
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "absolute_tolerance": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "DELTA_WITHIN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "absolute_tolerance": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "absolute_tolerance": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "COUNT_AT_LEAST"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operator": {
+                "const": "ABSENT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "const": null
+              },
+              "lower": {
+                "const": null
+              },
+              "upper": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "required",
+        "message_ids",
+        "scenario_ids",
+        "link_ids",
+        "assertion_ids",
+        "environment",
+        "reference_resource_ref",
+        "cleanup_rule_id"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "message_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "scenario_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "link_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "assertion_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "environment": {
+          "enum": [
+            "WINDOWS_UNIT",
+            "LINUX_SOFTWARE",
+            "TARGET_REALTIME",
+            "PHYSICAL"
+          ]
+        },
+        "reference_resource_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cleanup_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "link_id",
+        "branch",
+        "role",
+        "transport_profile_id",
+        "message_ids",
+        "history_ids",
+        "tool_binding_ids",
+        "feedback_collector_binding_id",
+        "control_owner_ref",
+        "qualification",
+        "evidence_refs",
+        "capability_scope"
+      ],
+      "properties": {
+        "link_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "branch": {
+          "enum": [
+            "SIGNAL_CAN",
+            "CAN_UTILS",
+            "SAVVYCAN",
+            "CAN_REPLAY",
+            "ETHERNET_GENERATOR",
+            "PCAP_REPLAY"
+          ]
+        },
+        "role": {
+          "enum": [
+            "SEND",
+            "OBSERVE",
+            "REPLAY"
+          ]
+        },
+        "transport_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "history_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "tool_binding_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "feedback_collector_binding_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "control_owner_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "qualification": {
+          "enum": [
+            "UNVERIFIED",
+            "SOFTWARE_VERIFIED",
+            "FORMAL_VERIFIED",
+            "REAL_SOURCE_REPLACED"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "capability_scope": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "enum": [
+                  "SEND",
+                  "REPLAY"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "control_owner_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "feedback_collector_binding_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "OBSERVE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "control_owner_ref": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "branch": {
+                "enum": [
+                  "CAN_REPLAY",
+                  "PCAP_REPLAY"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "role": {
+                "const": "REPLAY"
+              },
+              "history_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10000,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "qualification": {
+                "not": {
+                  "const": "UNVERIFIED"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_refs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10000,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ManifestEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "resource_ref",
+        "size_bytes"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "role": {
+          "enum": [
+            "ICD",
+            "PROTOCOL",
+            "SCENARIO",
+            "HISTORY",
+            "MODEL_CONTRACT",
+            "TRANSPORT_PROFILE",
+            "SIGNAL_MAP",
+            "CASE_SUITE",
+            "GOLDEN_VECTORS",
+            "RELEASE_BASELINE"
+          ]
+        },
+        "resource_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "size_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        }
+      }
+    },
+    "ReleaseBaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_id",
+        "approval_ref",
+        "protected_artifacts",
+        "allowed_changes",
+        "stage"
+      ],
+      "properties": {
+        "baseline_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "approval_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "protected_artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "resource_ref"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "resource_ref": {
+                "$ref": "#/$defs/ResourceRef"
+              }
+            }
+          }
+        },
+        "allowed_changes": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "enum": [
+              "SOURCE_ENDPOINT",
+              "DEVICE_ID",
+              "CREDENTIAL_REF",
+              "AUTHORIZATION_REF",
+              "DEPLOYMENT_BINDING"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "stage": {
+          "enum": [
+            "TEST_CANDIDATE",
+            "RELEASED"
+          ]
+        }
+      }
+    },
+    "PackageDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "name",
+        "canonicalization",
+        "manifest",
+        "profile",
+        "transports",
+        "mappings",
+        "histories",
+        "scenarios",
+        "replay_policies",
+        "fault_cases",
+        "assertions",
+        "cases",
+        "links",
+        "release_baseline"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "package-0.2"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "canonicalization": {
+          "const": "JCS_RFC8785"
+        },
+        "manifest": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ManifestEntry"
+          }
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "transports": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Transport"
+          }
+        },
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Mapping"
+          }
+        },
+        "histories": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/History"
+          }
+        },
+        "scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Scenario"
+          }
+        },
+        "replay_policies": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ReplayPolicy"
+          }
+        },
+        "fault_cases": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/FaultCase"
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Assertion"
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Case"
+          }
+        },
+        "links": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/Link"
+          }
+        },
+        "release_baseline": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReleaseBaseline"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "definition",
+        "qualification",
+        "approval_ref",
+        "validation_status",
+        "validation_errors"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/PackageRef"
+        },
+        "definition": {
+          "$ref": "#/$defs/PackageDefinition"
+        },
+        "qualification": {
+          "enum": [
+            "DRAFT",
+            "FROZEN"
+          ]
+        },
+        "approval_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validation_status": {
+          "enum": [
+            "PENDING",
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "validation_errors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ValidationError"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "qualification": {
+                "const": "FROZEN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "approval_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "validation_status": {
+                "const": "VALID"
+              },
+              "definition": {
+                "properties": {
+                  "profile": {
+                    "properties": {
+                      "approval": {
+                        "const": "FROZEN"
+                      }
+                    }
+                  },
+                  "release_baseline": {
+                    "$ref": "#/$defs/ReleaseBaseline"
+                  },
+                  "transports": {
+                    "items": {
+                      "properties": {
+                        "configuration": {
+                          "properties": {
+                            "status": {
+                              "const": "CONFIRMED"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "name",
+        "kind",
+        "format",
+        "size_bytes",
+        "sha256",
+        "validation_status",
+        "validation_errors",
+        "approval",
+        "approval_ref"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "PROTOCOL",
+            "SCENARIO",
+            "HISTORY",
+            "SUPPORT"
+          ]
+        },
+        "format": {
+          "enum": [
+            "DBC",
+            "ARXML",
+            "ICD_JSON",
+            "SCENARIO_JSON",
+            "SCENARIO_YAML",
+            "CAN_LOG",
+            "PCAP",
+            "PCAPNG",
+            "ENGINEERING_JSONL",
+            "JSON",
+            "CSV",
+            "BINARY"
+          ]
+        },
+        "size_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "validation_status": {
+          "enum": [
+            "PENDING",
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "validation_errors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ValidationError"
+          }
+        },
+        "approval": {
+          "enum": [
+            "DRAFT",
+            "APPROVED"
+          ]
+        },
+        "approval_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROTOCOL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "DBC",
+                  "ARXML",
+                  "ICD_JSON"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SCENARIO"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "SCENARIO_JSON",
+                  "SCENARIO_YAML"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "HISTORY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "CAN_LOG",
+                  "PCAP",
+                  "PCAPNG",
+                  "ENGINEERING_JSONL"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SUPPORT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "JSON",
+                  "CSV",
+                  "BINARY"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "approval": {
+                "const": "APPROVED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "approval_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "validation_status": {
+                "const": "VALID"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SerialInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "baud",
+        "data_bits",
+        "stop_bits",
+        "parity",
+        "flow_control",
+        "electrical_standard",
+        "encoding_resource_ref",
+        "receive_timeout_us"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "serial-interface-0.2"
+        },
+        "baud": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "data_bits": {
+          "enum": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "stop_bits": {
+          "enum": [
+            1,
+            1.5,
+            2
+          ]
+        },
+        "parity": {
+          "enum": [
+            "NONE",
+            "ODD",
+            "EVEN"
+          ]
+        },
+        "flow_control": {
+          "enum": [
+            "NONE",
+            "RTS_CTS",
+            "XON_XOFF"
+          ]
+        },
+        "electrical_standard": {
+          "enum": [
+            "RS232",
+            "RS422",
+            "RS485"
+          ]
+        },
+        "encoding_resource_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "receive_timeout_us": {
+          "$ref": "#/$defs/PositiveUInt64"
+        }
+      }
+    },
+    "IoInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "medium",
+        "channels"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "io-interface-0.2"
+        },
+        "medium": {
+          "enum": [
+            "AD",
+            "DA",
+            "IO"
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "channel_id",
+              "direction",
+              "unit",
+              "minimum",
+              "maximum",
+              "sample_or_update_rate_hz",
+              "electrical_definition_ref",
+              "calibration_resource_ref",
+              "hardware_binding_id",
+              "evidence_binding_id"
+            ],
+            "properties": {
+              "channel_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "direction": {
+                "enum": [
+                  "TO_36",
+                  "FROM_36"
+                ]
+              },
+              "unit": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "sample_or_update_rate_hz": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "electrical_definition_ref": {
+                "$ref": "#/$defs/ResourceRef"
+              },
+              "calibration_resource_ref": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ResourceRef"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "hardware_binding_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "evidence_binding_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      }
+    },
+    "VideoInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "format",
+        "width",
+        "height",
+        "frame_rate",
+        "pixel_format",
+        "trigger_modes",
+        "metadata_location",
+        "annotation_resource_ref",
+        "late_frame_action",
+        "sync_rule_id",
+        "completion_feedback_message_id"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "video-interface-0.2"
+        },
+        "format": {
+          "enum": [
+            "H264",
+            "H265",
+            "RAW"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "pixel_format": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "trigger_modes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "enum": [
+              "MANUAL",
+              "PERIODIC",
+              "SIM_EVENT"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "metadata_location": {
+          "enum": [
+            "SEI",
+            "SIDECAR"
+          ]
+        },
+        "annotation_resource_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "late_frame_action": {
+          "enum": [
+            "DROP_APPROVED",
+            "STOP"
+          ]
+        },
+        "sync_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "completion_feedback_message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "RAW"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "metadata_location": {
+                "const": "SIDECAR"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "VideoFrameMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "run_id",
+        "video_frame_id",
+        "clock_domain_id",
+        "sim_time_us",
+        "pts",
+        "pts_timebase",
+        "image_resource_ref",
+        "annotation_resource_ref"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "video-frame-0.2"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "video_frame_id": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sim_time_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "pts": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "pts_timebase": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "image_resource_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "annotation_resource_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CrcParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm_binding_id",
+        "field_id",
+        "width_bits",
+        "polynomial_hex",
+        "initial_hex",
+        "xor_out_hex",
+        "reflect_input",
+        "reflect_output",
+        "coverage"
+      ],
+      "properties": {
+        "algorithm_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "field_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "width_bits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "polynomial_hex": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{1,16}$"
+        },
+        "initial_hex": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{1,16}$"
+        },
+        "xor_out_hex": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{1,16}$"
+        },
+        "reflect_input": {
+          "type": "boolean"
+        },
+        "reflect_output": {
+          "type": "boolean"
+        },
+        "coverage": {
+          "$ref": "#/$defs/CrcCoverage"
+        }
+      }
+    },
+    "CounterParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "width_bits",
+        "initial_value",
+        "increment",
+        "rollover",
+        "max_forward_gap",
+        "repeat_action",
+        "reset"
+      ],
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "width_bits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "initial_value": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "increment": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "rollover": {
+          "enum": [
+            "MODULO",
+            "STOP"
+          ]
+        },
+        "max_forward_gap": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "repeat_action": {
+          "enum": [
+            "REJECT",
+            "IGNORE",
+            "ALLOW_APPROVED"
+          ]
+        },
+        "reset": {
+          "enum": [
+            "ON_SESSION",
+            "NEVER"
+          ]
+        }
+      }
+    },
+    "SessionParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_machine_binding_id",
+        "protocol_definition_ref",
+        "handshake_timeout_us",
+        "inactivity_timeout_us",
+        "reconnect_policy",
+        "dynamic_field_ids",
+        "feedback_message_ids"
+      ],
+      "properties": {
+        "state_machine_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "protocol_definition_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "handshake_timeout_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "inactivity_timeout_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "reconnect_policy": {
+          "enum": [
+            "DENY",
+            "REAUTHENTICATE",
+            "APPROVED_RESUME"
+          ]
+        },
+        "dynamic_field_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "feedback_message_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "AuthParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "auth_binding_id",
+        "algorithm_definition_ref",
+        "identity_field_ids",
+        "anti_replay_rule_id",
+        "credential_scope_binding_id",
+        "session_required"
+      ],
+      "properties": {
+        "auth_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "algorithm_definition_ref": {
+          "$ref": "#/$defs/ResourceRef"
+        },
+        "identity_field_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "anti_replay_rule_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "credential_scope_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "session_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "MultiFrameParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "member_message_ids",
+        "sequence_field_id",
+        "assembly_timeout_us",
+        "missing_member_action",
+        "max_inflight_groups",
+        "commit_boundary",
+        "target_step_field_id"
+      ],
+      "properties": {
+        "group_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "member_message_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "sequence_field_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "assembly_timeout_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "missing_member_action": {
+          "enum": [
+            "REJECT_GROUP",
+            "SAFE_STOP"
+          ]
+        },
+        "max_inflight_groups": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "commit_boundary": {
+          "enum": [
+            "MODEL_STEP",
+            "TARGET_STEP"
+          ]
+        },
+        "target_step_field_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "commit_boundary": {
+                "const": "TARGET_STEP"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "target_step_field_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "target_step_field_id": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DedupParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_field_ids",
+        "window_us",
+        "duplicate_action",
+        "capacity"
+      ],
+      "properties": {
+        "key_field_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "window_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "duplicate_action": {
+          "enum": [
+            "REJECT",
+            "IGNORE"
+          ]
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      }
+    },
+    "SyncParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_domain_ids",
+        "method",
+        "synchronization_binding_id",
+        "max_skew_us",
+        "on_clock_loss"
+      ],
+      "properties": {
+        "clock_domain_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "method": {
+          "enum": [
+            "SIM_CLOCK",
+            "PTP",
+            "HARDWARE_TRIGGER",
+            "APPROVED"
+          ]
+        },
+        "synchronization_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "max_skew_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "on_clock_loss": {
+          "enum": [
+            "BLOCK",
+            "SAFE_STOP"
+          ]
+        }
+      }
+    },
+    "TimeoutParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "watch_scope",
+        "watch_id",
+        "clock",
+        "timeout_us",
+        "safety_rule_id"
+      ],
+      "properties": {
+        "watch_scope": {
+          "enum": [
+            "MESSAGE",
+            "GROUP",
+            "SESSION"
+          ]
+        },
+        "watch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "clock": {
+          "enum": [
+            "SIMULATION",
+            "HOST_MONOTONIC"
+          ]
+        },
+        "timeout_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        },
+        "safety_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "SafetyParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_binding_id",
+        "stop_message_ids",
+        "clear_queue_scope",
+        "release_authorization",
+        "confirmation_assertion_ids",
+        "deadline_us"
+      ],
+      "properties": {
+        "action_binding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stop_message_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "clear_queue_scope": {
+          "enum": [
+            "CURRENT_SESSION",
+            "APPROVED_ALL"
+          ]
+        },
+        "release_authorization": {
+          "type": "boolean"
+        },
+        "confirmation_assertion_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "deadline_us": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+        }
+      }
+    },
+    "RuleDefinition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "CRC"
+            },
+            "parameters": {
+              "$ref": "#/$defs/CrcParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "COUNTER"
+            },
+            "parameters": {
+              "$ref": "#/$defs/CounterParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "SESSION"
+            },
+            "parameters": {
+              "$ref": "#/$defs/SessionParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "AUTH"
+            },
+            "parameters": {
+              "$ref": "#/$defs/AuthParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "MULTIFRAME"
+            },
+            "parameters": {
+              "$ref": "#/$defs/MultiFrameParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "DEDUP"
+            },
+            "parameters": {
+              "$ref": "#/$defs/DedupParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "SYNC"
+            },
+            "parameters": {
+              "$ref": "#/$defs/SyncParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "TIMEOUT"
+            },
+            "parameters": {
+              "$ref": "#/$defs/TimeoutParameters"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "kind",
+            "parameters"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "const": "SAFETY"
+            },
+            "parameters": {
+              "$ref": "#/$defs/SafetyParameters"
+            }
+          }
+        }
+      ]
+    },
+    "RuleResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "rules"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rule-resource-0.2"
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/RuleDefinition"
+          }
+        }
+      }
+    },
+    "DecimalInt64": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]{0,18})$",
+      "description": "Runtime enforces -9223372036854775808 through 9223372036854775807."
+    },
+    "DecimalUInt64": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "description": "Decimal uint64; runtime also checks maximum 18446744073709551615."
+    },
+    "CrcCoverage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "field_ids",
+            "include_padding",
+            "zero_crc_field"
+          ],
+          "properties": {
+            "mode": {
+              "const": "FIELD_CONCAT"
+            },
+            "field_ids": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 10000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "uniqueItems": true
+            },
+            "include_padding": {
+              "type": "boolean"
+            },
+            "zero_crc_field": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "spans",
+            "zero_crc_field"
+          ],
+          "properties": {
+            "mode": {
+              "const": "BYTE_SPANS"
+            },
+            "spans": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 10000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "start_byte",
+                  "length_bytes"
+                ],
+                "properties": {
+                  "start_byte": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "length_bytes": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            },
+            "zero_crc_field": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "definition_resource",
+            "definition_key"
+          ],
+          "properties": {
+            "mode": {
+              "const": "RESOURCE_DEFINED"
+            },
+            "definition_resource": {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            "definition_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      ]
+    }
+  }
+}

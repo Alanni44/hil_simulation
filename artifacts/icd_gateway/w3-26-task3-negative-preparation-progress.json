@@ -1,0 +1,216 @@
+{
+  "date": "2026-10-06",
+  "task": "ORIGINAL_W3_26_TASK_3_NEGATIVE_PREPARATION_PROGRESS",
+  "status": "FROZEN_NINE_MUTATION_BYTE_PREPARATION_VERIFIED_FULL_NEGATIVE_SERVICE_INCOMPLETE",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "execution_host": "Windows AMD64",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "Original live SourceSession-owned legal PreparedSourceInput and exact Event/Stimulus, explicit distinct enabled T02/T05/T06 configuration",
+    "All nine frozen mutation kinds with original packed offsets and literal JSON dict/list paths",
+    "Immutable original/mutated complete groups, event/header/payload bytes and finite stored_bytes budget",
+    "Frozen CANFD/UDP reframing and recalculated CRC except intentional CRC_XOR/TRUNCATE corruption",
+    "Forged/discarded/stale input, wrong medium, strict integer/path, no-op and capacity refusal without helper allocation/TX/renewal",
+    "Actual Receiver invalid packed payload rejection before admission on UDP/CANFD, without APPLIED",
+    "CRC decoder failure retained as local rejection, not fabricated correlated ACK or no-write proof"
+  ],
+  "applicability": {
+    "PATCH_VALUE": "Unique JSON scalar/container or representable packed scalar/indexed array leaf",
+    "DROP_FIELD": "JSON only; fixed packed layout UNSUPPORTED",
+    "ADD_UNKNOWN_FIELD": "JSON new final dictionary key only; fixed packed layout UNSUPPORTED",
+    "F64_BITS": "Packed explicit f64 leaf only, exact little-endian eight bytes; JSON UNSUPPORTED",
+    "SEQUENCE_OVERRIDE": "Every original fragment, frozen uint32 header",
+    "SESSION_OVERRIDE": "Every original fragment, frozen uint32 header",
+    "TARGET_STEP_OVERRIDE": "Every original fragment, frozen uint32 header",
+    "CRC_XOR": "First original fragment CRC byte only",
+    "TRUNCATE": "Last original frame tail only, declared size and checksum intentionally unchanged"
+  },
+  "focused_regression_tests": 165,
+  "focused_nonempty_suites": 9,
+  "verified_source_sha256": {
+    "tests/icd_gateway/test_negative.py": "1bd52440bd9f87748b8fbc4c0840fd3cabdac50d305bb09429359c6b7d40b68f",
+    "input_simulator/negative.py": "e2de85453885c84f0c8cba8bca164ac124489bf58cd60e6139210b1e370cbce4",
+    "input_simulator/session.py": "60eee03a10ebb8c0b8415cc94d641ea6742024a4fb2d21796823c5d8061e1433",
+    "input_simulator/scenario.py": "f2de72a6fef85d5726c4f0898b2fc6913d927f74834528e396a180ec95b328ab",
+    "icd_runtime/payload.py": "4dfbafaf337343c96e4ab2decc7bfe28fea41ad71508b027abcc207459309104",
+    "icd_runtime/wire.py": "c56d4a74c96c505bf2db9b4c10ecf7b5478b8c676771e2de71cb2d2124467fff"
+  },
+  "source_hashes_fixed_during_final_focused_regression": true,
+  "verification": [
+    {
+      "duration_seconds": 11.397,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_negative.py -v",
+      "exit_code": 0,
+      "tests": 19
+    },
+    {
+      "duration_seconds": 6.555,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "exit_code": 0,
+      "tests": 31
+    },
+    {
+      "duration_seconds": 5.176,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_live_tool_input.py -v",
+      "exit_code": 0,
+      "tests": 23
+    },
+    {
+      "duration_seconds": 12.22,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario.py -v",
+      "exit_code": 0,
+      "tests": 21
+    },
+    {
+      "duration_seconds": 4.952,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v",
+      "exit_code": 0,
+      "tests": 9
+    },
+    {
+      "duration_seconds": 19.756,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_protocol.py -v",
+      "exit_code": 0,
+      "tests": 17
+    },
+    {
+      "duration_seconds": 0.788,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_runtime -p test_wire.py -v",
+      "exit_code": 0,
+      "tests": 12
+    },
+    {
+      "duration_seconds": 20.447,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_runtime -p test_reassembly.py -v",
+      "exit_code": 0,
+      "tests": 21
+    },
+    {
+      "duration_seconds": 0.915,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_runtime -p test_contract_payload.py -v",
+      "exit_code": 0,
+      "tests": 12
+    }
+  ],
+  "additional_verification": {
+    "ledger_tests": 3,
+    "contract_tests": 4,
+    "embedded_sources": 14,
+    "resolved_schema_references": 663,
+    "offline_business_messages": 59,
+    "offline_business_transport_completions": 72,
+    "offline_golden_fragments": 85,
+    "offline_video_raw_fragments": 800,
+    "pip_check": true,
+    "compileall": true,
+    "full_scripts_test_icd_runtime_executed": false,
+    "legacy_selected_34_executed": false,
+    "commands": [
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+        "exit_code": 0,
+        "output": "{\r\n  \"status\": \"OFFLINE_CODEC_PASS\",\r\n  \"baseline_sha256\": \"22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27\",\r\n  \"business_messages\": 59,\r\n  \"business_transport_completions\": 72,\r\n  \"golden_fragments\": 85,\r\n  \"video_raw_fragments\": 800,\r\n  \"pending_groups\": 0,\r\n  \"reserved_payload_bytes\": 0,\r\n  \"runtime_network_model_hardware_replacement\": \"NOT_EXECUTED\"\r\n}\r\n"
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m pip check",
+        "exit_code": 0,
+        "output": "No broken requirements found.\r\n"
+      },
+      {
+        "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m compileall -q icd_runtime icd_gateway input_simulator tests/icd_gateway/test_negative.py",
+        "exit_code": 0,
+        "output": ""
+      }
+    ]
+  },
+  "review": {
+    "bounded_read_only_review": "One reviewer reported no definite important finding; no new review loop",
+    "review_test_gaps": "Packed negative zero and exact evidence-byte capacity subsequently covered on fixed final source",
+    "root_red_green": "Unhashable case-list TypeError corrected to AUTHORIZATION; unique JSON whole-container deletion/replacement correction verified RED then GREEN",
+    "discarded_original_input": "Actual SourceSession.discard_input followed by STATE refusal, preserved counters and no TX"
+  },
+  "evidence_boundaries": [
+    "UnitPeer fixtures publish test capabilities and are not actual production 3.6/model/target evidence",
+    "Receiver payload rejection is actual standard software-path evidence only, not actual model must_not_apply qualification",
+    "CRC corruption has no correlated ACK in current Receiver; missing APPLIED/ACK cannot prove no model write",
+    "Explicit enabled_cases configuration is not actual authorized test/run authority; aggregate runtime budget/preflight must precede original input allocation",
+    "Preparation helper returns no permission to send and no complete negative runtime service is installed",
+    "Packed structural/JSON raw-bit unsupported combinations do not change frozen encoding"
+  ],
+  "qualification": {
+    "execution_ready": false,
+    "authorized_to_transmit": false,
+    "must_not_apply_verified": false,
+    "evidence_complete": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED"
+  },
+  "remaining_current_owned_scope": [
+    "Actual production test/run authorization, control/configuration/model-step target approval before input allocation/TX",
+    "Actual model-root getters, all non-Status root/event assertions and E2/E3/140 association",
+    "Original CANT/CUTIL/SAVVY/Ostinato/Scapy tool negative TX and real expected rejection correlation",
+    "Actual must_not_apply getter/write-probe evidence including CRC/truncation rejection observability",
+    "Lifecycle/nine cleanup receipts, complete service evidence/Run/Report and PROTOCOL/SCENARIO end-to-end",
+    "Same-code original Linux backend/device/filesystem/model/safety/clock/RT verification"
+  ],
+  "third_path": {
+    "name": "HISTORY",
+    "owner": "Other developer designated by user",
+    "continued_development_this_turn": false,
+    "retained_code_tests_and_artifacts_sha256": {
+      "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+      "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+      "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+      "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b",
+      "artifacts/icd_gateway/w3-12-validation.json": "209fe3d7010a185897f6070083c21119a67b1560b46226780294d2b9d3665eb3",
+      "artifacts/icd_gateway/w3-6-validation.json": "ce510eefe91e82e74b2fdd5924a27368af295e6069207689878994c192d3c9d5",
+      "artifacts/icd_gateway/w3-10-validation.json": "40be110133473fa16d2b82309531ff934b8e9b9fadf1778cbc4802d7088f1ff9",
+      "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+      "artifacts/icd_gateway/w3-7-validation.json": "430b306b846f26eda94234a1434ca271ed0a4cb8a8528a3ec5b825f00a381c2d",
+      "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+      "input_simulator/history.py": "c2a5a0ce9f9e119371547a7be3be0e9e7ca994274fd3ec99bab7ddabb2414e41",
+      "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada",
+      "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+      "artifacts/icd_gateway/w3-5-validation.json": "eb96374f22436c951137c41d62c2683e605d5f7d8475067d9d42a20efc5988e0",
+      "tests/icd_gateway/test_history.py": "8fc9d09ca190de7bba5ee03a3e75c29a81a3c6698b7e8ffc83bd893df6351ceb",
+      "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+      "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-regression.log": "c58964bf629630dc55ae149364cf6333bc72508b59f260207e0d122e9a755a5f",
+      "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-progress.json": "8da0720d5156d03d14b7b288a8dcde1056f694acfa73c9e2713618b38249a66a"
+    },
+    "pins_verified": true,
+    "scenario_replay_events_and_existing_boundary_retained": true,
+    "missing_external_service": "TARGET_MISSING; no skip/native fallback"
+  },
+  "end_to_end_acceptances": {
+    "PROTOCOL": false,
+    "SCENARIO": false,
+    "HISTORY": false,
+    "current_owned_passed": 0,
+    "current_owned_total": 2,
+    "aggregate_passed": 0,
+    "aggregate_total": 3
+  },
+  "original_w3_complete": false,
+  "tasks_2_3_4_complete": false,
+  "generated_data_entry_still_deferred": true,
+  "w4_w5_still_deferred": true,
+  "linux_ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "historical_prefix_normalized_utf16_length": 89787,
+    "historical_prefix_sha256": "427efe373c6c747546f896098cb6cc9d83dd3a7d484af01a809b9bddab41ff78",
+    "historical_prefix_preserved": true,
+    "responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0
+  },
+  "regression_log": {
+    "path": "artifacts/icd_gateway/w3-26-task3-negative-preparation-regression.log",
+    "final_fixed_source_verification_starts_line": 1,
+    "line_count": 223,
+    "sha256": "dd9626e1c112e6dd121bdbe8d95ef5baaba3ae755bb79c9a7201635b946de681"
+  }
+}

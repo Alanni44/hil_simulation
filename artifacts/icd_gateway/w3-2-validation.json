@@ -1,0 +1,132 @@
+{
+  "phase": "W3.2_COMMON_STANDARD_BACKGROUND_RESOURCE_SERVICE",
+  "date": "2026-10-03",
+  "status": "W3_2_COMMON_RESOURCE_SERVICE_VERIFIED_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 280,
+      "suites": {"icd_runtime": 54, "icd_gateway_including_source": 219, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_service_tests": 48,
+      "resource_tests": {"storage": 44, "exchange": 15, "worker_and_budget": 20, "resource_udp": 9, "source_and_cli": 4},
+      "all_resource_tests": 92,
+      "udp_gateway_tests": 23,
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "scope": "COMMON_LIBRARY_REAL_TEMP_STORAGE_THREADS_SOCKETS_AND_SOURCE_CLI_NOT_MODEL_HARDWARE_OR_REALTIME"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0, "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59, "business_transport_completions": 72,
+      "golden_fragments": 85, "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0, "status": "STATIC_PASS",
+      "checks": 10446, "negative_checks": 2427,
+      "model_bindings": 97, "physical_channels": 56, "tool_branches": 6,
+      "runtime_claim": false
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SYSTEM_SUITE"
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_ARE_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "icd_gateway/resources.py": "b5fef69db9d86dcd86277e98039f3b9b6a10535dfea372c4647b1f23526cc74f",
+    "icd_gateway/resource_worker.py": "d14460e1c083c716c8e07a75024c8bb9bdae19c6d9349a5ef11466beb8363505",
+    "icd_gateway/session.py": "608d907205afe8ff307c1ca461fb6ecbf02de7fdeae1d9aac0bcd17583fa9c8d",
+    "icd_gateway/receiver.py": "3b0b24b4e467fb319f34296af6d54996cbaa181852b072fefcccf3534fafe193",
+    "icd_gateway/udp.py": "ab6c8851b36301a66b8655f9673edf11e4d16257062a1541cdb98dfb2a55bc90",
+    "icd_runtime/contract.py": "433cd35370cd3001ffccb95648b7f13dff3113413402a213ff5897384314efc4",
+    "icd_runtime/resource_budget.py": "88479dbb5aa94891f4c3f9f130effddd0827709cdde3b0e067f42a94d5e1ccca",
+    "input_simulator/udp_source.py": "c2b33a4a5181d0e6c8a5eb41666a4c77b8e404ba0b4f5a8d3ec506374ef43417",
+    "input_simulator/__main__.py": "0ddc1337c40922aa8f5a743491e3fa4d97a37e5e21ffc507534d4d307bbf6f04",
+    "tests/icd_gateway/test_resources.py": "1fbfcc378484c2642c75ccc9865fbfc84ac219dfdcaa4e72f435487c478265c2",
+    "tests/icd_gateway/test_resource_exchange.py": "c7f3d9c240cf8d00b4bf1098d9a92cc653ab7c9f77cd3f900039d4d0729dfe84",
+    "tests/icd_gateway/test_resource_worker.py": "b2c4b440ac32cfc219bc1c74e871cc708022cfa7f71c687e178ecbb1130907f7",
+    "tests/icd_gateway/test_resource_udp.py": "50cb50f599d2a9d4555875000dfa6830b4ce28235a6490cd509cfbc0cd790e97",
+    "tests/icd_gateway/test_resource_source.py": "f5d6c7d52e053c3cf7a72dd5662e55d87efd4572b79d4ee910838fd7a7f56fdf"
+  },
+  "implemented_scope": {
+    "standard_input_and_feedback": [34, 141],
+    "actual_background_thread_owns_all_store_io": true,
+    "caller_performs_authorization_admission_and_feedback": true,
+    "worker_limits": {"tasks_and_results_reserved": 64, "original_request_bytes": 4194304},
+    "receiver_limits": {"pending_feedback_pins": 64, "original_completion_records_until_drain": 64},
+    "original_duplicate_feedback": "IMMUTABLE_RECEIVED_PREFIX_THEN_EXACTLY_ONE_ACTUAL_RESOURCE_ACK_NO_SECOND_JOB_OR_WRITE",
+    "correlation": "SESSION_TRANSACTION_RESOURCE_SHA_PROGRESS_COMPLETE_NO_PRIVATE_WIRE_FIELDS",
+    "resource_write_start_ms": 1000,
+    "nonfinal_completion_ms": 1000,
+    "final_commit_ms": 10000,
+    "terminal_retention_ms": 5000,
+    "source_original_retries_max": 3,
+    "source_final_wait": "REQUEST_START_PLUS_10000MS_NO_EXTRA_RETRIES_OR_IMPLICIT_HEARTBEAT",
+    "background_ipv4_ethernet_wire_rate_max_bps": 20000000,
+    "extra_vlan_tunnel_and_physical_wire_budget": "LINUX_TARGET_QUALIFICATION_REQUIRED",
+    "udp_reassembly_ms_unchanged": 100,
+    "actual_udp_large_file": {"resource_kind": "VIDEO", "size_bytes": 76800, "stored_bytes_and_hash_verified": true, "codec_or_decode_qualified": false},
+    "model_and_terrain_standard_submission": "TARGET_MISSING_BEFORE_CLAIM_BUDGET_QUEUE_OR_IO_UNTIL_ACTUAL_STATE_CONTRACT_GATES_EXIST",
+    "standalone_store_five_kinds_mean_full_wire_readiness": false,
+    "cancellation": "ACTUAL_SID_REVOKE_RETIRE_EXPIRE_CLOSE_SUPPRESS_SUCCESS_AND_CLEAN_ONLY_OWNED_INCOMPLETE_STAGING",
+    "timeout_abort": "OWNED_SID_AND_SHA_ONLY_FOREIGN_STALE_SAME_HASH_NEVER_KILLS_OWNER_SERVICE",
+    "abort_drain_timeout": "RETRY_SAME_BOUNDED_COMMAND_PRESERVE_ORIGINALS",
+    "close": "JOIN_ACTUAL_WORKER_TIMEOUT_IS_FAILURE_AND_RETRYABLE_NO_FORCED_TERMINATION",
+    "cleanup_failure": "PRESERVE_PRIOR_ABORTS_AND_IMMUTABLE_UNFINISHED_REQUESTS_ERROR_AND_LOCK_UNKNOWN_CONTENT_REMAIN",
+    "source_cli_resource_error": "RESOURCE_ACK_NON_OK_BUSINESS_FAILED_EXIT_1",
+    "default_receiver_and_cli_implemented_message_ids": [1],
+    "explicit_actual_worker_implemented_message_ids": [1, 34],
+    "actual_model_consumer_or_activation": false,
+    "application_feedback_or_probes": false,
+    "persistent_original_wire_evidence_bundle": false,
+    "resource_management_25_commands_completed": false,
+    "protocol_scenario_history_full_pipelines_completed": false,
+    "six_original_toolchains_executed": false
+  },
+  "review": {
+    "full_read_only_storage_and_service_review": "COMPLETED_NO_UNRESOLVED_ACTIONABLE_FINDINGS_IN_LATEST_CODE",
+    "w3_1_historical_report_preserved": true,
+    "independent_final_suites": {"worker_and_budget": 20, "resource_udp": 9, "exchange": 15, "source_and_cli": 4},
+    "red_green_fixes": [
+      "FOREIGN_EXPIRED_SAME_SHA_OWNERSHIP_CASCADE",
+      "CLEANUP_FAILURE_LOSES_PRIOR_ABORT_AND_ACTIVE_ORIGINALS",
+      "TIMED_OUT_DRAIN_NOT_RECOVERABLE",
+      "NONFINAL_TIMEOUT_LEAVES_STAGING_AND_REPORTS_REMOVED_BYTES",
+      "MALFORMED_DEFERRED_FEEDBACK_PYTHON_EXCEPTION",
+      "RESOURCE_ACK_ERROR_CLI_FALSE_SUCCESS",
+      "MODEL_TERRAIN_SUBMISSION_WITHOUT_ACTUAL_STATE_GATE"
+    ],
+    "controlled_io_injection_scope": "ONLY_TIMING_AND_FILESYSTEM_FAILURE_PATHS_REAL_TEMP_FILES_THREADS_AND_SOCKETS_NO_PRODUCTION_FAKE_MODEL"
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W3.2标准后台资源服务移交",
+    "full_W2_W3_M2_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_THIS_RESOURCE_PACKAGE"
+  },
+  "not_verified": [
+    "LINUX_SAME_CODE_FILESYSTEM_NETWORK_PRIORITY_LOAD_AND_CRASH_QUALIFICATION",
+    "ACTUAL_MODEL_STOPPED_STATE_ABI_INITIALIZATION_AND_RESOURCE_ACTIVATION",
+    "FULL_STATUS_CLOCK_SYNC_E1_PERSISTENT_TX_RX_E2_E3_AND_RELEASE_GATES",
+    "PROTOCOL_SCENARIO_HISTORY_EXECUTORS_AND_SIX_ORIGINAL_TOOLS",
+    "EXISTING_25_COMMAND_API_CONSOLE_ROBOT_AND_FULL_REQUIRED_CASES",
+    "1MS_REALTIME_80MS_COMMUNICATION_PHYSICAL_IO_VIDEO_DECODE_AND_REAL_33_REPLACEMENT"
+  ]
+}

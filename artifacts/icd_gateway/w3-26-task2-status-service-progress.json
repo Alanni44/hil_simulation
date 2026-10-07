@@ -1,0 +1,271 @@
+{
+  "date": "2026-10-06",
+  "task": "ORIGINAL_W3_26_TASK_2_MODEL_BACKED_HEARTBEAT_STATUS_RESPONSE_PROGRESS",
+  "status": "COMMON_STANDARD_RESPONSE_ADAPTER_SOFTWARE_VERIFIED_ACTUAL_MODEL_BACKEND_AND_FULL_RUNTIME_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "Explicit same-contract/same-registry original ModelStatusService binding in Receiver with mandatory ModelStatusBackend and supported models",
+    "Complete immutable twelve-field standard Status snapshots, identity/payload raw bytes and sample/deadline uint64 times",
+    "Original Heartbeat 2 to Status 131 with actual snapshot step and original registry feedback sequence/SID/transaction",
+    "Only installed 2/consumer.Status capabilities, no unrelated model/channel/safety/replacement readiness",
+    "Original current admission, exact context/types, same-SID step/sample-time floors, half-open snapshot/240ms validity",
+    "Actual shared monotonic completion observed on normal and exceptional reads and carried into receiver response caching",
+    "No Status/stale ACK after grant expiry; actual returned sample retained before late rejection",
+    "Finite pre-read record/byte reservation, immutable retained request/sample/reply/failure ingress/completion provenance",
+    "Exact original receiver retry with no resampling/renewal; direct duplicates, owner replacement and reentrant destructive close refused",
+    "Actual standard UDP receiver/source/model-clock/StatusObservationReader integration with explicitly labeled model backend double"
+  ],
+  "verified_source_sha256": {
+    "input_simulator/scenario_assertions.py": "c40c7d0ae233ae85d8c1d78ad97dabd37e127f3c2f66b764ab1cfe755639bc58",
+    "tests/icd_gateway/test_status_service.py": "d418790bc8c207c01cdf86b030416bd21c600135268153b2bff7266f55f4d6cf",
+    "input_simulator/session.py": "60eee03a10ebb8c0b8415cc94d641ea6742024a4fb2d21796823c5d8061e1433",
+    "icd_gateway/status_service.py": "721b17bc53b9fea6e46189d1b96341aaa14f73c867c64631122bfac2a6c6fb65",
+    "icd_gateway/session.py": "f07a8b9982c6f429cdf3579cb5904fa8ea3ca9593f00f3f652aed2f2f7cb811a",
+    "icd_gateway/receiver.py": "51cbea9a1438f44f0c699b15413d1568593dc8f5c16d1aa9fb852d1e509645f7",
+    "input_simulator/model_clock.py": "92a05dd82fdf2b2556b89d9781cafd9ff502fde518b26d448994bdc37e3c8e79"
+  },
+  "source_hashes_fixed_during_final_regression": true,
+  "focused_gateway_tests": 271,
+  "full_protocol_runtime_tests": 67,
+  "total_related_tests": 338,
+  "nonempty_suites": 14,
+  "verification": [
+    {
+      "exit_code": 0,
+      "tests": 19,
+      "duration_seconds": 11.384,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_status_service.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 9,
+      "duration_seconds": 5.113,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 13,
+      "duration_seconds": 29.04,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_session.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 14,
+      "duration_seconds": 11.385,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 9,
+      "duration_seconds": 5.906,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_udp.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 20,
+      "duration_seconds": 13.079,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_worker.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 27,
+      "duration_seconds": 14.71,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_retirement.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 6.429,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 23,
+      "duration_seconds": 16.296,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 34.235,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_assertions.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 20.735,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 55.043,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 19,
+      "duration_seconds": 11.109,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_negative.py -v"
+    },
+    {
+      "exit_code": 0,
+      "tests": 67,
+      "duration_seconds": 27.501,
+      "command": "python -X utf8 -m unittest discover -s tests/icd_runtime -p test_*.py -v"
+    }
+  ],
+  "additional_guards": [
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "output": "test_all_41_plan_items_have_common_and_linux_ownership (test_development_backlog.BacklogTests.test_all_41_plan_items_have_common_and_linux_ownership) ... ok\r\ntest_removed_or_duplicated_plan_item_cannot_pass_coverage (test_development_backlog.BacklogTests.test_removed_or_duplicated_plan_item_cannot_pass_coverage) ... ok\r\ntest_stage_closeout_is_append_only_and_linux_completion_requires_evidence (test_development_backlog.BacklogTests.test_stage_closeout_is_append_only_and_linux_completion_requires_evidence) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 3 tests in 0.012s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+      "exit_code": 0,
+      "output": "test_all_field_rows_and_management_definitions_present (test_contract_single_file.SingleFileContractTests.test_all_field_rows_and_management_definitions_present) ... ok\r\ntest_all_original_artifacts_are_embedded_byte_exact (test_contract_single_file.SingleFileContractTests.test_all_original_artifacts_are_embedded_byte_exact) ... ok\r\ntest_all_schema_references_resolve_inside_document (test_contract_single_file.SingleFileContractTests.test_all_schema_references_resolve_inside_document) ... ok\r\ntest_missing_or_corrupt_snapshot_fails_verification (test_contract_single_file.SingleFileContractTests.test_missing_or_corrupt_snapshot_fails_verification) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 4 tests in 0.158s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"SINGLE_FILE_CONTENT_VERIFIED\",\r\n  \"embedded_sources\": 14,\r\n  \"resolved_schema_references\": 663,\r\n  \"business_messages\": 59,\r\n  \"management_commands\": 25,\r\n  \"golden_vectors\": 85,\r\n  \"physical_channels\": 56,\r\n  \"model_bindings\": 97,\r\n  \"runtime_hardware_replacement\": \"NOT_VERIFIED_BY_THIS_CONSOLIDATION\"\r\n}\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"OFFLINE_CODEC_PASS\",\r\n  \"baseline_sha256\": \"22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27\",\r\n  \"business_messages\": 59,\r\n  \"business_transport_completions\": 72,\r\n  \"golden_fragments\": 85,\r\n  \"video_raw_fragments\": 800,\r\n  \"pending_groups\": 0,\r\n  \"reserved_payload_bytes\": 0,\r\n  \"runtime_network_model_hardware_replacement\": \"NOT_EXECUTED\"\r\n}\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m pip check",
+      "exit_code": 0,
+      "output": "No broken requirements found.\r\n"
+    },
+    {
+      "command": "& './runtime/icd-venv/Scripts/python.exe' -X utf8 -m compileall -q icd_runtime icd_gateway input_simulator tests/icd_gateway/test_status_service.py",
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "contract_verification": {
+    "embedded_sources": 14,
+    "resolved_schema_references": 663,
+    "business_messages": 59,
+    "business_transport_completions": 72,
+    "golden_fragments": 85,
+    "video_raw_fragments": 800,
+    "management_commands": 25,
+    "model_bindings": 97,
+    "physical_channels": 56
+  },
+  "review": {
+    "bounded_read_only_reviews": 1,
+    "findings": [
+      {
+        "severity": "P2",
+        "issue": "Throwing backend skipped actual completion observation and could acquire failure feedback after actual lease expiry",
+        "reproduction": "Controlled clock 0 -> 1_000_000_000 during OSError",
+        "status": "ROOT_REPRODUCED_RED_CORRECTED_GREEN_FINAL_FIXED_SOURCE_REGRESSION_PASS"
+      },
+      {
+        "severity": "P2",
+        "issue": "Returned sample lost before post-read admission rejection at lease boundary",
+        "reproduction": "Return original typed sample at 1_000_000_000 then STALE_SESSION; record.sample was None",
+        "status": "ROOT_REPRODUCED_RED_CORRECTED_GREEN_FINAL_FIXED_SOURCE_REGRESSION_PASS"
+      }
+    ],
+    "other_definite_important_findings_reported": false,
+    "independent_post_fix_re_review": false,
+    "root_other_red_green": "Direct duplicate resampling, backend replacement admission, reentrant service close and receiver close deleting registry before read-owner check corrected",
+    "no_repeated_review_loop": true
+  },
+  "evidence_boundaries": [
+    "ModelStatusBackend implementations in tests are labeled doubles, not actual Linux C/Simulink model evidence",
+    "Actual standard network/source-reader path proves response adapter integration only; no production C adapter is installed",
+    "Default CLI and no-service Receiver retain original missing Status behavior and [1] capabilities",
+    "SessionOpened retains original interface-origin receiver_step; actual opening-step/epoch remains integration work",
+    "Synchronous response adapter is not the completed 80ms system publication scheduler or target RT qualification",
+    "Local close retains service history, does not stop external backend or prove any remote safety cleanup",
+    "Finite service history is not yet integrated into complete Run/Report persistence"
+  ],
+  "qualification": {
+    "execution_ready": false,
+    "evidence_complete": false,
+    "actual_model_backend_verified": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED"
+  },
+  "remaining_current_owned_scope": [
+    "Actual Linux C model-backed coherent Status fields and actual opening-step/epoch",
+    "Actual applied configuration/control producer/getters/model-target approval and lifecycle/nine cleanup",
+    "80ms system publication scheduling, actual clock synchronization, original backend and target load/timing verification",
+    "All non-Status root/event assertion readers, model getters and E2/E3/140 association",
+    "Negative actual run authority/original-tool TX/standard expected rejection and must_not_apply",
+    "Required original CUTIL/SAVVY/Ostinato service integration",
+    "Service-history observations/full Run/Report and both owned unchanged-plan end-to-end acceptances"
+  ],
+  "third_path": {
+    "name": "HISTORY",
+    "owner": "Other developer designated by user",
+    "implementation_or_test_or_historical_artifact_changes": false,
+    "retained_sha256": {
+      "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+      "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+      "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+      "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b",
+      "artifacts/icd_gateway/w3-12-validation.json": "209fe3d7010a185897f6070083c21119a67b1560b46226780294d2b9d3665eb3",
+      "artifacts/icd_gateway/w3-6-validation.json": "ce510eefe91e82e74b2fdd5924a27368af295e6069207689878994c192d3c9d5",
+      "artifacts/icd_gateway/w3-10-validation.json": "40be110133473fa16d2b82309531ff934b8e9b9fadf1778cbc4802d7088f1ff9",
+      "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+      "artifacts/icd_gateway/w3-7-validation.json": "430b306b846f26eda94234a1434ca271ed0a4cb8a8528a3ec5b825f00a381c2d",
+      "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+      "input_simulator/history.py": "c2a5a0ce9f9e119371547a7be3be0e9e7ca994274fd3ec99bab7ddabb2414e41",
+      "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada",
+      "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+      "artifacts/icd_gateway/w3-5-validation.json": "eb96374f22436c951137c41d62c2683e605d5f7d8475067d9d42a20efc5988e0",
+      "tests/icd_gateway/test_history.py": "8fc9d09ca190de7bba5ee03a3e75c29a81a3c6698b7e8ffc83bd893df6351ceb",
+      "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+      "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-regression.log": "c58964bf629630dc55ae149364cf6333bc72508b59f260207e0d122e9a755a5f",
+      "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+      "artifacts/icd_gateway/w3-26-task3-replay-process-progress.json": "8da0720d5156d03d14b7b288a8dcde1056f694acfa73c9e2713618b38249a66a"
+    },
+    "pins_verified": true,
+    "scenario_replay_boundary_retained": true,
+    "missing_external_service": "TARGET_MISSING; no skip/native fallback"
+  },
+  "end_to_end_acceptances": {
+    "PROTOCOL": false,
+    "SCENARIO": false,
+    "HISTORY": false,
+    "current_owned_passed": 0,
+    "current_owned_total": 2,
+    "aggregate_passed": 0,
+    "aggregate_total": 3
+  },
+  "original_w3_complete": false,
+  "tasks_2_3_4_complete": false,
+  "generated_data_entry_still_deferred": true,
+  "w4_w5_still_deferred": true,
+  "full_scripts_test_icd_runtime_executed": false,
+  "legacy_selected_34_executed": false,
+  "linux_ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "historical_prefix_normalized_utf16_length": 92087,
+    "historical_prefix_sha256": "837602be54af41074a5d0f4d387ac824d2adb2e4b63f5802513cd228f611bb91",
+    "historical_prefix_preserved": true,
+    "responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0
+  },
+  "regression_log": {
+    "path": "artifacts/icd_gateway/w3-26-task2-status-service-regression.log",
+    "final_fixed_source_verification_starts_line": 1,
+    "line_count": 428,
+    "sha256": "688e59e62ecc2186d9c3af210e02d77b3e5a0eb95b4a3ca7bba5d4d4ef820058"
+  }
+}

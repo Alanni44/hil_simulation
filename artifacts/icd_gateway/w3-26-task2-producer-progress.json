@@ -1,0 +1,100 @@
+{
+  "phase": "W3.26_TASK_2_REGISTERED_CONTROLLER_PROGRESS",
+  "date": "2026-10-06",
+  "status": "RECEIVER_PRODUCER_RESOLUTION_SOFTWARE_VERIFIED_TASK_2_AND_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "SessionRegistry.registered_controller resolves unique current actual CONTROLLER registration by complete trusted identity",
+    "Immutable RegisteredController retains actual SID, granted roles, detached identity/bindings, nonce, session deadline and RX sequence",
+    "SessionRegistry.observe_admitted verifies original request, selector lease, digest, queued/terminal and cache deadline without maintenance",
+    "SemanticGuards.external_control_owner checks actual STIMULUS selector and producer run/vehicle/scenario/model/version context",
+    "Original source/lane/paused/target/100ms rules, NONE revocation and internal-reader rejection remain unchanged"
+  ],
+  "focused_regression_tests": 184,
+  "full_runtime_regression_rerun": false,
+  "verification": [
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_registered_controller.py -v", "exit_code": 0, "tests": 29, "duration_seconds": 15.085},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_session.py -v", "exit_code": 0, "tests": 13, "duration_seconds": 17.928},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_semantic_guards.py -v", "exit_code": 0, "tests": 23, "duration_seconds": 11.815},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_queue.py -v", "exit_code": 0, "tests": 25, "duration_seconds": 33.492},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v", "exit_code": 0, "tests": 9, "duration_seconds": 4.859},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_worker.py -v", "exit_code": 0, "tests": 20, "duration_seconds": 12.904},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v", "exit_code": 0, "tests": 14, "duration_seconds": 11.241},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_retirement.py -v", "exit_code": 0, "tests": 27, "duration_seconds": 14.626},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_exchange.py -v", "exit_code": 0, "tests": 15, "duration_seconds": 7.993},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_udp.py -v", "exit_code": 0, "tests": 9, "duration_seconds": 5.939},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources": 14, "resolved_schema_references": 663},
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0},
+    {"command": "python -X utf8 -m compileall -q icd_gateway input_simulator icd_runtime tests/icd_gateway", "exit_code": 0},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v", "exit_code": 0, "tests": 3, "duration_seconds": 0.016},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v", "exit_code": 0, "tests": 4, "duration_seconds": 0.156}
+  ],
+  "excluded_discovery_attempt": {
+    "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_config.py -v",
+    "tests": 0,
+    "status": "NO_TESTS_RAN_NOT_VERIFIED",
+    "batch_exit_code": 1,
+    "reason": "Pattern matched no file; initial sequential batch stopped after six real successful suites",
+    "recovery": "Confirmed terminal batch, then ran actual test_udp.py and the three remaining relevant suites sequentially on unchanged source",
+    "original_output_retained": true
+  },
+  "red_green_evidence": [
+    {"selection": "required_registry", "before_tests": 1, "before_exit_code": 1, "reason": "Actual controller resolution API missing", "after_verified_in_final_suite": true},
+    {"selection": "unrelated_receiver", "before_tests": 1, "before_exit_code": 1, "reason": "Authorization observation deleted an unrelated expired SID", "after_tests": 1, "after_exit_code": 0, "after_duration_seconds": 0.582},
+    {"selection": "list_valued", "before_tests": 1, "before_exit_code": 1, "reason": "Snapshot exposed mutable grant binding list", "after_tests": 1, "after_exit_code": 0, "after_duration_seconds": 0.580}
+  ],
+  "log": "artifacts/icd_gateway/w3-26-task2-producer-regression.log",
+  "verified_source_sha256": {
+    "icd_gateway/session.py": "f07a8b9982c6f429cdf3579cb5904fa8ea3ca9593f00f3f652aed2f2f7cb811a",
+    "icd_gateway/semantic_guards.py": "8705d644adb8188c5d29beb655d1c5840cf615c03a183fe2f01aa746d568705f",
+    "tests/icd_gateway/test_registered_controller.py": "7006732a45dd070058ac846738f3622fa5bdf9b717653155e8cf2e5b111b0f3d"
+  },
+  "source_hashes_fixed_during_focused_regression": true,
+  "review": {
+    "scope": "Registered controller and external semantic gate only",
+    "method": "Bounded read-only static review and follow-up; reviewer did not run tests",
+    "important_findings": 2,
+    "original_P2_maintenance": "CLOSED",
+    "original_P2_mutable_bindings": "CLOSED",
+    "remaining_confirmed_important_findings": 0
+  },
+  "ledger_prior_prefix": {
+    "normalized_utf16_length": 78259,
+    "normalized_utf8_sha256": "16d253d6c41d7e5ae13502264381778a8a822fbf3ff008f85e0877d6d00fbc84"
+  },
+  "post_save_verification": {
+    "ledger_historical_prefix_match": true,
+    "source_hashes_match": true,
+    "responsibilities": 41,
+    "unchecked_linux": 17,
+    "checked_linux": 0
+  },
+  "qualification_status": "NOT_EVALUATED",
+  "execution_ready": false,
+  "safety_verified": false,
+  "actual_control_owner_effects_implemented": false,
+  "complete_runtime_services_installed": false,
+  "three_source_end_to_end_acceptances_completed": 0,
+  "remaining_original_scope": [
+    "Actual applied RunConfigure declaration/current ModelView readers and actual control-state application/lease expiry/safe outputs/queue effects",
+    "ScenarioRuntimeServices per-target approval and all actual model getters/root/event assertions/E2/E3 association",
+    "Lifecycle/RESET/initial_inputs and all nine actual cleanup receipts",
+    "All three complete replay modes/repeats, negative must_not_apply and six original tool lifecycle services",
+    "Continuous native Run/Report, three-source software acceptance, actual Linux/target qualification"
+  ],
+  "limitations": [
+    "Registration and semantic decisions are necessary receiver authorization provenance, not applied control ownership, backend readiness or safety.",
+    "Caller must use the actual receiver serial owner and supply fresh applied configuration/model data; these APIs do not create a remote RPC or concurrent reader.",
+    "Session heartbeat renewal is not 100ms control renewal; registered snapshots expose only actual 1000ms session leases.",
+    "Actual registry admissions and UDP software tests do not qualify C model effects, physical hardware, safety or RT.",
+    "No production consumer/capability was enabled and no Windows backend, SDK, branch or new ICD field was created.",
+    "Historical 921/189/862 results are not current full-regression evidence.",
+    "New self-generated data configuration and W4/W5 remain deferred, not deleted."
+  ]
+}

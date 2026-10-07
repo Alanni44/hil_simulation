@@ -1,0 +1,161 @@
+{
+  "profile": "RECEPTION_ONLY",
+  "source_kind": "SCENARIO",
+  "model_id": "quadrotor_hil",
+  "source_inputs": {
+    "baseline_version": "HIL-ICD-1.0",
+    "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+    "protocol": {
+      "source_type": "PROTOCOL",
+      "baseline_version": "HIL-ICD-1.0",
+      "business_schema_sha256": "b1535a0793dfd6e04fb02e8ba13b51b88fcb1e5710da423dece66c3e92bffdd8",
+      "wire_catalog_sha256": "8ddeeac31fad309043ed8d60f8f1aa585c749f65f34a1bc972a05b3f16bf38b2",
+      "resources": [
+        {
+          "resource_id": "input-simulator-icd-v0.3.json",
+          "sha256": "8ddeeac31fad309043ed8d60f8f1aa585c749f65f34a1bc972a05b3f16bf38b2",
+          "size_bytes": 161852,
+          "format": "ICD_JSON",
+          "encoding": "UTF8",
+          "media_type": "application/json",
+          "file_name": "input-simulator-icd-v0.3.json"
+        },
+        {
+          "resource_id": "input-simulator-canfd-v0.3.dbc",
+          "sha256": "652fc170b6e45576561e61a83958c5fcc11aed6698d5286ff950f460e96a5c97",
+          "size_bytes": 36901,
+          "format": "DBC",
+          "encoding": "UTF8",
+          "media_type": "text/plain",
+          "file_name": "input-simulator-canfd-v0.3.dbc"
+        }
+      ],
+      "message_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142
+      ]
+    },
+    "scenario": {
+      "source_type": "SCENARIO",
+      "scenario_id": "environment-step-01",
+      "version": 1,
+      "clock": "MODEL_STEP",
+      "seed": 1,
+      "events": [
+        {
+          "event_id": "wave-01",
+          "at_step": 0,
+          "priority": 100,
+          "link_id": "ETHGEN",
+          "type": "WAVEFORM",
+          "stimulus": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "field_path": "wind_n_mps",
+          "duration_steps": 160,
+          "sample_period_steps": 80,
+          "waveform": {
+            "kind": "RAMP",
+            "start_value": 0,
+            "end_value": 16,
+            "duration_steps": 160
+          }
+        }
+      ],
+      "collision_policy": "REJECT_SAME_WRITABLE_TARGET_STEP",
+      "sort_order": "STEP_PRIORITY_EVENT_ID_ASC",
+      "cleanup": {
+        "clear_model_faults": true,
+        "clear_bus_faults": true,
+        "safe_actuators": true,
+        "stop_video": true,
+        "stop_periodic_senders": true,
+        "stop_replay": true,
+        "release_control": true,
+        "flush_receive_queues": true,
+        "close_session": true
+      },
+      "assertions": [
+        {
+          "assertion_id": "wind-model-write-01",
+          "stage": "E2",
+          "message_id": 10,
+          "probe_id": "quadrotor_hil.input.environment.wind_n_mps",
+          "field_path": "environment.wind_n_mps",
+          "operator": "WITHIN",
+          "expected": 16,
+          "tolerance": 1e-9,
+          "timeout_steps": 200,
+          "sample_count": 1
+        }
+      ]
+    },
+    "history": null
+  },
+  "generation": null
+}

@@ -1,0 +1,110 @@
+{
+  "phase": "W3.10_COMMON_ORIGINAL_TOOL_REPLAY_RESOURCE_EXPORT",
+  "date": "2026-10-04",
+  "status": "COMMON_EXPORT_VERIFIED_NOT_FULL_EXECUTOR_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 493,
+      "suites": {"icd_runtime": 67, "icd_gateway": 419, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "gateway_suite_duration_seconds": 262.646,
+      "new_phase_tests": 19,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_EXECUTORS_OR_LINUX_RT_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay_export.py -v", "exit_code": 0, "tests": 19, "duration_seconds": 9.580},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay.py -v", "exit_code": 0, "tests": 26, "duration_seconds": 9.895},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_history.py -v", "exit_code": 0, "tests": 23, "duration_seconds": 3.396},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v", "exit_code": 0, "tests": 3, "responsibility_rows": 41, "linux_unchecked": 17, "linux_checked": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+    "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+    "tests/icd_gateway/test_replay_export.py": "fda1c0757b85f1c3bff3fb619cf1a9bfef63fdaa5fa88745152f3267307a2ada"
+  },
+  "implemented_scope": {
+    "formats": ["PER_CHANNEL_CAN_LOG", "PER_CHANNEL_NANOSECOND_PCAP"],
+    "modes": ["RAW_VALIDATED", "REENCODE", "SESSION_REBUILD"],
+    "udp_replay_input_messages_excluding_session_open": 44,
+    "canfd_catalogue_messages": 13,
+    "canfd_input_messages": 11,
+    "canfd_feedback_messages_excluded_from_transmit": [130, 131],
+    "metadata": "IMMUTABLE_COMPLETE_POLICY_HASH_ORIGINAL_AND_REBUILT_PACKET_PROOFS_EXACT_INTEGER_NS",
+    "validation": "FULL_SELECTED_RECORD_COVERAGE_GROUP_HEADERS_SOURCE_ORDER_DUPLICATES_ORIGINAL_BYTES_ENDPOINTS_CRC_CHANGED_FIELDS_FRESH_REBUILT_SID",
+    "ethernet": "PRESERVE_ORIGINAL_L2_AND_TTL_AUXILIARY_CONVERSION_REQUIRES_EXPLICIT_UNICAST_MACS",
+    "canfd": "PRESERVE_STANDARD_ID_DATA_FD_BRS_ESI_AND_SOURCE_ORDER",
+    "maximum_packets": 100000,
+    "maximum_file_and_manifest_bytes": 67108864,
+    "maximum_bindings": 56,
+    "actual_eligible_formal_output_channels": 8,
+    "persistence": "EXCLUSIVE_NEW_DIRECTORY_XB_FSYNC_READBACK_HASH_PUBLISH_MANIFEST_LAST_BY_NONOVERWRITING_HARDLINK",
+    "manifest_pending_link_retained": true,
+    "unsupported_hardlink_filesystem": "EXPLICIT_FAILURE_NO_FALLBACK",
+    "prepublication_io_failure": "RETAIN_OWNED_INCOMPLETE_FILES_NO_COMPLETE_MANIFEST_NO_USER_FILE_DELETION",
+    "directory_power_loss_durability_qualified": false,
+    "canplayer_timing_compatibility": "ONLY_EXACT_RELATIVE_MICROSECONDS_AND_NONDECREASING_FILE_TIMESTAMPS_NOT_RT_QUALIFICATION",
+    "tcpreplay_timing_compatibility": "UNKNOWN_UNTIL_ACTUAL_BUILD_AND_LIBPCAP_QUALIFICATION",
+    "execution_ready": false,
+    "actual_tool_transmission_in_this_phase": false,
+    "produces_e1_e2_e3": false,
+    "frozen_sources_wire_format_original_c_or_six_tool_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_export_tests": 19,
+    "independent_duration_seconds": 9.564,
+    "independent_canfd_exports": 33,
+    "independent_canfd_matrix": "11_TO_36_INPUT_MESSAGES_X_THREE_MODES_WITH_ESI",
+    "red_green_fixed": [
+      "INTEGER_TIMING_OFFSET_POLICY_MISMATCH",
+      "OMITTED_COMPLETE_SELECTED_RECORD",
+      "RAW_L2_TTL_OR_CHANNEL_MUTATION_WITH_REHASH",
+      "SESSION_CAPTURED_SID_REUSE_OR_FALSE_CHANGED_FIELDS",
+      "INVALID_UDP_ENDPOINTS",
+      "MISSING_FULL_POLICY_PROOF_IN_MANIFEST",
+      "BACKWARD_CAN_TIMELINE_FALSE_TOOL_COMPATIBILITY",
+      "MIXED_HEADERS_WITHIN_ONE_LOGICAL_GROUP"
+    ]
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-04 W3.10",
+    "associated_linux_items": ["L-001", "L-002", "L-003", "L-005", "L-007", "L-008", "L-009", "L-010", "L-011", "L-013", "L-014", "L-015", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_REPLAY_EXPORT"
+  },
+  "not_verified_or_implemented": [
+    "FULL_THREE_MODE_REPLAY_EXECUTOR_ACTUAL_AUTHORIZATION_MODEL_STEPS_RESET_INITIAL_INPUTS_QUEUES_AND_ROUND_CLEANUP",
+    "BOUNDED_ACTUAL_FEEDBACK_SID_RETIREMENT_BEYOND_64_SIDS_FOR_10000_REPEAT",
+    "ENGINEERING_JSONL_TCP_COMPLETE_VIDEO_HISTORY_EXTRACTION_AND_EXECUTION",
+    "ALL_SIX_ORIGINAL_TOOL_CAPABILITY_PROCESS_MUTUAL_EXCLUSION_STOP_AND_FEEDBACK_LIFECYCLES",
+    "FULL_SCENARIO_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_NEGATIVES_AND_25API_CONSOLE_ROBOT",
+    "ACTUAL_CONSUMERS_CLOCK_RESOURCE_ACTIVATION_PERSISTENT_ORIGINAL_TX_RX_FORMAL_RELEASE",
+    "LINUX_C_RT_DRIVER_PHYSICAL_FILESYSTEM_TOOL_PRECISION_AND_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

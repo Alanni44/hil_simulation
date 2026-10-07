@@ -1,0 +1,204 @@
+{
+  "phase": "W3.26_TASK_3_ORIGINAL_REPLAY_PROCESS_WIRING_PROGRESS",
+  "date": "2026-10-06",
+  "status": "ORIGINAL_REPLAY_DIRECT_CHILD_WIRING_SOFTWARE_VERIFIED_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "Original prepared replay/export/commands/reservation joined to existing ProcessSupervisor; no alternate sender",
+    "Mandatory explicit actual same-source runtime authority; no default successful authority installed",
+    "Exact original files/manifests/argv/channel offsets and same SID/model/grant/role/implemented-message checks",
+    "Original monotonic epoch and finite channel start windows; no model-step inference or catch-up",
+    "Start once; retain all original child handles and bounded output; stop all owned children without releasing reservation",
+    "Stop-returned actual TIMEOUT retained as FAILED; failed Popen without PID/readers does not block local close",
+    "All original three replay modes and canplayer/tcpreplay flags retained; no local repeats"
+  ],
+  "focused_regression_tests": 210,
+  "focused_nonempty_suites": 10,
+  "full_runtime_regression_rerun": false,
+  "selected_legacy_static_regression_rerun": false,
+  "verified_source_sha256": {
+    "input_simulator/replay_process.py": "a00ab81c56c86517d7a339f554fc990cc6b1ab8fa8589b35b95176e13f11c019",
+    "tests/icd_gateway/test_replay_process.py": "4b573c2fd79a0e357129683511af312f39e449abe6092e0c84dd40de5c78427e",
+    "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+    "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+    "input_simulator/replay_export.py": "f54acb1429a3e747dabc1b715cda5e925fa84ac0c3d85dff7922816033f9903b",
+    "input_simulator/replay.py": "c8511526cfe784423da4d6d9f995f501eadbcfa148de8fdf6221b49a58b50277",
+    "input_simulator/session.py": "60eee03a10ebb8c0b8415cc94d641ea6742024a4fb2d21796823c5d8061e1433"
+  },
+  "source_hashes_fixed_during_final_focused_regression": true,
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay_process.py -v",
+      "tests": 18,
+      "duration_seconds": 15.314,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_process.py -v",
+      "tests": 19,
+      "duration_seconds": 2.823,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_commands.py -v",
+      "tests": 17,
+      "duration_seconds": 1.686,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay.py -v",
+      "tests": 26,
+      "duration_seconds": 9.707,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay_export.py -v",
+      "tests": 19,
+      "duration_seconds": 9.464,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_capture.py -v",
+      "tests": 24,
+      "duration_seconds": 0.107,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_history.py -v",
+      "tests": 23,
+      "duration_seconds": 3.328,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tools.py -v",
+      "tests": 10,
+      "duration_seconds": 5.879,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "tests": 31,
+      "duration_seconds": 6.436,
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v",
+      "tests": 23,
+      "duration_seconds": 16.394,
+      "exit_code": 0
+    }
+  ],
+  "additional_verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "tests": 3
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+      "exit_code": 0,
+      "tests": 4
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -m pip check",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m compileall -q icd_runtime icd_gateway input_simulator",
+      "exit_code": 0
+    }
+  ],
+  "bounded_review": {
+    "read_only_reviews": 1,
+    "remaining_definite_findings_reported": 2,
+    "findings_reproduced_red_then_green": [
+      "Actual supervisor stop returns TIMEOUT but run reported LOCAL_STOPPED/error=None",
+      "Failed Popen creates no child but run close incorrectly waits forever"
+    ],
+    "closure_basis": "Root regression tests and current production source, not an additional reviewer claim",
+    "further_review_cycle": false
+  },
+  "evidence_boundaries": {
+    "coordination_success_uses_explicit_process_doubles": true,
+    "actual_supervisor_failure_timeout_tested": true,
+    "python_test_executable_is_qualified_original_tool": false,
+    "popen_permission_failure_is_injected": true,
+    "actual_canplayer_tcpreplay_executed": false,
+    "actual_wire_tx_proved": false,
+    "actual_model_application_proved": false,
+    "process_tree_cleanup_verified": false,
+    "execution_ready": false,
+    "evidence_complete": false,
+    "safety_verified": false
+  },
+  "remaining_original_scope": [
+    "Actual production ScenarioRuntimeServices and ReplayProcessAuthority with configured model/control/target readers",
+    "Per-packet standard allocations/global sequence/order, observed TX and correlated original feedback",
+    "Repeat RESET/new SID/initial_inputs and inter-round queue cleanup",
+    "All original negative mutation/must_not_apply and six-tool services",
+    "Actual model root/E2/E3 getters, lifecycle and nine cleanup receipts",
+    "Service/assertion streams, full Run/Report and unchanged-plan three-source software acceptance",
+    "Linux original binaries/devices/permissions/filesystem/process-tree/clock/RT/physical qualification"
+  ],
+  "end_to_end_acceptances": {
+    "PROTOCOL": false,
+    "SCENARIO": false,
+    "HISTORY": false,
+    "passed": 0,
+    "total": 3
+  },
+  "original_w3_complete": false,
+  "tasks_2_3_4_complete": false,
+  "generated_data_entry_still_deferred": true,
+  "w4_w5_still_deferred": true,
+  "linux_ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "historical_prefix_normalized_utf16_length": 84771,
+    "historical_prefix_sha256": "3e234e205045c7a3d9f3a474a544b3f7519b7669ac56ce2daf2840c4ded13d67",
+    "historical_prefix_preserved": true,
+    "responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0
+  },
+  "planning_estimate": {
+    "path": "docs/superpowers/plans/2026-10-02-input-simulator-overall.md",
+    "section": "2026-10-06剩余工期估算",
+    "full_time_developers": 1,
+    "effective_days_per_week": 5,
+    "linux_person_days": [
+      30,
+      55
+    ],
+    "remaining_all_person_days": [
+      59,
+      105
+    ],
+    "external_wait_excluded": true,
+    "fixed_delivery_promise": false,
+    "scope_or_sequence_changed": false
+  },
+  "regression_log": {
+    "path": "artifacts/icd_gateway/w3-26-task3-replay-process-regression.log",
+    "final_verification_starts_line": 1,
+    "line_count": 278,
+    "sha256": "c58964bf629630dc55ae149364cf6333bc72508b59f260207e0d122e9a755a5f"
+  }
+}

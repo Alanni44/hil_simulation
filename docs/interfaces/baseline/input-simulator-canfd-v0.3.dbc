@@ -1,0 +1,734 @@
+VERSION "HIL-ICD-1.0"
+
+NS_ :
+    CM_
+    BA_DEF_
+    BA_
+    BA_DEF_DEF_
+
+BS_:
+
+BU_: SOURCE RECEIVER
+
+BO_ 770 Heartbeat: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 775 FlightQuad: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 776 FlightHex: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 777 FlightFixed: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 778 Environment: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 779 FaultQuad: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 780 FaultHex: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 781 FaultFixed: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 782 ActuatorQuad: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 783 ActuatorHex: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 784 ActuatorFixed: 64 SOURCE
+ SG_ major : 0|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" RECEIVER
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" RECEIVER
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" RECEIVER
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" RECEIVER
+
+BO_ 1153 Ack: 64 RECEIVER
+ SG_ major : 0|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" SOURCE
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" SOURCE
+
+BO_ 1154 Status: 64 RECEIVER
+ SG_ major : 0|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ minor : 8|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ flags : 16|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_length : 24|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ session : 32|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ sequence : 64|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ target_step : 96|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ transaction : 128|32@1+ (1,0) [0|4294967295] "" SOURCE
+ SG_ fragment_index : 160|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ fragment_count : 168|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ valid_for_ms : 176|16@1+ (1,0) [0|65535] "" SOURCE
+ SG_ chunk_00 : 192|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_01 : 200|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_02 : 208|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_03 : 216|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_04 : 224|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_05 : 232|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_06 : 240|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_07 : 248|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_08 : 256|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_09 : 264|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_10 : 272|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_11 : 280|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_12 : 288|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_13 : 296|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_14 : 304|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_15 : 312|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_16 : 320|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_17 : 328|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_18 : 336|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_19 : 344|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_20 : 352|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_21 : 360|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_22 : 368|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_23 : 376|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_24 : 384|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_25 : 392|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_26 : 400|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_27 : 408|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_28 : 416|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_29 : 424|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_30 : 432|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_31 : 440|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_32 : 448|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_33 : 456|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_34 : 464|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_35 : 472|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_36 : 480|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ chunk_37 : 488|8@1+ (1,0) [0|255] "" SOURCE
+ SG_ crc16 : 496|16@1+ (1,0) [0|65535] "" SOURCE
+
+BA_DEF_ "BusType" STRING;
+BA_DEF_ BO_ "VFrameFormat" ENUM "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 10000;
+BA_DEF_DEF_ "VFrameFormat" "StandardCAN_FD";
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+BA_ "BusType" "CAN FD";
+BA_ "VFrameFormat" BO_ 770 14;
+BA_ "GenMsgCycleTime" BO_ 770 20;
+CM_ BO_ 770 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding Heartbeat payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 775 14;
+BA_ "GenMsgCycleTime" BO_ 775 20;
+CM_ BO_ 775 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FlightQuad payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 776 14;
+BA_ "GenMsgCycleTime" BO_ 776 20;
+CM_ BO_ 776 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FlightHex payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 777 14;
+BA_ "GenMsgCycleTime" BO_ 777 20;
+CM_ BO_ 777 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FlightFixed payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 778 14;
+BA_ "GenMsgCycleTime" BO_ 778 80;
+CM_ BO_ 778 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding Environment payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 779 14;
+BA_ "GenMsgCycleTime" BO_ 779 0;
+CM_ BO_ 779 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FaultQuad payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 780 14;
+BA_ "GenMsgCycleTime" BO_ 780 0;
+CM_ BO_ 780 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FaultHex payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 781 14;
+BA_ "GenMsgCycleTime" BO_ 781 0;
+CM_ BO_ 781 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding FaultFixed payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 782 14;
+BA_ "GenMsgCycleTime" BO_ 782 20;
+CM_ BO_ 782 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding ActuatorQuad payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 783 14;
+BA_ "GenMsgCycleTime" BO_ 783 20;
+CM_ BO_ 783 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding ActuatorHex payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 784 14;
+BA_ "GenMsgCycleTime" BO_ 784 20;
+CM_ BO_ 784 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding ActuatorFixed payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 1153 14;
+BA_ "GenMsgCycleTime" BO_ 1153 0;
+CM_ BO_ 1153 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding Ack payload; CRC includes CAN ID";
+BA_ "VFrameFormat" BO_ 1154 14;
+BA_ "GenMsgCycleTime" BO_ 1154 80;
+CM_ BO_ 1154 "HIL-ICD-1.0 transport fragments; reassemble and validate before decoding Status payload; CRC includes CAN ID";
+

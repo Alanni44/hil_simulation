@@ -1,0 +1,141 @@
+{
+  "phase": "W3.1_COMMON_RESOURCE_STORAGE_FOUNDATION",
+  "date": "2026-10-03",
+  "status": "W3_1_SOFTWARE_VERIFIED_REVIEW_PENDING_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 232,
+      "suites": {"icd_runtime": 54, "icd_gateway_including_source": 171, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_tests": 45,
+      "resource_storage_tests": 44,
+      "all_udp_tests": 14,
+      "new_udp_negative_test": "test_storage_library_does_not_enable_wire_resource_consumer",
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "scope": "COMMON_LIBRARY_AND_EXISTING_REAL_UDP_REGRESSION_NOT_RESOURCE_UDP_INTEGRATION_OR_MODEL_APPLICATION"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427,
+      "model_bindings": 97,
+      "physical_channels": 56,
+      "tool_branches": 6,
+      "runtime_claim": false
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_SYSTEM_SUITE"
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator scripts/test_icd_runtime.py tests/icd_gateway/test_resources.py tests/icd_gateway/test_udp.py", "exit_code": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_ARE_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "icd_gateway/resources.py": "898962cc64674f4a274faaccf37086c551bac981d3a5003631bdf4fba3df5d2f",
+    "icd_runtime/contract.py": "c7b0ab2b1bed1b4e178b26e8b682a82791b3907e12c9f59fd1b3a94a2f1f789f",
+    "tests/icd_gateway/test_resources.py": "1fbfcc378484c2642c75ccc9865fbfc84ac219dfdcaa4e72f435487c478265c2",
+    "tests/icd_gateway/test_udp.py": "3ab6824f98bf8ffd8474eaf6c1eca5991af54a308458def941e46726184d9fe8"
+  },
+  "implemented_scope": {
+    "actual_files_written_read_and_reopened": true,
+    "byte_kinds": ["MODEL", "VIDEO", "TERRAIN", "OBSTACLES", "MISSION"],
+    "defined_content": {"TERRAIN": "TerrainResource_PLUS_MATRIX_LENGTH", "OBSTACLES": "ObstaclesResource_PLUS_UNIQUE_IDS", "MISSION": "MissionLoad_PLUS_ACTUAL_EXECUTE_INDEX"},
+    "opaque_content": ["MODEL", "VIDEO"],
+    "defined_json_means_full_business_validation": false,
+    "chunk_contract": "STRICT_BASE64_DECODED_LENGTH_ACTUAL_CHUNK_AND_WHOLE_SHA256_CONTIGUOUS_OFFSETS_EXACT_FINAL",
+    "duplicate_policy": "ORIGINAL_CHUNK_BOUNDARIES_AND_CONTENT_ONLY_NO_CHANGED_DECLARATION_OR_ACTIVE_SESSION_TAKEOVER",
+    "storage": "DEDICATED_ROOT_EXCLUSIVE_LOCK_PRIVATE_STAGING_ATOMIC_DIRECTORY_PUBLICATION_REHASH_ON_RESOLVE_AND_STARTUP",
+    "publication_is_power_loss_qualification": false,
+    "paths": "LOCALLY_DERIVED_NO_CLIENT_FILENAME_NO_UNREGISTERED_OVERWRITE_UNKNOWN_CONTENT_OR_SYMLINK_RECURSIVE_DELETE_HARD_LINK_READ_WRITE_REJECTED",
+    "path_checks_are_local_attacker_sandbox": false,
+    "clock": "READ_ONLY_PREFLIGHT_NONDECREASING_MONOTONIC_NS",
+    "logical_integer_json_representation": "SCHEMA_VERIFIED_INTEGRAL_VALUES_CONVERTED_TO_INTEGER_STORAGE_OFFSETS_NO_RANGE_CLAMP",
+    "completed_resources_persist_after_close": true,
+    "abort_and_close": "SESSION_SCOPED_INCOMPLETE_FILES_ONLY_IMMUTABLE_ORIGINAL_UNIQUE_CHUNK_REQUESTS_UNTIL_DRAIN",
+    "defaults": {"resource_bytes": 33554432, "declared_total_bytes": 134217728, "uploads": 8, "objects_and_uploads": 128, "chunks_per_resource": 8192, "disk_margin_bytes": 67108864, "abort_and_active_reservations": 128, "original_request_evidence_bytes": 268435456},
+    "budgets_are_8mib_reassembly_or_rss_guarantee": false,
+    "evidence_is_persistent_original_wire_tx_rx": false,
+    "stale_lock_and_staging_recovery": "FAIL_CLOSED_EXPLICIT_ADMIN_RECOVERY_REQUIRED_NOT_IMPLEMENTED",
+    "receiver_resource_service_installed": false,
+    "gateway_implemented_message_ids": [1],
+    "wire_34_without_installed_resource_consumer": "RECEIVED_THEN_FAILED_TARGET_MISSING",
+    "wire_141_generated": false,
+    "application_or_consumer_feedback_generated": false,
+    "model_video_or_activation_readiness": false,
+    "three_source_types_full_pipeline_implemented": false
+  },
+  "review_and_regressions": {
+    "independent_review_status": "PARTIAL_INTERRUPTED_USAGE_LIMIT_FULL_REVIEW_PENDING",
+    "independent_reproduced_finding": "P1_STAGING_NAMED_DIRECTORY_RECURSIVELY_DELETES_UNOWNED_CONTENT",
+    "reproduced_finding_fixed_with_red_green": true,
+    "primary_red_green_fixes": [
+      "test_staging_unexpected_nested_directory_is_never_deleted",
+      "test_staging_hard_link_cannot_modify_unowned_file",
+      "test_file_creation_failure_aborts_with_original_request",
+      "test_metadata_disk_margin_checked_before_publication",
+      "test_integral_json_numbers_preserve_integer_storage_offsets"
+    ],
+    "hostile_manifest_types_and_defined_content_red_green": true,
+    "fault_injection": "ONLY_CONTROLLED_FILE_CREATE_FSYNC_DISK_CHECK_FAILURES_REAL_TEMP_FILES_OTHER_RESOURCE_TESTS_USE_REAL_STORAGE",
+    "final_expanded_resource_tests_run_by_primary": 44,
+    "full_independent_review_gate_closed": false
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W3.1资源存储基础移交（完整复核未完）",
+    "linux_transfer": ["L-002", "L-004", "L-010", "L-012", "L-013", "L-017"],
+    "coverage_means_ownership_not_completion": true
+  },
+  "remaining_common_work": [
+    "Complete independent review of this resource storage package",
+    "Bounded low-priority resource worker and20Mbit/s complete wire budget without synchronous RT ingress I/O",
+    "Original SessionRegistry admission,34/141 correlation,stage cache and10000ms final commit waiting",
+    "Session expiry/revocation/37/38 upload cancellation and evidence coordination",
+    "Existing25-command management resource upload integration and explicit authorized crash recovery",
+    "Origin/geographic/route/task/controller validation and actual resource activation consumers",
+    "PROTOCOL/SCENARIO/HISTORY three input-source pipelines and six retained tool branches",
+    "Actual model lifecycle/control/safety/Status/ClockSync and E2/E3,persistent raw evidence,formal release",
+    "W4 existing console/API/Robot automation"
+  ],
+  "target_not_executed": [
+    "Linux same-source storage/filesystem/permissions/disk/crash qualification",
+    "Actual model/terrain/obstacle/mission resource activation and file identity/consumption probes",
+    "Actual model ABI and video decoder/injection qualification",
+    "Target resource/control/video concurrent realtime CPU/memory/disk/network qualification",
+    "Physical links,immutable release and real3.3 replacement"
+  ],
+  "phase_full_review_complete": false,
+  "full_W3_M2_M4_complete": false,
+  "overall_goal_complete": false,
+  "automatic_commit_or_merge": false
+}

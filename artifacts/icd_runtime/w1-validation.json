@@ -1,0 +1,83 @@
+{
+  "record_date": "2026-10-03",
+  "status": "W1_OFFLINE_VERIFIED_NOT_RELEASED",
+  "scope": "Common ICD library offline verification only; not full-repository or system acceptance",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "implementation": "Single common implementation; no OS-specific business or codec branch",
+  "baseline": "HIL-ICD-1.0",
+  "document_version": "0.3",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "contract_directory": "docs/interfaces/baseline",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "w1_tests_passed": 50,
+      "single_file_tests_passed": 4,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800,
+      "pending_groups": 0,
+      "reserved_payload_bytes": 0
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427
+    },
+    {
+      "command_pattern": "python -X utf8 -m unittest discover -s tests -p <test_file> -v",
+      "test_files": {
+        "test_static_contract.py": 20,
+        "test_generic_contract_templates.py": 5,
+        "test_parameter_registry_static.py": 2,
+        "test_quadrotor_model_contract.py": 7
+      },
+      "exit_codes": [0, 0, 0, 0],
+      "tests_passed": 34,
+      "environment_note": "UTF-8 interpreter mode avoids the existing host-default GBK text-read failure without changing legacy source"
+    },
+    {
+      "command": "python -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -m compileall -q icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    }
+  ],
+  "review": {
+    "method": "Read-only independent code review and focused rerun",
+    "finding": "Offline selfcheck could trust an edited local fixture manifest and pass with an incomplete golden set",
+    "resolution": "Independent examples/golden SHA256 pins plus exact 85 unique fragment coverage",
+    "regression_mutations_rejected": ["empty golden set", "missing golden fragment", "duplicate golden identity", "modified examples with matching local manifest"],
+    "terminal_cache_test": "8193 actual completed messages; maximum 8192 terminal entries; oldest evicted and retained duplicate rejected",
+    "remaining_important_w1_findings": 0
+  },
+  "not_executed": [
+    "Linux runtime and dependency qualification",
+    "Formal release status and deployment gating",
+    "Session lifecycle, permissions, freshness and cross-link transaction deduplication service",
+    "Actual network socket transport and simulator/gateway processes",
+    "Three-source executor, management API and frontend",
+    "Actual model mapping, application and E2/E3 consumption",
+    "Original six-toolchain qualification and Linux SocketCAN/vcan",
+    "H26x decoding, video injection and metadata synchronization",
+    "Linux C realtime core, physical I/O and hardware performance",
+    "Real 3.3 replacement and same-scenario acceptance"
+  ],
+  "milestone_boundary": "W1 only; overall M1/M2 remain incomplete",
+  "git_commit_or_merge_performed": false
+}

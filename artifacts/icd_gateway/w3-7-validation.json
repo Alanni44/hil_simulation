@@ -1,0 +1,115 @@
+{
+  "phase": "W3.7_THREE_MODE_ACTUAL_CAPTURE_PACKET_PREPARATION",
+  "date": "2026-10-04",
+  "started_date": "2026-10-03",
+  "status": "PACKET_PREPARATION_VERIFIED_NOT_AUTHORIZED_NOT_EXECUTABLE_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0, "tests": 422,
+      "suites": {"icd_runtime": 67, "icd_gateway_including_source_capture_history_replay": 348, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_phase_tests": {"wire_rewrite": 3, "replay_packet_preparation": 26},
+      "gateway_suite_duration_seconds": 230.176,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_EXECUTORS_OR_LINUX_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay.py -v", "exit_code": 0, "tests": 26},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_runtime -p test_wire_rewrite.py -v", "exit_code": 0, "tests": 3},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"},
+    {"command": "rg -n '[ \\t]+$' icd_runtime/wire.py input_simulator/replay.py tests/icd_runtime/test_wire_rewrite.py tests/icd_gateway/test_replay.py", "exit_code": 1, "result": "NO_TRAILING_WHITESPACE_MATCHES"}
+  ],
+  "verified_source_sha256": {
+    "icd_runtime/wire.py": "c56d4a74c96c505bf2db9b4c10ecf7b5478b8c676771e2de71cb2d2124467fff",
+    "input_simulator/replay.py": "7df319f11fccfc069d159897cd91540e2be4070f23bbfb62495acc16ddf62960",
+    "tests/icd_runtime/test_wire_rewrite.py": "256750c72028b0f7f508a3d5a1a576c057ecd866a123b6c281ee560aacbedca9",
+    "tests/icd_gateway/test_replay.py": "2925268edf3c98be4767a873a39e6ee1106c273a6e1a4f3245f47824a6157f1b"
+  },
+  "implemented_scope": {
+    "modes": ["RAW_VALIDATED", "REENCODE", "SESSION_REBUILD"],
+    "actual_capture_formats": ["CAN_LOG", "PCAP", "PCAPNG"],
+    "reused_core": ["HistoryDecoder", "WireCodec", "PayloadCodec", "Scapy", "Reassembler_IN_TESTS"],
+    "wire_rewrite_test_coverage": {"udp_messages": 59, "canfd_messages": 13},
+    "three_mode_packet_test_coverage": {"replayable_udp_inputs": 44, "canfd_inputs": 13, "auxiliary_media": 3},
+    "session_open_handled_by": "ACTUAL_STANDARD_HANDSHAKE_EXECUTOR_NOT_CAPTURED_GRANTED_REPEAT",
+    "feedback_is_injected": false,
+    "wire_rewrite_fields": ["SESSION", "SEQUENCE", "TARGET_STEP", "TRANSACTION", "CRC"],
+    "local_endpoint_rewrite": "EXPLICIT_SOURCE_ENDPOINT_PERMISSION_AND_CRC_NO_WHITE_LIST_GRANT_IMPLIED",
+    "local_header_or_destination_changes_icd": false,
+    "capture_and_fragment_order": "ORIGINAL_PACKET_INDEX_NOT_TIMESTAMP_SORT",
+    "window": "COMPLETE_LOGICAL_GROUPS_ONLY_PARTIAL_GROUP_REJECTED",
+    "initial_window_is_dynamic_seek": false,
+    "rate_arithmetic": "EXACT_FRACTION_NO_SLEEP_OR_RT_CLAIM",
+    "repeat_allocation": "ONE_REPEAT_ONE_NONZERO_SID_EXCLUDING_ALL_CAPTURED_SIDS_NOT_ACTUAL_SESSION_GRANTED",
+    "retry_identity": "SAME_ORIGINAL_MESSAGE_AND_PAYLOAD_HASH_SAME_ALLOCATED_HEADER",
+    "nonzero_transaction_mapping": "ONE_TO_ONE_NO_SPLIT_OR_MERGE",
+    "payload_preservation": "SESSION_REBUILD_AND_RAW_PRESERVE_ORIGINAL_BYTES_INCLUDING_SIGNED_ZERO",
+    "reencode_payload": "ENGINEERING_STIMULUS_ENCODED_WITH_CURRENT_FROZEN_ICD",
+    "hashes": {
+      "original_sha256": "ACTUAL_CAPTURE_PACKET_OR_LOG_LINE_BYTES",
+      "rebuilt_sha256": "COMPLETE_CAPTURE_PACKET_BYTES_OR_NULL_IF_NOT_GENERATED",
+      "wire_sha256_pair": "UDP_DATAGRAM_OR_UINT16_LE_CAN_ID_PLUS_CAN_DATA",
+      "payload_sha256_pair": "ORIGINAL_BUSINESS_OR_AUXILIARY_DATA_VS_OUTPUT_FORMAL_BUSINESS_PAYLOAD",
+      "rebuilt_entire_capture_file": null
+    },
+    "rebuilt_can_log_file_exported": false,
+    "raw_can_controller_esi": "ORIGINAL_CAPTURE_METADATA_NOT_PHYSICAL_DRIVER_QUALIFICATION",
+    "default_output_packet_bound": 100000,
+    "default_accounted_output_byte_bound": 67108864,
+    "bounds_prove_total_rss": false,
+    "execution_ready": false,
+    "require_execution_ready": "ALWAYS_STATE_FAILURE_WITH_PENDING_CHECKS",
+    "starts_session_model_tool_bus_or_sends": false,
+    "produces_applied_consumed_e2_e3": false,
+    "new_dependencies": [],
+    "qa_vendor_imports": false,
+    "frozen_sources_wire_format_original_c_or_six_tool_changes": false
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "latest_independent_tests": {"replay": 26, "wire_rewrite": 3},
+    "review_p2_red_green_fixed": "UNSPECIFIED_OR_LIMITED_BROADCAST_LOCAL_ENDPOINT_ACCEPTED",
+    "additional_red_green_fixes": ["CAPTURED_SESSION_REUSE", "SIGNED_ZERO_RETRY_BYTE_CONFLICT", "PRESERVED_PAYLOAD_HASH_MATCHES_ACTUAL_WIRE_BYTES", "AUXILIARY_RAW_HASH_DISTINCT_FROM_FORMAL_PAYLOAD_HASH"],
+    "online_initial_window_concern": "WITHDRAWN_NOT_A_DYNAMIC_CURSOR_SEEK_OR_EXECUTION_API",
+    "independent_outer_checksum_probe": "ORIGINAL_CAPTUREPARSER_IP_UDP_CHECKSUM_VERIFIED"
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-04 W3.7",
+    "associated_linux_items": ["L-001", "L-002", "L-005", "L-006", "L-007", "L-008", "L-009", "L-010", "L-011", "L-013", "L-014", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_PACKET_PREPARATION"
+  },
+  "not_verified_or_implemented": [
+    "FULL_THREE_REPLAY_EXECUTORS_LIVE_SESSION_GRANTED_GLOBAL_SEQUENCE_FRESHNESS_ROLE_TARGET_ENDPOINT_AUTHORIZATION",
+    "ACTUAL_PER_REPEAT_RESET_INITIAL_INPUTS_CLEAR_QUEUES_NEW_SESSION_AND_MODEL_STEP_GAPS",
+    "MODEL_STEP_CLOCKSYNC_ACTUAL_TIMING_SCHEDULING_FEEDBACK_CANCEL_AND_CLEANUP",
+    "ENGINEERING_JSONL_REPLAY_AND_COMPLETE_REBUILT_CAN_LOG_PCAP_FILES_TOOL_LIFECYCLE",
+    "WHITE_LIST_CHANGED_ENDPOINT_CAPTURE_DECODER_CONFIGURATION",
+    "TCP_BUSINESS_EXTRACTION_HIV1_VIDEO_HISTORY_AND_METADATA_CORRELATION",
+    "FULL_SCENARIO_EXECUTION_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_NEGATIVES",
+    "25_COMMAND_API_CONSOLE_ROBOT_PERSISTENT_TX_RX_EVIDENCE",
+    "SIX_ORIGINAL_TOOL_LINUX_DRIVER_MODEL_CONSUMER_RT_PHYSICAL_AND_REAL_33_REPLACEMENT_QUALIFICATION"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

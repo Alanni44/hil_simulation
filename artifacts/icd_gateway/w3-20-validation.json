@@ -1,0 +1,218 @@
+{
+  "phase": "W3.20_ORIGINAL_SCENARIO_COMMON_EXECUTION_CONTROLLER",
+  "date": "2026-10-05",
+  "status": "SOFTWARE_CONTROLLER_VERIFIED_PRODUCTION_DRIVER_NOT_CONNECTED_ORIGINAL_W3_NOT_COMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 714,
+      "suites": {
+        "icd_runtime": 67,
+        "icd_gateway": 640,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "gateway_duration_seconds": 373.325,
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_execution.py -v",
+      "exit_code": 0,
+      "tests": 32,
+      "duration_seconds": 16.996
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario.py -v",
+      "exit_code": 0,
+      "tests": 21,
+      "duration_seconds": 11.972
+    },
+    {
+      "commands": [
+        "test_static_contract.py",
+        "test_generic_contract_templates.py",
+        "test_parameter_registry_static.py",
+        "test_quadrotor_model_contract.py"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"
+    }
+  ],
+  "verified_source_sha256": {
+    "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+    "tests/icd_gateway/test_scenario_execution.py": "38b1d9526675b6931cd16a10645ab69ed3c8cd282c5b2bc6799e6a5bedc69086",
+    "input_simulator/session.py": "d002aa63ab29266e05d26271300a2ce3d9b450b152cb5a739727b1f6202ea53c",
+    "input_simulator/live_tool_input.py": "cbeb764a92b65a04a383cec5da751d6d54ea86f19440b8ffc59b42b85a4bf53a",
+    "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+    "input_simulator/dispatch.py": "62dd16d4aa204406e759730e5c78afd8262395bf1d2b33609bd90edab4dc5f25",
+    "input_simulator/scenario_execution.py": "ecd0e3c4855321a6b4ee63c7a5bde3854c60d91903a44c248e6de6c2c9fad0a3",
+    "input_simulator/tools.py": "0bfdf488954d123691a928a18efd191107a4114304b2667013773f2f89354a98",
+    "input_simulator/waveform.py": "959cda3dd139c0a5e03b58e14ab8e0fd9261b741b8c4364c5540438d732600d1",
+    "input_simulator/scenario.py": "f2de72a6fef85d5726c4f0898b2fc6913d927f74834528e396a180ec95b328ab",
+    "input_simulator/assertion.py": "6b64602b9add72c2b78d8d39c731673dd3149cf453090be0df2a188c9881d513"
+  },
+  "implemented_scope": {
+    "consumes_original_scenario_source_and_same_recompiled_plan": true,
+    "preserves_original_ten_event_contents_six_link_ids_replay_negative_cleanup": true,
+    "explicit_non_reentrant_driver_preflight_before_runtime": true,
+    "production_driver_implemented": false,
+    "explicit_uint32_model_steps_not_wall_clock": true,
+    "independent_root_assertion_handles_and_half_open_deadlines": true,
+    "root_and_event_assertion_start_times_separated": true,
+    "wait_blocks_following_same_step_events": true,
+    "overdue_absolute_events_fail_without_catchup_or_rebasing": true,
+    "end_waits_for_original_operations_and_root_assertions": true,
+    "immutable_original_handle_assertion_id_and_attempted_failure_records": true,
+    "closed_error_normalization_including_nonstring_codes": true,
+    "primary_failure_and_actual_cleanup_failure_separately_recorded": true,
+    "original_cleanup_handle_and_cumulative_nine_operation_receipts": true,
+    "pending_local_operations_cancelled_only_after_complete_cleanup_receipt": true,
+    "default_max_pending": 64,
+    "default_max_records": 4096,
+    "default_max_bytes": 16777216,
+    "complete_finite_record_and_snapshot_budget_preflight": true,
+    "local_stopped_is_not_qualified_remote_safety": true,
+    "execution_ready": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED",
+    "frozen_sources_original_c_six_tool_or_icd_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_final_controller": {
+      "tests": 32,
+      "duration_seconds": 16.913,
+      "exit_code": 0
+    },
+    "independent_original_scenario": {
+      "tests": 21,
+      "duration_seconds": 12.43,
+      "exit_code": 0
+    },
+    "red_green_fixed": [
+      "MISSING_ORIGINAL_SCENARIO_CONTROLLER",
+      "ROOT_EVENT_ASSERTION_START_CONFUSION",
+      "WAIT_TIMEOUT_NOT_ENFORCED",
+      "LOCAL_CANCEL_AND_NINE_CLEANUP_RECEIPTS_MISSING",
+      "TERMINAL_ORIGINAL_HANDLE_CORRELATION_LOST",
+      "AGGREGATE_ROOT_DEADLINE_HIDES_INDIVIDUAL_TIMEOUT",
+      "BEGIN_POLL_EXCEPTION_LOST_OPERATION_IDENTITY",
+      "CLEANUP_UNKNOWN_VOCABULARY_OR_PRIOR_ERROR_MISREPORTED",
+      "NONSTRING_UNHASHABLE_ERROR_CODE_ESCAPES_NORMALIZATION"
+    ]
+  },
+  "non_qualifying_runs": [
+    {
+      "status": "FULL_RUN_STOPPED_BY_AGENT_BEFORE_LAST_TYPE_GUARD_SOURCE_FIX_NOT_ACCEPTANCE",
+      "reason": "Final independent review found unhashable adapter error code; stopped exact owned test worker before editing, then restarted full common runner from fixed sources."
+    }
+  ],
+  "deferred_generated_data": {
+    "status": "DEFERRED_USER_ORDER_ORIGINAL_W3_FIRST_NOT_SHIPPED",
+    "path": "docs/superpowers/drafts/2026-10-05-generated-data",
+    "last_draft_tests": 19,
+    "passed": 17,
+    "failed": 2,
+    "known_failures": [
+      "EXPIRED_GRANT_NOT_MARKING_RUN_FAILED",
+      "PARTIAL_SUBMISSION_FAILURE_NOT_CANCELLING_LOCAL_PREFIX"
+    ],
+    "not_importable_from_input_simulator": true
+  },
+  "ledger_history_prefix_expected": {
+    "normalized_utf8_sha256": "584ca2dcffbf5c10f0180918c21b48badae43c4225af43aed8438ced8573663f",
+    "normalized_utf16_length": 59718
+  },
+  "plan_coverage": {
+    "responsibility_rows": 41,
+    "linux_items": 17,
+    "linux_checked": 0
+  },
+  "post_save_verification": {
+    "status": "VERIFIED",
+    "ledger_old_prefix_exact": true,
+    "verified_source_hashes": 11,
+    "suite_total_checked": 714,
+    "responsibility_rows": 41,
+    "linux_items": 17,
+    "linux_checked": 0,
+    "backlog_tests": {"tests": 3, "exit_code": 0, "duration_seconds": 0.009},
+    "single_file_tests": {"tests": 4, "exit_code": 0, "duration_seconds": 0.155},
+    "git_diff_check_exit_code": 0
+  },
+  "remaining_original_w3_common_work": [
+    "PRODUCTION_DRIVER_ALL_ORIGINAL_TOOL_HANDLERS_REAL_AUTHORIZATION_TX_RX",
+    "THREE_REPLAY_MODES_ENGINEERING_INPUT_10000_REPEAT_FRESH_SID_RESET_INITIAL_INPUTS_QUEUE_CLEANUP",
+    "PAUSE_RESUME_CONDITIONAL_STEP_RESET_WITH_REAL_SESSION_RETIREMENT",
+    "AUTHORIZED_NEGATIVE_CASES_MUST_NOT_APPLY_ACTUAL_EVIDENCE",
+    "REAL_MODEL_STEP_CLOCK_SYNC_STATUS_140_PRODUCER_FRESH_QUALIFIED_PROBE_VALUES",
+    "COMPLETE_NINE_OPERATION_SAFETY_AND_PERSISTENT_TRUSTED_RUN_TERMINAL_REPORT"
+  ],
+  "deferred_later_phases": [
+    "W4_MANAGEMENT_API_CONSOLE",
+    "W5_LINUX_REAL_MODEL_PHYSICAL_QUALIFICATION"
+  ],
+  "linux_target_work": [
+    "L-002",
+    "L-003",
+    "L-004",
+    "L-010",
+    "L-011",
+    "L-013",
+    "L-014",
+    "L-017"
+  ],
+  "target_model_hardware_rt_real_3_3": "NOT_EXECUTED_NOT_VERIFIED",
+  "original_w3_complete": false,
+  "current_new_generation_task_complete": false,
+  "test_duration_is_target_timing_qualification": false
+}

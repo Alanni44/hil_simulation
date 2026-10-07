@@ -1,0 +1,106 @@
+{
+  "phase": "W3.12_COMMON_CONTROLLED_OBSERVATION_AND_REPLAY_COMMAND_PREPARATION",
+  "date": "2026-10-04",
+  "status": "COMMON_PARAMETER_PREPARATION_VERIFIED_NOT_TOOL_EXECUTION_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 539,
+      "suites": {"icd_runtime": 67, "icd_gateway": 465, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "runtime_duration_seconds": 28.452,
+      "gateway_duration_seconds": 270.316,
+      "new_phase_tests": 17,
+      "source_fixed_for_entire_final_run": true,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_TOOL_EXECUTORS_OR_LINUX_RT_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_commands.py -v", "exit_code": 0, "tests": 17, "duration_seconds": 1.638},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tools.py -v", "exit_code": 0, "tests": 10, "duration_seconds": 5.728},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_cli.py -v", "exit_code": 0, "tests": 6, "duration_seconds": 5.076},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59,
+      "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+    "input_simulator/tools.py": "0bfdf488954d123691a928a18efd191107a4114304b2667013773f2f89354a98",
+    "tests/icd_gateway/test_tool_commands.py": "ff3b83818045fb46038c90f2e14c9ecbb88aeabe6f484a4a19db156786a7aae0"
+  },
+  "implemented_scope": {
+    "prepared_branches": ["CUTIL_OBSERVE", "CANREPLAY", "ETHREPLAY"],
+    "retained_original_branches": ["CANT", "CUTIL", "SAVVY", "CANREPLAY", "ETHGEN", "ETHREPLAY"],
+    "opaque_reservation_check_before_and_after_export": true,
+    "reservation_check_is_standard_authorization": false,
+    "observation": "CANDUMP_LITERAL_LOG_NS_RX_TX_13_FORMAL_BIDIRECTIONAL_STANDARD_NON_RTR_IDS_NO_ANY",
+    "replay": "EXISTING_COMPLETE_EXPORT_REVALIDATION_PER_CHANNEL_SINGLE_ROUND_EXPLICIT_INTERFACE_RESOURCE_HASH_FIRST_OFFSET",
+    "replay_modes": ["RAW_VALIDATED", "REENCODE", "SESSION_REBUILD"],
+    "canplayer_stdout_pseudo_send_interface": "REJECTED_SCHEMA",
+    "canplayer_non_microsecond_relative_timing": "REJECTED_UNSUPPORTED_NO_ROUNDING",
+    "tcpreplay_timestamp_or_schedule_qualified": false,
+    "upstream_rate_applied_twice": false,
+    "tool_repeat_count": 1,
+    "upstream_repeat_10000_is_execution_claim": false,
+    "all_four_canfd_and_eth_channels_parameter_tests": true,
+    "preparation_creates_files_or_starts_tools": false,
+    "existing_export_exclusive_persistence_path_hash_verified": true,
+    "actual_original_tool_processes_started": false,
+    "public_management_arbitrary_argv": false,
+    "execution_ready": false,
+    "authorized_to_transmit": false,
+    "produces_e1_e2_e3": false,
+    "frozen_sources_wire_format_original_c_or_tool_changes": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_final_command_tests": 17,
+    "independent_command_duration_seconds": 1.698,
+    "independent_export_regression_tests": 19,
+    "independent_export_duration_seconds": 9.715,
+    "red_green_fixed": ["CANPLAYER_STDOUT_SPECIAL_PRINT_HOOK_ACCEPTED_AS_SEND_INTERFACE"],
+    "additional_read_only_probes": ["UNREVIEWED_OBJECT", "TIME_POLICY_SOURCE_HASH_TAMPER", "RESERVATION_RELEASED_DURING_EXPORT_REJECTED_STATE_NO_FILES"],
+    "optional_test_gap": "RELEASE_DURING_EXPORT_AUTOMATED_BRANCH_TEST_MANUAL_PROBE_ALREADY_PASSED"
+  },
+  "plan_coverage": {"responsibility_rows": 41, "linux_items": 17, "linux_checked": 0},
+  "remaining_common_work": [
+    "CANT_AND_CANSEND_LIVE_AUTHORIZED_FRAME_BUILDERS_SAVVYCAN_AND_ETHGEN_CONTROLLED_ORIGINAL_BACKENDS",
+    "ACTUAL_SOURCESESSION_GRANTS_GLOBAL_SEQUENCE_ALLOCATION_AND_TOOL_TRANSMIT_LIFECYCLE",
+    "COMMON_MODEL_STEP_START_OFFSET_MULTI_CHANNEL_SCHEDULER_AND_INDEPENDENT_STANDARD_FEEDBACK",
+    "FULL_REPLAY_RESET_INITIAL_INPUTS_QUEUE_CLEANUP_FRESH_SESSION_EACH_REPEAT_AND_REAL_64_SID_RETIREMENT",
+    "ENGINEERING_JSONL_TCP_AND_VIDEO_HISTORY_FULL_EXECUTION",
+    "SCENARIO_WAVEFORMS_PERIODICS_WAIT_ASSERTIONS_AND_AUTHORIZED_NEGATIVE_CASES",
+    "25_MANAGEMENT_COMMANDS_EXISTING_CONSOLE_ROBOT_AND_PERSISTENT_ORIGINAL_TX_RX_EVIDENCE",
+    "ACTUAL_CONSUMERS_CLOCK_SYNC_RESOURCE_ACTIVATION_RELEASE_AND_REAL_3_3_REPLACEMENT_GATES"
+  ],
+  "linux_target_work": ["L-001", "L-002", "L-003", "L-005", "L-006", "L-007", "L-008", "L-009", "L-010", "L-011", "L-013", "L-014", "L-015", "L-017"],
+  "target_model_hardware_rt_real_3_3": "NOT_EXECUTED_NOT_VERIFIED",
+  "test_duration_is_target_timing_qualification": false,
+  "upstream_parameter_sources": [
+    "https://raw.githubusercontent.com/linux-can/can-utils/master/candump.c",
+    "https://raw.githubusercontent.com/linux-can/can-utils/master/canplayer.c",
+    "https://raw.githubusercontent.com/appneta/tcpreplay/master/src/tcpreplay_opts.def"
+  ]
+}

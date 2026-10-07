@@ -1,0 +1,141 @@
+{
+  "phase": "W2.2_COMMON_MODEL_BINDING_AND_QUEUE_PRIMITIVES",
+  "date": "2026-10-03",
+  "status": "W2_2_SOFTWARE_VERIFIED_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 134,
+      "suites": {
+        "icd_runtime": 54,
+        "icd_gateway_including_source": 73,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "new_binding_tests": 10,
+      "new_queue_tests": 25,
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "network_scope": "ACTUAL_LOCAL_UDP_AND_INDEPENDENT_SERVICE_SOURCE_PROCESSES_NO_MODEL_QUEUE_ACTIVATION"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427,
+      "model_bindings": 97,
+      "physical_channels": 56,
+      "tool_branches": 6,
+      "runtime_claim": false
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_SYSTEM_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_NEW_PHASE_FILES_ARE_UNTRACKED"
+    }
+  ],
+  "implemented_scope": {
+    "mapped_message_ids": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "binding_paths_across_models": 97,
+    "binding_verification": "STRUCTURAL_METADATA_ONLY_NOT_ABI_OR_MODEL_BEHAVIOR",
+    "queue_capacity": 4096,
+    "queue_capacity_scope": "GLOBAL_TO_ONE_REGISTRY_LIFETIME_AND_ALL_ITS_MODELS",
+    "multiple_queue_construction": "REJECTED_EVEN_AFTER_CLOSE",
+    "immutable_original_messages": true,
+    "atomic_enqueue": "WHOLE_LOGICAL_MESSAGE_NO_FIELD_PARTIAL_COMMIT",
+    "atomic_actual_model_write": "NOT_EXECUTED",
+    "first_receiving_monotonic_time_retained": true,
+    "single_admission_queue_claim": true,
+    "single_writer_and_flight_actuator_alias_guard": true,
+    "same_step_cross_message_overlap": "REJECTED",
+    "cross_message_transaction_atomicity": "NOT_PROVIDED_BY_ICD",
+    "sequential_step_us": 1000,
+    "max_ahead_steps": 1000,
+    "max_run_duration_steps": 86400000,
+    "control_max_receive_age_ms": 100,
+    "queue_memory_note": "stored_bytes_counts_canonical_message_and_value_bytes_not_process_RSS_or_8MiB_reassembly_budget",
+    "gateway_activated_model_queue": false,
+    "gateway_implemented_message_ids": [1],
+    "application_or_consumer_feedback_generated": false
+  },
+  "read_only_review": {
+    "finding": "P1_MULTIPLE_QUEUE_INSTANCES_BYPASS_GLOBAL_CAPACITY_WRITER_ALIAS_AND_STEP_HISTORY",
+    "red_green_regressions": [
+      "test_registry_has_one_global_queue_even_for_disjoint_model_sets",
+      "test_closed_queue_cannot_reset_step_history_for_still_live_sessions",
+      "test_registry_shutdown_also_closes_its_owned_queue"
+    ],
+    "correction": "REGISTRY_OWNS_ONE_QUEUE_FOR_ITS_ENTIRE_LIFETIME_AND_CLOSES_IT_ON_SHUTDOWN",
+    "reviewer_followup_tests": 35,
+    "important_remaining_findings": 0
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W2.2收尾移交",
+    "linux_transfer": ["L-001", "L-002", "L-004", "L-010", "L-017"],
+    "coverage_means_ownership_not_completion": true
+  },
+  "remaining_common_work": [
+    "Actual consumer service boundary and full per-message business semantics before network activation",
+    "RunConfigure and lifecycle with actual reset and safe frozen-step service updates",
+    "ControlOwner authorization and100ms lease, actual zero/revocation/SAFETY",
+    "Environment240ms stop and initial restore, persistent Fault semantics",
+    "Full SessionClose and Cleanup, actual Status and ClockSync",
+    "Initialization, extended environment, subsystem and sensor consumers",
+    "Real asynchronous feedback phase cache, original TX/RX and complete evidence bundle",
+    "Resources/video correlation and formal release gates",
+    "W3 three resource types, six original tool branches and scenario/replay execution",
+    "W4 management API, existing console and Robot automation"
+  ],
+  "target_not_executed": [
+    "Linux common-source qualification and actual C/Simulink model ABI/writes/probes",
+    "Actual control safety and lifecycle effects, model E2/E3",
+    "SocketCAN and six original toolchain backends",
+    "Physical CANFD/Ethernet/video/serial/analog/digital device qualification",
+    "Target realtime, long-run and cross-host clock acceptance",
+    "Real3.3 replacement and immutable release"
+  ],
+  "full_W2_M1_M2_complete": false,
+  "overall_goal_complete": false,
+  "automatic_commit_or_merge": false
+}
