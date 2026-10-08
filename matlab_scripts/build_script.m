@@ -596,17 +596,32 @@ function actuators = contract_actuator_descriptors(contract, inputs)
                 'minimum', channel.min, 'maximum', channel.max, 'safe_value', channel.safe_value);
         end
     else
-        found = [];
-        for i = 1:length(inputs)
-            if strcmp(inputs(i).group, 'flight_control') && strcmp(inputs(i).name, 'motor_command')
-                found = inputs(i); break;
-            end
+        control = contract.inputs.flight_control;
+        if ~isfield(control, 'mode') || ~ischar(control.mode)
+            error('V2 contract flight_control.mode is required');
         end
-        if isempty(found), error('V2 contract motor_command actuator input is required'); end
-        for i = 0:found.dimension - 1
-            actuators(end+1) = struct('field', found.field, 'type', found.type, ... %#ok<AGROW>
-                'dimension', found.dimension, 'index', i, 'minimum', found.min, ...
-                'maximum', found.max, 'safe_value', 0.0);
+        if strcmp(control.mode, 'motor_command')
+            names = {'motor_command'};
+        elseif strcmp(control.mode, 'axis_command')
+            names = {'throttle', 'roll_cmd', 'pitch_cmd', 'yaw_cmd'};
+        else
+            error('V2 contract has an unsupported flight_control mode');
+        end
+        for i = 1:length(names)
+            found = [];
+            for j = 1:length(inputs)
+                if strcmp(inputs(j).group, 'flight_control') && strcmp(inputs(j).name, names{i})
+                    found = inputs(j); break;
+                end
+            end
+            if isempty(found) || ~is_numeric_type(found.type)
+                error('V2 actuator input is required and must be numeric');
+            end
+            for index = 0:found.dimension - 1
+                actuators(end+1) = struct('field', found.field, 'type', found.type, ... %#ok<AGROW>
+                    'dimension', found.dimension, 'index', index, 'minimum', found.min, ...
+                    'maximum', found.max, 'safe_value', 0.0);
+            end
         end
     end
 end
