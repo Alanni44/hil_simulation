@@ -1,0 +1,39 @@
+{
+  "status": "STATIC_PASS",
+  "checks": 10446,
+  "negative_checks": 2427,
+  "business_messages": 59,
+  "input_messages": 45,
+  "feedback_messages": 14,
+  "definitions": 92,
+  "dictionary_rows_checked": 1409,
+  "model_bindings": 97,
+  "channels": 56,
+  "tool_branches": 6,
+  "requirement_groups": 26,
+  "golden_vectors": 85,
+  "video_raw_fragments_checked": 800,
+  "validator_versions": {
+    "cantools": "40.7.1",
+    "jcs": "0.2.1"
+  },
+  "scope": [
+    "Schema/reference/default checks",
+    "branch fixtures and negative field tests",
+    "current native model ports and parameters",
+    "DBC FD frame encode/decode",
+    "independent CRC implementations",
+    "actual source document hashes"
+  ],
+  "not_executed": [
+    "service/runtime semantic guards",
+    "model E2/E3 behavior",
+    "L01-L10/T01-T14 real toolchain acceptance",
+    "physical I/O safety/calibration",
+    "1ms realtime and 80ms communication jitter",
+    "video decode/injection",
+    "cross-host clock synchronization",
+    "real 3.3 replacement"
+  ],
+  "release_status": "DESIGN_BASELINE_ONLY"
+}

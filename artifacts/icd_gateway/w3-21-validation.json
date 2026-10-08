@@ -1,0 +1,237 @@
+{
+  "phase": "W3.21_ORIGINAL_SCAPY_COMMON_L2_TRANSPORT",
+  "date": "2026-10-05",
+  "status": "SOFTWARE_TX_VERIFIED_PHYSICAL_BACKEND_NOT_QUALIFIED_ORIGINAL_W3_NOT_COMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 742,
+      "suites": {
+        "icd_runtime": 67,
+        "icd_gateway": 668,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "gateway_duration_seconds": 386.893,
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scapy_source.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 16.399
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 6.512
+    },
+    {
+      "commands": [
+        "test_static_contract.py",
+        "test_generic_contract_templates.py",
+        "test_parameter_registry_static.py",
+        "test_quadrotor_model_contract.py"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"
+    }
+  ],
+  "verified_source_sha256": {
+    "input_simulator/scenario_execution.py": "ecd0e3c4855321a6b4ee63c7a5bde3854c60d91903a44c248e6de6c2c9fad0a3",
+    "input_simulator/live_tool_input.py": "cbeb764a92b65a04a383cec5da751d6d54ea86f19440b8ffc59b42b85a4bf53a",
+    "input_simulator/dispatch.py": "62dd16d4aa204406e759730e5c78afd8262395bf1d2b33609bd90edab4dc5f25",
+    "input_simulator/session.py": "d4a272981ac1995cd3cea9bbd787decdebcafbcf78796f0f05354cd6b93f4f1f",
+    "input_simulator/tools.py": "0bfdf488954d123691a928a18efd191107a4114304b2667013773f2f89354a98",
+    "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+    "tests/icd_gateway/test_scapy_source.py": "4182bff37d13565f2eb49d4e97b58b008ffdac22971df9c97814d04415fd0e2d",
+    "input_simulator/scapy_source.py": "8f479548fd8d5ce6827194ce21c54032b344204bd46e097df991f09919e0cf6a",
+    "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+    "input_simulator/udp_source.py": "a02243fb50375b9a8cb3f593a62f755a2976f80f18f63fb611c45eb522a312d9"
+  },
+  "implemented_scope": {
+    "original_branch": "ETHGEN_SCAPY",
+    "original_udp_send_sites_extracted": 2,
+    "base_udp_behavior_unchanged": true,
+    "actual_scapy_library_socket_frame_write": true,
+    "default_factory": "scapy.conf.L2socket",
+    "udp_fallback": false,
+    "original_six_tool_catalogue_unchanged": true,
+    "formal_eth_channels_tested": [
+      "ETH_0",
+      "ETH_1",
+      "ETH_2",
+      "ETH_3"
+    ],
+    "same_standard_icd_udp_bytes_inside_ether_ip_udp": true,
+    "explicit_original_interface_mac_ipv4_binding": true,
+    "same_book_opaque_ethgen_send_reservation_required": true,
+    "reservation_is_wire_authorization": false,
+    "original_source_operation_thread_ownership": true,
+    "attached_dispatcher_exclusive_owner": true,
+    "actual_grant_roles_model_capabilities_sid_and_lease_before_after_tx": true,
+    "allocated_header_association_or_original_owned_packet_required": true,
+    "standard_feedback_retry_reassembly_and_resource_pacing_inherited": true,
+    "signed_zero_wire_bytes_preserved": true,
+    "resource_bits_per_second": 20000000,
+    "resource_group_timeout_ms": 100,
+    "original_udp_dispatch_evidence_bytes_preserved": true,
+    "complete_short_failed_and_post_tx_expired_attempts_retained": true,
+    "immutable_l2_records": true,
+    "default_max_l2_records": 4096,
+    "default_max_l2_bytes": 16777216,
+    "max_l2_record_limit": 65536,
+    "max_l2_byte_limit": 134217728,
+    "capacity_reserved_before_actual_send": true,
+    "records_not_evicted": true,
+    "original_source_dispatcher_locks_for_drain_and_close": true,
+    "attached_recorder_blocks_side_drain": true,
+    "actual_native_or_pcap_handle_close_failure_retry_same_handle": true,
+    "successful_pcap_close_not_repeated": true,
+    "close_retains_records_and_reservation": true,
+    "remote_cleanup_or_reservation_release_on_transport_close": false,
+    "l2_records_integrated_into_persistent_run_report": false,
+    "physical_l2_backend_qualified": false,
+    "execution_ready": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED",
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_scapy": {
+      "tests": 26,
+      "duration_seconds": 15.114,
+      "exit_code": 0,
+      "scope": "INDEPENDENT_FIXED_PRODUCTION_SOURCE_REVIEW_BEFORE_TWO_ADDITIONAL_PARENT_TESTS"
+    },
+    "independent_source_session": {
+      "tests": 31,
+      "duration_seconds": 6.481,
+      "exit_code": 0
+    },
+    "red_green_fixed": [
+      "MISSING_SCAPY_SOURCE",
+      "SESSION_AND_DISPATCHER_OPERATION_OWNERSHIP_BYPASS",
+      "UNALLOCATED_TRANSACTION_GAPS_ACCEPTED",
+      "PCAP_FD_CLOSE_FAILURE_NOT_RETRIED",
+      "SUCCESSFUL_PCAP_CLOSE_REPEATED"
+    ]
+  },
+  "test_environment_boundaries": [
+    "Real Scapy SimpleSocket writes to a local socketpair frame sink, not an installed Windows hardware backend.",
+    "Standard grant and failure feedback comes from an explicit protocol test peer, not a qualified 3.6 model consumer.",
+    "Actual Scapy pcap class uses injected failure handles for cleanup tests; this does not prove actual libpcap availability.",
+    "Resource pacing tests use an explicit local test clock and do not qualify physical rate, jitter, RT or cross-host clock synchronization."
+  ],
+  "tool_installation_facts": {
+    "CANT": {
+      "status": "UNVERIFIED",
+      "cantools": "40.7.1",
+      "python_can": "4.6.1"
+    },
+    "CUTIL": {
+      "status": "UNAVAILABLE"
+    },
+    "SAVVY": {
+      "status": "UNAVAILABLE"
+    },
+    "CANREPLAY": {
+      "status": "UNAVAILABLE"
+    },
+    "ETHGEN": {
+      "status": "UNVERIFIED",
+      "scapy": "2.7.0",
+      "ostinato": "UNAVAILABLE",
+      "libpcap_provider": "UNAVAILABLE_WARNING_OBSERVED"
+    },
+    "ETHREPLAY": {
+      "status": "UNAVAILABLE"
+    }
+  },
+  "deferred_generated_data": {
+    "status": "DEFERRED_USER_ORDER_ORIGINAL_W3_FIRST_NOT_SHIPPED",
+    "path": "docs/superpowers/drafts/2026-10-05-generated-data"
+  },
+  "remaining_original_w3": [
+    "Production ScenarioDriver and every original event handler integration.",
+    "Original CAN sender, SavvyCAN/Ostinato backend and six-tool lifecycle/feedback/safety integration.",
+    "Three replay modes, engineering history, full repeats with actual SID retirement, RESET, initial inputs and inter-round queues.",
+    "Pause/resume, applicable step/reset, authorized negative inputs and must_not_apply proof.",
+    "Actual model step, ClockSync, qualified probes and E1/E2/E3 consumers.",
+    "Original L2 records in bounded persistent run evidence and complete trusted Report endpoints."
+  ],
+  "linux_requirements": "docs/superpowers/plans/linux-development-backlog.md",
+  "ledger_history_prefix_expected": {
+    "normalized_utf16_length": 62016,
+    "normalized_utf8_sha256": "3e1ffdab1b32446fc464f8c8a85f35e8e34c3d7f5d575d9bb7e4c8afb8d741a6"
+  },
+  "plan_coverage": {
+    "responsibility_rows": 41,
+    "linux_items": 17,
+    "linux_checked": 0
+  },
+  "frozen_sources_original_c_or_tool_catalogue_changes": false,
+  "post_save_verification": {
+    "status": "VERIFIED",
+    "source_hashes_verified": 10,
+    "ledger_history_prefix_preserved": true,
+    "responsibility_rows": 41,
+    "linux_unchecked": 17,
+    "linux_checked": 0,
+    "plan_coverage_tests": 3,
+    "single_file_contract_tests": 4,
+    "embedded_sources_byte_exact": 14,
+    "resolved_schema_references": 663,
+    "git_diff_check_exit_code": 0
+  }
+}

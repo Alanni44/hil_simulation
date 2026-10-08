@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "status": "ROUND3_ISOLATED_NETWORK_TX_RX_VALIDATED",
+  "round3_executed": true,
+  "final_attempt": "retry_2",
+  "attempt_history": [
+    {"name": "initial_blocked", "status": "LINUX_ENVIRONMENT_REQUIRED", "reason": "Original Codex execution context could not enumerate WSL."},
+    {"name": "retry_1", "status": "NETWORK_TX_RX_SUCCEEDED_CAPTURE_PROFILE_REJECTED", "reason": "tcpdump snaplen 262144 exceeded project CaptureParser MAX_PACKET_BYTES=65535."},
+    {"name": "retry_2", "status": "PASS", "reason": "tcpdump snaplen fixed at 65535; formal parser and byte-level validation passed."}
+  ],
+  "claims": {
+    "prepared_hash_verified": true,
+    "process_started": true,
+    "actual_network_tx": true,
+    "actual_network_rx": true,
+    "packet_count_matched": true,
+    "packet_order_matched": true,
+    "raw_frame_bytes_matched": true,
+    "udp_payload_bytes_matched": true,
+    "hil1_decoded": true,
+    "crc_verified": true,
+    "payload_semantics_preserved": true,
+    "cleanup_complete": true,
+    "three_six_receiver_involved": false,
+    "online_session_authorized": false,
+    "received_by_3_6": false,
+    "applied": false,
+    "consumed": false,
+    "execution_ready": false,
+    "target_kylin_qualified": false
+  },
+  "tests": {
+    "focused": "38 passed",
+    "full": "1001 tests; 1 failure, 3 errors",
+    "new_regressions": 0,
+    "baseline_failures_unchanged": true
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "record_date": "2026-10-03",
+  "status": "W2_1_SOFTWARE_VERIFIED_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "scope": "Common W2.1 sessions and real local UDP only; not full W2/M1/M2 or system acceptance",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_implementation": true,
+  "frozen_business_contract_changed": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "icd_library_tests_passed": 54,
+      "gateway_source_tests_passed": 38,
+      "ledger_tests_passed": 3,
+      "single_file_tests_passed": 4,
+      "combined_runner_tests_passed": 99,
+      "embedded_sources_byte_exact": 14,
+      "schema_references_resolved": 663
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "transport_completions": 72,
+      "golden_fragments": 85,
+      "raw_video_fragments": 800
+    },
+    {
+      "command": "python -X utf8 artifacts/interface_contract_validation/check_contract_v03.py",
+      "exit_code": 0,
+      "status": "STATIC_PASS",
+      "checks": 10446,
+      "negative_checks": 2427
+    },
+    {
+      "command_pattern": "python -X utf8 -m unittest discover -s tests -p <test_file> -v",
+      "test_files": {"test_static_contract.py": 20, "test_generic_contract_templates.py": 5,
+                     "test_parameter_registry_static.py": 2, "test_quadrotor_model_contract.py": 7},
+      "exit_codes": [0, 0, 0, 0],
+      "tests_passed": 34
+    },
+    {"command": "python -m pip check", "exit_code": 0},
+    {"command": "python -m compileall -q icd_runtime icd_gateway input_simulator scripts/test_icd_runtime.py", "exit_code": 0}
+  ],
+  "actual_network_cases": [
+    "Real AF_INET UDP on explicitly granted loopback endpoints",
+    "Actual 36100 receiver/feedback source, 36102 source TX and 36101 feedback RX roles",
+    "Independent gateway and source subprocess SessionOpen exchange and process cleanup",
+    "Fragmented RunConfigure returns RECEIVED then FAILED/TARGET_MISSING",
+    "Original real feedback replay, forward/reverse ACL and request correlation",
+    "Bad CRC/oversize/foreign peer rejected before allocation",
+    "Reliable request sends at most four identical attempts; periodic control is not retried",
+    "Idle service expiry revokes session and releases reassembly",
+    "Feedback sequence reuse with different content rejected"
+  ],
+  "bounded_state": {
+    "live_sessions": 64,
+    "session_retry_records": 8192,
+    "retention_ms": 5000,
+    "max_feedback_messages_per_record": 3,
+    "max_canonical_feedback_bytes_per_record": 4096,
+    "source_tracked_session_ids_per_object_lifetime": 64,
+    "source_feedback_digest_records": 8192,
+    "reassembly_payload_budget_bytes": 8388608,
+    "model_application_queue_implemented": false
+  },
+  "review": {
+    "mode": "Read-only independent review plus focused rerun",
+    "important_finding": "Different authorized grants could collide in pre-session fragmented SessionOpen reassembly",
+    "resolution": "Local grant namespace restricted to SessionOpen/session0; shared 64-slot/channel and 8MiB budgets preserved",
+    "verified_regressions": [
+      "Two interleaved valid Unicode fragmented opens both establish distinct sessions",
+      "Namespaces share channel capacity and cannot partition established business messages",
+      "Feedback same sequence/different content cannot satisfy another request",
+      "Cache eviction/expiry preserves high-water state",
+      "Source tracking capacity raises BUFFER_FULL instead of hiding it as network timeout",
+      "Duplicate complete grant identity refused; close clears state and refuses later receive"
+    ],
+    "remaining_important_review_findings": 0
+  },
+  "coverage_ledger": "docs/superpowers/plans/linux-development-backlog.md",
+  "overall_plan_items_assigned": 41,
+  "linux_items_registered": 17,
+  "linux_items_executed": 0,
+  "common_next_package": "W2.2 real-consumer contract, target state/step/control ownership, bounded model queue and lifecycle/evidence",
+  "common_not_completed": [
+    "4096-message model application queue and target-step/state/control-owner rules",
+    "Full SessionClose/Cleanup and lifecycle effects",
+    "Real Status/ClockSync feedback and resource/video handling",
+    "Complete E1 original-byte evidence package and actual E2/E3 consumer evidence",
+    "Formal release deployment gates",
+    "W3 three-source scenarios/history/original-tool wrappers",
+    "W4 management API, console and Robot automation"
+  ],
+  "target_not_executed": [
+    "Linux common-code/dependency qualification and actual four-interface deployment",
+    "SocketCAN/vcan, six original toolchains and qualified devices",
+    "Real C/Simulink model mapping, missing semantics, safety writes and probes",
+    "Video decode/injection, serial/AD/DA/TTL and physical calibration",
+    "Cross-host synchronization and Ubuntu RT performance",
+    "Target Robot acceptance, immutable release and real 3.3 replacement"
+  ],
+  "production_applied_or_consumed_feedback_generated": false,
+  "git_commit_or_merge_performed": false
+}

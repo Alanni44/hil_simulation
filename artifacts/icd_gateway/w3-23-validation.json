@@ -1,0 +1,158 @@
+{
+  "phase": "W3.23_ORIGINAL_STANDARD_STATUS_MODEL_STEP_OBSERVATION",
+  "date": "2026-10-05",
+  "status": "SOFTWARE_STANDARD_FEEDBACK_OBSERVATION_VERIFIED_CLOCK_NOT_QUALIFIED_ORIGINAL_W3_NOT_COMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 806,
+      "suites": {
+        "icd_runtime": 67,
+        "icd_gateway": 732,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "gateway_duration_seconds": 467.151,
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest test_can_signal.CANSignalTests.test_heartbeat_transaction_cannot_be_reused_after_retirement test_can_signal.CANSignalTests.test_replacement_builder_preserves_session_heartbeat_transaction_history test_model_clock -v",
+      "pythonpath": "tests/icd_gateway",
+      "exit_code": 0,
+      "tests": 25,
+      "new_model_clock_tests": 23,
+      "unchanged_can_compatibility_tests": 2,
+      "duration_seconds": 17.752
+    },
+    {
+      "commands": [
+        "test_static_contract.py",
+        "test_generic_contract_templates.py",
+        "test_parameter_registry_static.py",
+        "test_quadrotor_model_contract.py"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663,
+      "performed_by_full_entry": true
+    }
+  ],
+  "source_and_test_sha256": {
+    "tests/icd_gateway/test_model_clock.py": "fd67108cf6636ec515fa77f568e019fad04176e6797afb9bb038360465b736a8",
+    "input_simulator/dispatch.py": "e0d6b7f1a84a677d9576d3853ade4940ecc0c916d531aeeea7bdcc3a22a87698",
+    "input_simulator/can_signal.py": "793ad53eaffa1956f84bd4e7d5e709ec36ddb06534fc40324ebc59991d7c48d4",
+    "input_simulator/model_clock.py": "d09b042e4210fd1be9aa92e5910db62b6e9b502739eeaf23995bf70ae91b4034",
+    "input_simulator/session.py": "e2a4267a900578e245e491ac47a64a46c6c5e876420d1af98af66c07552f6b59"
+  },
+  "source_and_test_hashes_unchanged_after_final_run": true,
+  "independent_review": {
+    "scope": "READ_ONLY_FINAL_CHANGED_FILES_NOT_FULL_W3",
+    "remaining_important_findings": 0,
+    "final_targeted_tests": 7,
+    "duration_seconds": 6.754,
+    "actual_udp_reproductions_verified": [
+      "interleaved_older_heartbeat_model_step_floor",
+      "timed_out_transaction_delayed_status_retiming"
+    ],
+    "files_edited_by_reviewer": false
+  },
+  "tdd": {
+    "initial_missing_module_tests": 14,
+    "initial_red": true,
+    "findings_fixed_before_final_full_run": [
+      "unread interleaved Status floor",
+      "timed-out/failed Heartbeat transaction ambiguity",
+      "repeated claim after temporarily deferred original pending transmission"
+    ],
+    "fixture_issues_corrected_before_final_run": [
+      "initialization and response helper already sends",
+      "original peer reassembly clock domain"
+    ],
+    "compatibility": "allocation-only preparation retains original behavior; shared send-attempt floor is checked at actual send boundaries"
+  },
+  "ledger_prefix_before_append": {
+    "normalized_length": 66812,
+    "normalized_sha256": "70f9d3f5c071681a36b7fd82ed1a881c17022dabdcfc741f1bd12080f50c45e8",
+    "byte_sha256": "70f9d3f5c071681a36b7fd82ed1a881c17022dabdcfc741f1bd12080f50c45e8"
+  },
+  "qualification": {
+    "clock_synchronized": false,
+    "model_tick_1ms_verified": false,
+    "physical_backend_qualified": false,
+    "safety_verified": false,
+    "e2_e3_verified": false,
+    "original_w3_complete": false
+  },
+  "boundaries": [
+    "Status is read-only observed feedback, not a production 1ms clock provider",
+    "All three standard feedback producers preserve original request provenance and source-clock times",
+    "No change to frozen 14 sources, C, six tool branches or original SOURCE/DISPATCH/INBOX record formats",
+    "RESET/RESUME require old SID retirement and genuine new grant/status; no same-SID model epoch",
+    "Current cache is single bounded immutable snapshot, no public observation injection or local model-step setter",
+    "Hardware/Linux/ClockSync/qualified probes and full driver remain unverified"
+  ],
+  "remaining_original_w3": [
+    "production ScenarioDriver handlers and original six-tool lifecycle coordination",
+    "complete history modes/repeats/new SID/RESET/initial_inputs/queue cleanup",
+    "pause/resume/conditional step/reset",
+    "authorized negatives and qualified assertion readers",
+    "actual model clock and ClockSync measurements",
+    "continuous CAN/Scapy raw evidence and trusted complete Run/Report"
+  ],
+  "post_save_verification": {
+    "status": "VERIFIED",
+    "historical_ledger_prefix_unchanged": true,
+    "ledger_tests": 3,
+    "single_file_contract_tests": 4,
+    "embedded_sources_byte_exact": 14,
+    "resolved_schema_references": 663,
+    "tracked_diff_check_exit_code": 0
+  },
+  "deferred_new_generated_data_entry": true,
+  "linux_gates": {
+    "responsibilities": 41,
+    "unchecked": 17,
+    "checked": 0
+  }
+}

@@ -1,0 +1,6006 @@
+{
+  "baseline_version": "HIL-ICD-1.0",
+  "document_version": "0.3",
+  "definition_authority": "PROJECT_DEFINED_BY_USER_AUTHORIZATION",
+  "definition_status": "COMPLETE_DESIGN_BASELINE",
+  "implementation_status": "NOT_IMPLEMENTED_OR_QUALIFIED",
+  "source_documents": [
+    {
+      "name": "开放架构投标文件方案 - 项目文档 - 20260629.docx",
+      "sha256": "1fb57de86325346bf6a303a3546bad2a3d1538666eb6337c4fa1d08ec0f0aae0",
+      "clauses": [
+        "3.3",
+        "3.4",
+        "3.6"
+      ]
+    },
+    {
+      "name": "3.6系统输入数据模拟与3.3替代方案_原工具链保留与选型评估版.docx",
+      "sha256": "bcc3ba6e29b1e098ca7fdb2531d5919c9b1fcc11aa4231944be378a1bb101096",
+      "clauses": [
+        "4.3",
+        "4.7",
+        "9.6",
+        "9.7",
+        "9.8",
+        "9.9",
+        "9.10",
+        "9.11",
+        "9.12",
+        "9.15",
+        "9.16",
+        "10"
+      ]
+    }
+  ],
+  "schema_id": "urn:hil:input-simulator:business:0.3",
+  "messages": [
+    {
+      "id": 1,
+      "name": "SessionOpen",
+      "direction": "TO_36",
+      "payload_definition": "SessionOpen",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "ANY_SESSION_ROLE",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "SessionOpened",
+      "application": "SERVICE_BOUNDARY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 2,
+      "name": "Heartbeat",
+      "direction": "TO_36",
+      "payload_definition": "Heartbeat",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 770,
+      "role": "ANY_SESSION_ROLE",
+      "period_ms": 20,
+      "valid_for_ms": 1000,
+      "feedback": "Status",
+      "application": "SERVICE_BOUNDARY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 8,
+      "fields": [
+        {
+          "name": "last_rx_sequence",
+          "offset": 0,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "sender_step",
+          "offset": 4,
+          "size": 4,
+          "type": "u32le"
+        }
+      ],
+      "payload_bytes": 8
+    },
+    {
+      "id": 3,
+      "name": "RunConfigure",
+      "direction": "TO_36",
+      "payload_definition": "RunConfigure",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 4,
+      "name": "Lifecycle",
+      "direction": "TO_36",
+      "payload_definition": "Lifecycle",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 5,
+      "name": "InitialState",
+      "direction": "TO_36",
+      "payload_definition": "InitialState",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 6,
+      "name": "ControlOwner",
+      "direction": "TO_36",
+      "payload_definition": "ControlOwner",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 7,
+      "name": "FlightQuad",
+      "direction": "TO_36",
+      "payload_definition": "FlightQuad",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 775,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil"
+      ],
+      "max_logical_payload_bytes": 32,
+      "fields": [
+        {
+          "name": "motor_command",
+          "offset": 0,
+          "size": 32,
+          "type": "f64le[4]"
+        }
+      ],
+      "payload_bytes": 32
+    },
+    {
+      "id": 8,
+      "name": "FlightHex",
+      "direction": "TO_36",
+      "payload_definition": "FlightHex",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 776,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "multirotor_6_hil"
+      ],
+      "max_logical_payload_bytes": 48,
+      "fields": [
+        {
+          "name": "motor_command",
+          "offset": 0,
+          "size": 48,
+          "type": "f64le[6]"
+        }
+      ],
+      "payload_bytes": 48
+    },
+    {
+      "id": 9,
+      "name": "FlightFixed",
+      "direction": "TO_36",
+      "payload_definition": "FlightFixed",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 777,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 32,
+      "fields": [
+        {
+          "name": "throttle",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "roll_cmd",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "pitch_cmd",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "yaw_cmd",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        }
+      ],
+      "payload_bytes": 32
+    },
+    {
+      "id": 10,
+      "name": "Environment",
+      "direction": "TO_36",
+      "payload_definition": "Environment",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 778,
+      "role": "STIMULUS",
+      "period_ms": 80,
+      "valid_for_ms": 240,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 48,
+      "fields": [
+        {
+          "name": "wind_n_mps",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "wind_e_mps",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "wind_d_mps",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "pressure_pa",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "temperature_k",
+          "offset": 32,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "ground_height_m",
+          "offset": 40,
+          "size": 8,
+          "type": "f64le"
+        }
+      ],
+      "payload_bytes": 48
+    },
+    {
+      "id": 11,
+      "name": "FaultQuad",
+      "direction": "TO_36",
+      "payload_definition": "FaultQuad",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 779,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil"
+      ],
+      "max_logical_payload_bytes": 76,
+      "fields": [
+        {
+          "name": "gps_bias_n_m",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_e_m",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_d_m",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_p_radps",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_q_radps",
+          "offset": 32,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_r_radps",
+          "offset": 40,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "motor_1_failed",
+          "offset": 48,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_2_failed",
+          "offset": 49,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_3_failed",
+          "offset": 50,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_4_failed",
+          "offset": 51,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "command_delay_ms",
+          "offset": 52,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "sensor_delay_ms",
+          "offset": 60,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "packet_loss_ratio",
+          "offset": 68,
+          "size": 8,
+          "type": "f64le"
+        }
+      ],
+      "payload_bytes": 76
+    },
+    {
+      "id": 12,
+      "name": "FaultHex",
+      "direction": "TO_36",
+      "payload_definition": "FaultHex",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 780,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "multirotor_6_hil"
+      ],
+      "max_logical_payload_bytes": 78,
+      "fields": [
+        {
+          "name": "gps_bias_n_m",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_e_m",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_d_m",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_p_radps",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_q_radps",
+          "offset": 32,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_r_radps",
+          "offset": 40,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "motor_1_failed",
+          "offset": 48,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_2_failed",
+          "offset": 49,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_3_failed",
+          "offset": 50,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_4_failed",
+          "offset": 51,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "command_delay_ms",
+          "offset": 52,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "sensor_delay_ms",
+          "offset": 60,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "packet_loss_ratio",
+          "offset": 68,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "motor_5_failed",
+          "offset": 76,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_6_failed",
+          "offset": 77,
+          "size": 1,
+          "type": "u8bool"
+        }
+      ],
+      "payload_bytes": 78
+    },
+    {
+      "id": 13,
+      "name": "FaultFixed",
+      "direction": "TO_36",
+      "payload_definition": "FaultFixed",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 781,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 76,
+      "fields": [
+        {
+          "name": "gps_bias_n_m",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_e_m",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "gps_bias_d_m",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_p_radps",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_q_radps",
+          "offset": 32,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "imu_bias_r_radps",
+          "offset": 40,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "motor_1_failed",
+          "offset": 48,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_2_failed",
+          "offset": 49,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_3_failed",
+          "offset": 50,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "motor_4_failed",
+          "offset": 51,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "command_delay_ms",
+          "offset": 52,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "sensor_delay_ms",
+          "offset": 60,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "packet_loss_ratio",
+          "offset": 68,
+          "size": 8,
+          "type": "f64le"
+        }
+      ],
+      "payload_bytes": 76
+    },
+    {
+      "id": 14,
+      "name": "ActuatorQuad",
+      "direction": "TO_36",
+      "payload_definition": "ActuatorQuad",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 782,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil"
+      ],
+      "max_logical_payload_bytes": 32,
+      "fields": [
+        {
+          "name": "motor_command",
+          "offset": 0,
+          "size": 32,
+          "type": "f64le[4]"
+        }
+      ],
+      "payload_bytes": 32
+    },
+    {
+      "id": 15,
+      "name": "ActuatorHex",
+      "direction": "TO_36",
+      "payload_definition": "ActuatorHex",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 783,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "multirotor_6_hil"
+      ],
+      "max_logical_payload_bytes": 48,
+      "fields": [
+        {
+          "name": "motor_command",
+          "offset": 0,
+          "size": 48,
+          "type": "f64le[6]"
+        }
+      ],
+      "payload_bytes": 48
+    },
+    {
+      "id": 16,
+      "name": "ActuatorFixed",
+      "direction": "TO_36",
+      "payload_definition": "ActuatorFixed",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 784,
+      "role": "CONTROLLER",
+      "period_ms": 20,
+      "valid_for_ms": 100,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 32,
+      "fields": [
+        {
+          "name": "throttle",
+          "offset": 0,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "roll_cmd",
+          "offset": 8,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "pitch_cmd",
+          "offset": 16,
+          "size": 8,
+          "type": "f64le"
+        },
+        {
+          "name": "yaw_cmd",
+          "offset": 24,
+          "size": 8,
+          "type": "f64le"
+        }
+      ],
+      "payload_bytes": 32
+    },
+    {
+      "id": 17,
+      "name": "TuneQuad",
+      "direction": "TO_36",
+      "payload_definition": "TuneQuad",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 18,
+      "name": "TuneHex",
+      "direction": "TO_36",
+      "payload_definition": "TuneHex",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "multirotor_6_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 19,
+      "name": "TuneFixed",
+      "direction": "TO_36",
+      "payload_definition": "TuneFixed",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 20,
+      "name": "MissionLoad",
+      "direction": "TO_36",
+      "payload_definition": "MissionLoad",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 21,
+      "name": "MissionControl",
+      "direction": "TO_36",
+      "payload_definition": "MissionControl",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 22,
+      "name": "FlightCommand",
+      "direction": "TO_36",
+      "payload_definition": "FlightCommand",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 23,
+      "name": "Targets",
+      "direction": "TO_36",
+      "payload_definition": "Targets",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 24,
+      "name": "EnvironmentExt",
+      "direction": "TO_36",
+      "payload_definition": "EnvironmentExt",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 25,
+      "name": "SystemStimulus",
+      "direction": "TO_36",
+      "payload_definition": "SystemStimulus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 26,
+      "name": "BusFault",
+      "direction": "TO_36",
+      "payload_definition": "BusFault",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 27,
+      "name": "SerialWrite",
+      "direction": "TO_36",
+      "payload_definition": "SerialWrite",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 28,
+      "name": "AnalogWrite",
+      "direction": "TO_36",
+      "payload_definition": "AnalogWrite",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 29,
+      "name": "DigitalWrite",
+      "direction": "TO_36",
+      "payload_definition": "DigitalWrite",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 30,
+      "name": "VideoConfig",
+      "direction": "TO_36",
+      "payload_definition": "VideoConfig",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 31,
+      "name": "VideoControl",
+      "direction": "TO_36",
+      "payload_definition": "VideoControl",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 32,
+      "name": "VideoAnnotation",
+      "direction": "TO_36",
+      "payload_definition": "VideoAnnotation",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 33,
+      "name": "ClockSync",
+      "direction": "TO_36",
+      "payload_definition": "ClockSync",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "OBSERVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "ClockStatus",
+      "application": "SERVICE_BOUNDARY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 34,
+      "name": "ResourceChunk",
+      "direction": "TO_36",
+      "payload_definition": "ResourceChunk",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "ResourceAck",
+      "application": "RESOURCE_COMMIT",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 35,
+      "name": "Query",
+      "direction": "TO_36",
+      "payload_definition": "Query",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "OBSERVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "SERVICE_BOUNDARY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 36,
+      "name": "RecordControl",
+      "direction": "TO_36",
+      "payload_definition": "RecordControl",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 37,
+      "name": "Cleanup",
+      "direction": "TO_36",
+      "payload_definition": "Cleanup",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 38,
+      "name": "SessionClose",
+      "direction": "TO_36",
+      "payload_definition": "SessionClose",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "SERVICE_BOUNDARY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 39,
+      "name": "SensorConfig",
+      "direction": "TO_36",
+      "payload_definition": "SensorConfig",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 40,
+      "name": "PhysicalChannelConfig",
+      "direction": "TO_36",
+      "payload_definition": "PhysicalChannelConfig",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 41,
+      "name": "Terrain",
+      "direction": "TO_36",
+      "payload_definition": "Terrain",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "RESOURCE_COMMIT",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 42,
+      "name": "Obstacles",
+      "direction": "TO_36",
+      "payload_definition": "Obstacles",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "RESOURCE_COMMIT",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 43,
+      "name": "VideoFrameMetadata",
+      "direction": "TO_36",
+      "payload_definition": "VideoFrameMetadata",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "RESOURCE_COMMIT",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 129,
+      "name": "SessionOpened",
+      "direction": "FROM_36",
+      "payload_definition": "SessionOpened",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 130,
+      "name": "Ack",
+      "direction": "FROM_36",
+      "payload_definition": "Ack",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 1153,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 20,
+      "fields": [
+        {
+          "name": "request_sequence",
+          "offset": 0,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "request_message_id",
+          "offset": 4,
+          "size": 2,
+          "type": "u16le"
+        },
+        {
+          "name": "stage",
+          "offset": 6,
+          "size": 1,
+          "type": "u8enum",
+          "enum_codes": {
+            "RECEIVED": 0,
+            "VALIDATED": 1,
+            "APPLIED": 2,
+            "CONSUMED": 3,
+            "FAILED": 4
+          }
+        },
+        {
+          "name": "error",
+          "offset": 7,
+          "size": 1,
+          "type": "u8enum",
+          "enum_codes": {
+            "OK": 0,
+            "SCHEMA": 1,
+            "VERSION": 2,
+            "HASH": 3,
+            "AUTHORIZATION": 4,
+            "MODEL": 5,
+            "CONTROL_OWNER": 6,
+            "RANGE": 7,
+            "STATE": 8,
+            "STALE_SESSION": 9,
+            "DUPLICATE": 10,
+            "OUT_OF_ORDER": 11,
+            "LATE": 12,
+            "EXPIRED": 13,
+            "BUFFER_FULL": 14,
+            "FRAGMENT": 15,
+            "CRC": 16,
+            "UNSUPPORTED": 17,
+            "TARGET_MISSING": 18,
+            "TIMEOUT": 19,
+            "BUSINESS_FAILED": 20,
+            "SAFETY": 21,
+            "RESOURCE": 22,
+            "CLOCK_UNSYNC": 23,
+            "CAPACITY": 24
+          }
+        },
+        {
+          "name": "applied_step",
+          "offset": 8,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "model_revision",
+          "offset": 12,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "probe_id",
+          "offset": 16,
+          "size": 4,
+          "type": "u32le"
+        }
+      ],
+      "payload_bytes": 20
+    },
+    {
+      "id": 131,
+      "name": "Status",
+      "direction": "FROM_36",
+      "payload_definition": "Status",
+      "encoding": "PACKED_LE",
+      "transports": [
+        "CANFD",
+        "UDP"
+      ],
+      "can_id": 1154,
+      "role": "RECEIVER",
+      "period_ms": 80,
+      "valid_for_ms": 240,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 36,
+      "fields": [
+        {
+          "name": "state",
+          "offset": 0,
+          "size": 1,
+          "type": "u8enum",
+          "enum_codes": {
+            "CONFIGURED": 0,
+            "RUNNING": 1,
+            "PAUSED": 2,
+            "STOPPED": 3,
+            "FAILED": 4
+          }
+        },
+        {
+          "name": "phase",
+          "offset": 1,
+          "size": 1,
+          "type": "u8enum",
+          "enum_codes": {
+            "TAKEOFF": 0,
+            "FLYING": 1,
+            "LANDING": 2,
+            "LANDED": 3
+          }
+        },
+        {
+          "name": "control_source",
+          "offset": 2,
+          "size": 1,
+          "type": "u8enum",
+          "enum_codes": {
+            "NONE": 0,
+            "DEMO_MISSION": 1,
+            "PX4_SITL": 2,
+            "PHYSICAL_UUT": 3
+          }
+        },
+        {
+          "name": "safety_active",
+          "offset": 3,
+          "size": 1,
+          "type": "u8bool"
+        },
+        {
+          "name": "model_step",
+          "offset": 4,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "last_applied_sequence",
+          "offset": 8,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "receive_queue_depth",
+          "offset": 12,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "missed_deadline_count",
+          "offset": 16,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "received_count",
+          "offset": 20,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "rejected_count",
+          "offset": 24,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "applied_count",
+          "offset": 28,
+          "size": 4,
+          "type": "u32le"
+        },
+        {
+          "name": "consumed_count",
+          "offset": 32,
+          "size": 4,
+          "type": "u32le"
+        }
+      ],
+      "payload_bytes": 36
+    },
+    {
+      "id": 132,
+      "name": "State",
+      "direction": "FROM_36",
+      "payload_definition": "State",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 20,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 133,
+      "name": "Sensors",
+      "direction": "FROM_36",
+      "payload_definition": "Sensors",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 4,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 134,
+      "name": "IOStatus",
+      "direction": "FROM_36",
+      "payload_definition": "IOStatus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 80,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 135,
+      "name": "VideoStatus",
+      "direction": "FROM_36",
+      "payload_definition": "VideoStatus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 80,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 136,
+      "name": "TaskStatus",
+      "direction": "FROM_36",
+      "payload_definition": "TaskStatus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 80,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 137,
+      "name": "RecordStatus",
+      "direction": "FROM_36",
+      "payload_definition": "RecordStatus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 138,
+      "name": "Diagnostic",
+      "direction": "FROM_36",
+      "payload_definition": "Diagnostic",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 80,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 139,
+      "name": "Capabilities",
+      "direction": "FROM_36",
+      "payload_definition": "Capabilities",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 140,
+      "name": "Evidence",
+      "direction": "FROM_36",
+      "payload_definition": "Evidence",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 141,
+      "name": "ResourceAck",
+      "direction": "FROM_36",
+      "payload_definition": "ResourceAck",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 142,
+      "name": "ClockStatus",
+      "direction": "FROM_36",
+      "payload_definition": "ClockStatus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "RECEIVER",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "NONE",
+      "application": "OBSERVATION_ONLY",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 44,
+      "name": "RawBus",
+      "direction": "TO_36",
+      "payload_definition": "RawBus",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    },
+    {
+      "id": 45,
+      "name": "SensorFault",
+      "direction": "TO_36",
+      "payload_definition": "SensorFault",
+      "encoding": "RFC8785_JSON_UTF8",
+      "transports": [
+        "UDP"
+      ],
+      "can_id": null,
+      "role": "STIMULUS",
+      "period_ms": 0,
+      "valid_for_ms": 1000,
+      "feedback": "Ack",
+      "application": "TARGET_MODEL_STEP",
+      "model_ids": [
+        "quadrotor_hil",
+        "multirotor_6_hil",
+        "fixed_wing_hil"
+      ],
+      "max_logical_payload_bytes": 65536
+    }
+  ],
+  "channels": [
+    {
+      "id": "CANFD_0",
+      "type": "CANFD",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "canfd0",
+      "nominal_bps": 500000,
+      "data_bps": 2000000,
+      "brs": true,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "FORMAL_FAST_MESSAGES",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CANFD_1",
+      "type": "CANFD",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "canfd1",
+      "nominal_bps": 500000,
+      "data_bps": 2000000,
+      "brs": true,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "FORMAL_FAST_MESSAGES",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CANFD_2",
+      "type": "CANFD",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "canfd2",
+      "nominal_bps": 500000,
+      "data_bps": 2000000,
+      "brs": true,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "FORMAL_FAST_MESSAGES",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CANFD_3",
+      "type": "CANFD",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "canfd3",
+      "nominal_bps": 500000,
+      "data_bps": 2000000,
+      "brs": true,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "FORMAL_FAST_MESSAGES",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CAN_0",
+      "type": "CAN",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "can0",
+      "nominal_bps": 500000,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CAN_1",
+      "type": "CAN",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "can1",
+      "nominal_bps": 500000,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CAN_2",
+      "type": "CAN",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "can2",
+      "nominal_bps": 500000,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "CAN_3",
+      "type": "CAN",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "can3",
+      "nominal_bps": 500000,
+      "termination_ohm": 120,
+      "identifier_type": "STANDARD_11_BIT",
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY",
+      "max_utilization": 0.5
+    },
+    {
+      "id": "ETH_0",
+      "type": "ETH",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "eth0",
+      "speed_mbps": 1000,
+      "source_ipv4": "10.36.0.10",
+      "receiver_ipv4": "10.36.0.20",
+      "video_ipv4": "10.36.0.30",
+      "netmask": "255.255.255.0",
+      "vlan_id": 0,
+      "business_udp_port": 36100,
+      "feedback_udp_port": 36101,
+      "source_udp_port": 36102,
+      "video_udp_port": 36110,
+      "max_utilization": 0.5
+    },
+    {
+      "id": "ETH_1",
+      "type": "ETH",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "eth1",
+      "speed_mbps": 1000,
+      "source_ipv4": "10.36.1.10",
+      "receiver_ipv4": "10.36.1.20",
+      "video_ipv4": "10.36.1.30",
+      "netmask": "255.255.255.0",
+      "vlan_id": 0,
+      "business_udp_port": 36100,
+      "feedback_udp_port": 36101,
+      "source_udp_port": 36102,
+      "video_udp_port": 36110,
+      "max_utilization": 0.5
+    },
+    {
+      "id": "ETH_2",
+      "type": "ETH",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "eth2",
+      "speed_mbps": 1000,
+      "source_ipv4": "10.36.2.10",
+      "receiver_ipv4": "10.36.2.20",
+      "video_ipv4": "10.36.2.30",
+      "netmask": "255.255.255.0",
+      "vlan_id": 0,
+      "business_udp_port": 36100,
+      "feedback_udp_port": 36101,
+      "source_udp_port": 36102,
+      "video_udp_port": 36110,
+      "max_utilization": 0.5
+    },
+    {
+      "id": "ETH_3",
+      "type": "ETH",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "eth3",
+      "speed_mbps": 1000,
+      "source_ipv4": "10.36.3.10",
+      "receiver_ipv4": "10.36.3.20",
+      "video_ipv4": "10.36.3.30",
+      "netmask": "255.255.255.0",
+      "vlan_id": 0,
+      "business_udp_port": 36100,
+      "feedback_udp_port": 36101,
+      "source_udp_port": 36102,
+      "video_udp_port": 36110,
+      "max_utilization": 0.5
+    },
+    {
+      "id": "RS232_0",
+      "type": "RS232",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs2320",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS232_1",
+      "type": "RS232",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs2321",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS232_2",
+      "type": "RS232",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs2322",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS232_3",
+      "type": "RS232",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs2323",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_0",
+      "type": "RS422",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4220",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_1",
+      "type": "RS422",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4221",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_2",
+      "type": "RS422",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4222",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_3",
+      "type": "RS422",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4223",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_4",
+      "type": "RS422",
+      "index": 4,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4224",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_5",
+      "type": "RS422",
+      "index": 5,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4225",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_6",
+      "type": "RS422",
+      "index": 6,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4226",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "RS422_7",
+      "type": "RS422",
+      "index": 7,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "rs4227",
+      "baud": 921600,
+      "data_bits": 8,
+      "parity": "NONE",
+      "stop_bits": 2,
+      "business_use": "AUXILIARY_RAW_BUS_STIMULUS_ONLY"
+    },
+    {
+      "id": "AD_0",
+      "type": "AD",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad0",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_1",
+      "type": "AD",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad1",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_2",
+      "type": "AD",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad2",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_3",
+      "type": "AD",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad3",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_4",
+      "type": "AD",
+      "index": 4,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad4",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_5",
+      "type": "AD",
+      "index": 5,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad5",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_6",
+      "type": "AD",
+      "index": 6,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad6",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "AD_7",
+      "type": "AD",
+      "index": 7,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ad7",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_0",
+      "type": "DA",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da0",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_1",
+      "type": "DA",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da1",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_2",
+      "type": "DA",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da2",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_3",
+      "type": "DA",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da3",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_4",
+      "type": "DA",
+      "index": 4,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da4",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_5",
+      "type": "DA",
+      "index": 5,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da5",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_6",
+      "type": "DA",
+      "index": 6,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da6",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "DA_7",
+      "type": "DA",
+      "index": 7,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "da7",
+      "min_v": -10,
+      "max_v": 10,
+      "unit": "V",
+      "safe_v": 0,
+      "sampling_hz": 1000,
+      "conversion": "PROJECT_CALIBRATION_TABLE_REQUIRED_BEFORE_ENABLE"
+    },
+    {
+      "id": "TTL_0",
+      "type": "TTL",
+      "index": 0,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl0",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_1",
+      "type": "TTL",
+      "index": 1,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl1",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_2",
+      "type": "TTL",
+      "index": 2,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl2",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_3",
+      "type": "TTL",
+      "index": 3,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl3",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_4",
+      "type": "TTL",
+      "index": 4,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl4",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_5",
+      "type": "TTL",
+      "index": 5,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl5",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_6",
+      "type": "TTL",
+      "index": 6,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl6",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_7",
+      "type": "TTL",
+      "index": 7,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl7",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_8",
+      "type": "TTL",
+      "index": 8,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl8",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_9",
+      "type": "TTL",
+      "index": 9,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl9",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_10",
+      "type": "TTL",
+      "index": 10,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl10",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_11",
+      "type": "TTL",
+      "index": 11,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl11",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_12",
+      "type": "TTL",
+      "index": 12,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl12",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_13",
+      "type": "TTL",
+      "index": 13,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl13",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_14",
+      "type": "TTL",
+      "index": 14,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl14",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    },
+    {
+      "id": "TTL_15",
+      "type": "TTL",
+      "index": 15,
+      "implementation": "REQUIRED_DRIVER",
+      "qualified": false,
+      "device_binding": "ttl15",
+      "low_v": 0,
+      "high_v": 3.3,
+      "input_low_max_v": 0.8,
+      "input_high_min_v": 2,
+      "boot_direction": "INPUT",
+      "safe_level": false,
+      "max_toggle_hz": 1000
+    }
+  ],
+  "model_bindings": [
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "flight_control.throttle",
+      "target_field": "throttle",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "flight_control.roll_cmd",
+      "target_field": "roll_cmd",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "flight_control.pitch_cmd",
+      "target_field": "pitch_cmd",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "flight_control.yaw_cmd",
+      "target_field": "yaw_cmd",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.wind_n_mps",
+      "target_field": "wind_n_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.wind_e_mps",
+      "target_field": "wind_e_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.wind_d_mps",
+      "target_field": "wind_d_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.pressure_pa",
+      "target_field": "pressure_pa",
+      "type": "double",
+      "dimension": 1,
+      "unit": "Pa",
+      "min": 1000,
+      "max": 120000,
+      "default": 101325,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.temperature_k",
+      "target_field": "temperature_k",
+      "type": "double",
+      "dimension": 1,
+      "unit": "K",
+      "min": 150,
+      "max": 350,
+      "default": 288.15,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "environment.ground_height_m",
+      "target_field": "ground_height_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 10000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.gps_bias_n_m",
+      "target_field": "gps_bias_n_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.gps_bias_e_m",
+      "target_field": "gps_bias_e_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.gps_bias_d_m",
+      "target_field": "gps_bias_d_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.imu_bias_p_radps",
+      "target_field": "imu_bias_p_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.imu_bias_q_radps",
+      "target_field": "imu_bias_q_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.imu_bias_r_radps",
+      "target_field": "imu_bias_r_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.motor_1_failed",
+      "target_field": "motor_1_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.motor_2_failed",
+      "target_field": "motor_2_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.motor_3_failed",
+      "target_field": "motor_3_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.motor_4_failed",
+      "target_field": "motor_4_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.command_delay_ms",
+      "target_field": "command_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.sensor_delay_ms",
+      "target_field": "sensor_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "fault.packet_loss_ratio",
+      "target_field": "packet_loss_ratio",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.mass_kg",
+      "target_field": "uav_mass_kg",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg",
+      "min": 0.1,
+      "max": 100,
+      "default": 2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.inertia_xx_kgm2",
+      "target_field": "uav_inertia_xx_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.03,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.inertia_yy_kgm2",
+      "target_field": "uav_inertia_yy_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.03,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.inertia_zz_kgm2",
+      "target_field": "uav_inertia_zz_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.05,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.linear_drag_ns_m",
+      "target_field": "uav_linear_drag_ns_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*s/m",
+      "min": 0,
+      "max": 100,
+      "default": 0.2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.angular_drag_nms",
+      "target_field": "uav_angular_drag_nms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*m*s",
+      "min": 0,
+      "max": 100,
+      "default": 0.02,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.wind_n_bias_mps",
+      "target_field": "uav_wind_n_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.wind_e_bias_mps",
+      "target_field": "uav_wind_e_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.wind_d_bias_mps",
+      "target_field": "uav_wind_d_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "fixed_wing_hil",
+      "path": "parameters.wing_area_m2",
+      "target_field": "uav_wing_area_m2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m2",
+      "min": 0.01,
+      "max": 20,
+      "default": 0.25,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "flight_control.motor_command",
+      "target_field": "motor_command",
+      "type": "double",
+      "dimension": 6,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.wind_n_mps",
+      "target_field": "wind_n_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.wind_e_mps",
+      "target_field": "wind_e_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.wind_d_mps",
+      "target_field": "wind_d_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.pressure_pa",
+      "target_field": "pressure_pa",
+      "type": "double",
+      "dimension": 1,
+      "unit": "Pa",
+      "min": 1000,
+      "max": 120000,
+      "default": 101325,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.temperature_k",
+      "target_field": "temperature_k",
+      "type": "double",
+      "dimension": 1,
+      "unit": "K",
+      "min": 150,
+      "max": 350,
+      "default": 288.15,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "environment.ground_height_m",
+      "target_field": "ground_height_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 10000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.gps_bias_n_m",
+      "target_field": "gps_bias_n_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.gps_bias_e_m",
+      "target_field": "gps_bias_e_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.gps_bias_d_m",
+      "target_field": "gps_bias_d_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.imu_bias_p_radps",
+      "target_field": "imu_bias_p_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.imu_bias_q_radps",
+      "target_field": "imu_bias_q_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.imu_bias_r_radps",
+      "target_field": "imu_bias_r_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_1_failed",
+      "target_field": "motor_1_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_2_failed",
+      "target_field": "motor_2_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_3_failed",
+      "target_field": "motor_3_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_4_failed",
+      "target_field": "motor_4_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.command_delay_ms",
+      "target_field": "command_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.sensor_delay_ms",
+      "target_field": "sensor_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.packet_loss_ratio",
+      "target_field": "packet_loss_ratio",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.mass_kg",
+      "target_field": "uav_mass_kg",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg",
+      "min": 0.1,
+      "max": 100,
+      "default": 2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.inertia_xx_kgm2",
+      "target_field": "uav_inertia_xx_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.03,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.inertia_yy_kgm2",
+      "target_field": "uav_inertia_yy_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.03,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.inertia_zz_kgm2",
+      "target_field": "uav_inertia_zz_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.0001,
+      "max": 10,
+      "default": 0.05,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.linear_drag_ns_m",
+      "target_field": "uav_linear_drag_ns_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*s/m",
+      "min": 0,
+      "max": 100,
+      "default": 0.2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.angular_drag_nms",
+      "target_field": "uav_angular_drag_nms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*m*s",
+      "min": 0,
+      "max": 100,
+      "default": 0.02,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.wind_n_bias_mps",
+      "target_field": "uav_wind_n_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.wind_e_bias_mps",
+      "target_field": "uav_wind_e_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.wind_d_bias_mps",
+      "target_field": "uav_wind_d_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "parameters.thrust_coefficient_n",
+      "target_field": "uav_thrust_coefficient_n",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N",
+      "min": 0.01,
+      "max": 100,
+      "default": 4.2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_DECLARATION_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "flight_control.motor_command",
+      "target_field": "motor_command",
+      "type": "double",
+      "dimension": 4,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "ZERO_ON_100MS_TIMEOUT"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.wind_n_mps",
+      "target_field": "wind_n_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.wind_e_mps",
+      "target_field": "wind_e_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.wind_d_mps",
+      "target_field": "wind_d_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -50,
+      "max": 50,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.pressure_pa",
+      "target_field": "pressure_pa",
+      "type": "double",
+      "dimension": 1,
+      "unit": "Pa",
+      "min": 1000,
+      "max": 120000,
+      "default": 101325,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.temperature_k",
+      "target_field": "temperature_k",
+      "type": "double",
+      "dimension": 1,
+      "unit": "K",
+      "min": 150,
+      "max": 350,
+      "default": 288.15,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "environment.ground_height_m",
+      "target_field": "ground_height_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 10000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_CONFIGURED_DEFAULT_ON_SESSION_END"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.gps_bias_n_m",
+      "target_field": "gps_bias_n_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.gps_bias_e_m",
+      "target_field": "gps_bias_e_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.gps_bias_d_m",
+      "target_field": "gps_bias_d_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m",
+      "min": -1000,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.imu_bias_p_radps",
+      "target_field": "imu_bias_p_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.imu_bias_q_radps",
+      "target_field": "imu_bias_q_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.imu_bias_r_radps",
+      "target_field": "imu_bias_r_radps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "rad/s",
+      "min": -10,
+      "max": 10,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.motor_1_failed",
+      "target_field": "motor_1_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.motor_2_failed",
+      "target_field": "motor_2_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.motor_3_failed",
+      "target_field": "motor_3_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.motor_4_failed",
+      "target_field": "motor_4_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.command_delay_ms",
+      "target_field": "command_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.sensor_delay_ms",
+      "target_field": "sensor_delay_ms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "ms",
+      "min": 0,
+      "max": 1000,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "fault.packet_loss_ratio",
+      "target_field": "packet_loss_ratio",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "binding": "hil_contract_set_input",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MODEL_INPUT_WRITE_AND_RESPONSE",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.mass_kg",
+      "target_field": "uav_mass_kg",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg",
+      "min": 0.2,
+      "max": 25,
+      "default": 1.5,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.inertia_xx_kgm2",
+      "target_field": "uav_inertia_xx_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.001,
+      "max": 2,
+      "default": 0.029,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.inertia_yy_kgm2",
+      "target_field": "uav_inertia_yy_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.001,
+      "max": 2,
+      "default": 0.029,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.inertia_zz_kgm2",
+      "target_field": "uav_inertia_zz_kgm2",
+      "type": "double",
+      "dimension": 1,
+      "unit": "kg*m2",
+      "min": 0.001,
+      "max": 4,
+      "default": 0.055,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.thrust_coefficient_n",
+      "target_field": "uav_thrust_coefficient_n",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N",
+      "min": 0.5,
+      "max": 20,
+      "default": 4.2,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.moment_coefficient_nm",
+      "target_field": "uav_moment_coefficient_nm",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*m",
+      "min": 0.001,
+      "max": 2,
+      "default": 0.08,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.linear_drag_ns_m",
+      "target_field": "uav_linear_drag_ns_m",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*s/m",
+      "min": 0,
+      "max": 20,
+      "default": 0.25,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.angular_drag_nms",
+      "target_field": "uav_angular_drag_nms",
+      "type": "double",
+      "dimension": 1,
+      "unit": "N*m*s",
+      "min": 0,
+      "max": 5,
+      "default": 0.02,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.wind_n_bias_mps",
+      "target_field": "uav_wind_n_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -30,
+      "max": 30,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.wind_e_bias_mps",
+      "target_field": "uav_wind_e_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -30,
+      "max": 30,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.wind_d_bias_mps",
+      "target_field": "uav_wind_d_bias_mps",
+      "type": "double",
+      "dimension": 1,
+      "unit": "m/s",
+      "min": -30,
+      "max": 30,
+      "default": 0,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "quadrotor_hil",
+      "path": "parameters.motor_efficiency",
+      "target_field": "uav_motor_efficiency",
+      "type": "double",
+      "dimension": 1,
+      "unit": "1",
+      "min": 0.2,
+      "max": 1.2,
+      "default": 1,
+      "binding": "EXPORTED_GLOBAL",
+      "status": "CURRENT_TEMPLATE_REQUIRES_BEHAVIOR_QUALIFICATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "PARAMETER_WRITE_AND_RESPONSE",
+      "safety": "RESTORE_INITIAL_ON_RESET"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_5_failed",
+      "target_field": "motor_5_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "REQUIRED_IMPLEMENTATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MOTOR_FAILED_ZERO_ACTUATOR_EFFECT",
+      "safety": "CLEAR_ON_CLEANUP"
+    },
+    {
+      "model_id": "multirotor_6_hil",
+      "path": "fault.motor_6_failed",
+      "target_field": "motor_6_failed",
+      "type": "bool",
+      "dimension": 1,
+      "unit": "bool",
+      "min": 0,
+      "max": 1,
+      "default": false,
+      "binding": "hil_contract_set_input",
+      "status": "REQUIRED_IMPLEMENTATION",
+      "apply": "TARGET_MODEL_STEP",
+      "invalid": "REJECT_NO_CLAMP",
+      "probe": "MOTOR_FAILED_ZERO_ACTUATOR_EFFECT",
+      "safety": "CLEAR_ON_CLEANUP"
+    }
+  ],
+  "required_implementations": [
+    {
+      "id": "INITIAL_STATE",
+      "definition": "InitialState",
+      "owner": "model_adapter.initialize_state",
+      "mode": "RESET_ONLY",
+      "semantics": "Initialize independent model state before first solver step; never write displayed outputs.",
+      "acceptance": "Initialization getters match all position/velocity/quaternion/rate fields at first step within 1e-9; airborne consistent with ground and model."
+    },
+    {
+      "id": "EXTENDED_ENVIRONMENT",
+      "definition": "EnvironmentExt",
+      "owner": "environment_adapter",
+      "mode": "LIVE",
+      "semantics": "Apply gust to base wind; temperature/pressure determine ideal-gas density unless explicitly selected extended density; gravity/noise/weather feed plant or rendering, never silently ignore.",
+      "acceptance": "Each nonzero field has actual consumer and E2 probe; gravity/forces/air-density impact E3, weather/illumination visible in video."
+    },
+    {
+      "id": "SYSTEM_STIMULUS",
+      "definition": "SystemStimulus",
+      "owner": "plant_subsystems_and_payload_adapter",
+      "mode": "LIVE",
+      "semantics": "Supply/load/fault are stimuli. Outputs RPM/fuel/hydraulic/electrical are derived from subsystems, not echoed as model truth.",
+      "acceptance": "All fields connected to subsystem equations and response probes; no fabricated observations."
+    },
+    {
+      "id": "HEX_MOTOR_FAULTS",
+      "definition": "FaultHex",
+      "owner": "generated_model_contract_and_plant",
+      "mode": "LIVE",
+      "semantics": "Motor failures 1..6 force corresponding effective actuator to 0 without changing submitted input trace.",
+      "acceptance": "Six independent faults and clear tested; generated contract and getter include fields 5,6."
+    },
+    {
+      "id": "MISSION_CONTROLLER",
+      "definition": "MissionLoad",
+      "owner": "declared_controller_or_provided_GCS",
+      "mode": "CONTROLLER_INPUT",
+      "semantics": "Explicit model kind capability: demo controller quadrotor only; fixed-wing and six-motor missions must go to PX4/physical UUT/GCS.",
+      "acceptance": "All task/geometry/waypoint actions consumed by selected controller and independently observed; cannot return model APPLIED for forwarding only."
+    },
+    {
+      "id": "FAULT_SEMANTICS",
+      "definition": "FaultQuad",
+      "owner": "sensor_adapter_and_plant",
+      "mode": "LIVE",
+      "semantics": "GPS/IMU bias applies to sensor outputs, not true plant position/rates; command_delay is FIFO delay, packet_loss independent Bernoulli, sensor_delay output queue.",
+      "acceptance": "True state and faulted sensor channels separately probed; initial simplistic model approximations replaced before acceptance."
+    },
+    {
+      "id": "PHYSICAL_IO",
+      "definition": "PhysicalChannelConfig",
+      "owner": "qualified_device_driver",
+      "mode": "CONFIGURED_OR_PAUSED",
+      "semantics": "Actual driver owns finite serial/analog/digital/CAN ports; raw bytes are not business model input until registered mapping.",
+      "acceptance": "Hardware loopback/calibration/safety/electrical isolation required; capability false until qualified."
+    },
+    {
+      "id": "VIDEO",
+      "definition": "VideoConfig",
+      "owner": "video_service_and_injection_device",
+      "mode": "SERVICE_AND_MODEL_STEP",
+      "semantics": "Decode/preprocess/PTS trigger actual frames; 2 RS422 sync pins owned by image injector, not UART.",
+      "acceptance": "Frame consume probe and real output captured, phase/events synchronized within configured threshold."
+    },
+    {
+      "id": "EVIDENCE_AND_FORMAL_RECEIVER",
+      "definition": "Evidence",
+      "owner": "common_formal_receiver",
+      "mode": "ALL",
+      "semantics": "Single interface receiver for both source implementations; E2 only generated by actual consumer/model write.",
+      "acceptance": "Per-message sequence/transaction/E0..E3 tests plus unchanged code hash replacement."
+    },
+    {
+      "id": "SENSOR_VALIDITY_AND_STALE",
+      "definition": "SensorFault",
+      "owner": "sensor_adapter",
+      "mode": "LIVE",
+      "semantics": "GPS validity/fix and IMU freeze/age are sensor-only effects; never overwrite plant truth.",
+      "acceptance": "T08 proves UUT sees NO_FIX/invalid and stale sample timestamps, and actual failsafe response."
+    }
+  ],
+  "codecs": {
+    "CANFD": {
+      "frame_bytes": 64,
+      "fd": true,
+      "brs": true,
+      "identifier": "STANDARD_11_BIT",
+      "byte_order": "LITTLE_ENDIAN",
+      "header_bytes": 24,
+      "chunk_bytes": 38,
+      "crc_offset": 62,
+      "padding_hex": "00",
+      "max_fragments": 7,
+      "reassembly_timeout_ms": 20,
+      "fields": [
+        [
+          "major",
+          0,
+          1,
+          "u8",
+          1
+        ],
+        [
+          "minor",
+          1,
+          1,
+          "u8",
+          0
+        ],
+        [
+          "flags",
+          2,
+          1,
+          "u8",
+          0
+        ],
+        [
+          "chunk_length",
+          3,
+          1,
+          "u8",
+          0
+        ],
+        [
+          "session",
+          4,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "sequence",
+          8,
+          4,
+          "u32le",
+          1
+        ],
+        [
+          "target_step",
+          12,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "transaction",
+          16,
+          4,
+          "u32le",
+          1
+        ],
+        [
+          "fragment_index",
+          20,
+          1,
+          "u8",
+          0
+        ],
+        [
+          "fragment_count",
+          21,
+          1,
+          "u8",
+          1
+        ],
+        [
+          "valid_for_ms",
+          22,
+          2,
+          "u16le",
+          100
+        ],
+        [
+          "payload",
+          24,
+          38,
+          "bytes",
+          null
+        ],
+        [
+          "crc",
+          62,
+          2,
+          "u16le",
+          null
+        ]
+      ],
+      "crc": {
+        "name": "CRC16_CCITT_FALSE",
+        "poly": "1021",
+        "init": "ffff",
+        "refin": false,
+        "refout": false,
+        "xorout": "0000",
+        "check_123456789": "29b1",
+        "coverage": "CAN_ID_U16LE || FRAME_BYTES_0_TO_61"
+      }
+    },
+    "UDP": {
+      "ipv4": true,
+      "max_datagram_bytes": 1200,
+      "header_bytes": 40,
+      "chunk_bytes": 1160,
+      "byte_order": "LITTLE_ENDIAN",
+      "max_fragments": 57,
+      "reassembly_timeout_ms": 100,
+      "flags": 0,
+      "reserved": 0,
+      "fields": [
+        [
+          "magic",
+          0,
+          4,
+          "ASCII",
+          "HIL1"
+        ],
+        [
+          "major",
+          4,
+          1,
+          "u8",
+          1
+        ],
+        [
+          "minor",
+          5,
+          1,
+          "u8",
+          0
+        ],
+        [
+          "flags",
+          6,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "session",
+          8,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "sequence",
+          12,
+          4,
+          "u32le",
+          1
+        ],
+        [
+          "target_step",
+          16,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "transaction",
+          20,
+          4,
+          "u32le",
+          1
+        ],
+        [
+          "fragment_index",
+          24,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "fragment_count",
+          26,
+          2,
+          "u16le",
+          1
+        ],
+        [
+          "payload_length",
+          28,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "valid_for_ms",
+          30,
+          2,
+          "u16le",
+          100
+        ],
+        [
+          "message_id",
+          32,
+          2,
+          "u16le",
+          1
+        ],
+        [
+          "reserved",
+          34,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "crc",
+          36,
+          4,
+          "u32le",
+          null
+        ],
+        [
+          "payload",
+          40,
+          1160,
+          "bytes",
+          null
+        ]
+      ],
+      "crc": {
+        "name": "CRC32_ISO_HDLC",
+        "poly": "04c11db7",
+        "init": "ffffffff",
+        "refin": true,
+        "refout": true,
+        "xorout": "ffffffff",
+        "check_123456789": "cbf43926",
+        "coverage": "HEADER_BYTES_0_TO_35 || ACTUAL_PAYLOAD"
+      }
+    },
+    "VIDEO": {
+      "magic": "HIV1",
+      "port": 36110,
+      "header_bytes": 48,
+      "chunk_bytes": 1152,
+      "max_datagram_bytes": 1200,
+      "max_frame_bytes": 2097152,
+      "max_fragments": 1821,
+      "queue_frames": 4,
+      "reassembly_timeout_ms": 100,
+      "fields": [
+        [
+          "magic",
+          0,
+          4,
+          "ASCII",
+          "HIV1"
+        ],
+        [
+          "major",
+          4,
+          1,
+          "u8",
+          1
+        ],
+        [
+          "codec",
+          5,
+          1,
+          "u8enum",
+          null
+        ],
+        [
+          "flags",
+          6,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "session",
+          8,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "stream_numeric_id",
+          12,
+          4,
+          "u32le",
+          1
+        ],
+        [
+          "frame_index",
+          16,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "capture_step",
+          20,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "pts_us",
+          24,
+          8,
+          "u64le",
+          0
+        ],
+        [
+          "fragment_index",
+          32,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "fragment_count",
+          34,
+          2,
+          "u16le",
+          1
+        ],
+        [
+          "frame_bytes",
+          36,
+          4,
+          "u32le",
+          0
+        ],
+        [
+          "chunk_length",
+          40,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "reserved",
+          42,
+          2,
+          "u16le",
+          0
+        ],
+        [
+          "crc32",
+          44,
+          4,
+          "u32le",
+          null
+        ],
+        [
+          "payload",
+          48,
+          1152,
+          "bytes",
+          null
+        ]
+      ],
+      "codec_codes": {
+        "H264": 0,
+        "H265": 1,
+        "RAW": 2
+      },
+      "crc": "CRC32_ISO_HDLC_OVER_BYTES_0_TO_43_AND_ACTUAL_PAYLOAD",
+      "payload": "ONE_H264_OR_H265_ANNEX_B_ACCESS_UNIT_OR_COMPLETE_RAW_BGR24_FRAME"
+    }
+  },
+  "policy": {
+    "model_step_us": 1000,
+    "model_step_jitter_us": 10,
+    "full_system_cycle_ms": 80,
+    "full_system_cycle_jitter_ms": 1,
+    "control_period_ms": 20,
+    "control_timeout_ms": 100,
+    "heartbeat_period_ms": 20,
+    "session_lease_ms": 1000,
+    "max_run_duration_steps": 86400000,
+    "queue_capacity": 4096,
+    "reassembly_slots_per_channel": 64,
+    "total_reassembly_limit_bytes": 8388608,
+    "duplicate_cache_messages": 8192,
+    "duplicate_retention_ms": 5000,
+    "max_ahead_steps": 1000,
+    "late_step_tolerance": 0,
+    "ack_timeout_ms": 200,
+    "resource_commit_timeout_ms": 10000,
+    "model_apply_ack_timeout_ms": 100,
+    "video_pts_tolerance_us": 1000,
+    "transport_jitter_budget_us": 1000,
+    "max_channel_utilization": 0.5,
+    "max_resource_bps": 20000000,
+    "max_json_message_bytes": 65536,
+    "replacement_allowed_changes": [
+      "SOURCE_ENDPOINT",
+      "DEVICE_ID",
+      "CREDENTIAL_REF",
+      "AUTHORIZATION_REF",
+      "DEPLOYMENT_BINDING"
+    ],
+    "defaults_policy": "UI_INITIAL_VALUES_ONLY_ALL_REQUIRED_FIELDS_SENT_NO_RECEIVER_SILENT_FILL",
+    "unknown_field_policy": "REJECT",
+    "unknown_message_policy": "REJECT",
+    "nan_inf_policy": "REJECT",
+    "range_policy": "REJECT_NO_CLAMP",
+    "conflict_policy": "SINGLE_WRITER_AND_ATOMIC_TRANSACTION",
+    "deadline_policy": "REJECT_LATE_OR_EXPIRED_REPORT_SAFETY",
+    "resume_policy": "CLEAR_QUEUES_NEW_SESSION_NO_CATCH_UP",
+    "authorization_policy": "ISOLATED_LAB_ACL_SESSION_ROLE_NO_CRC_AUTHENTICATION",
+    "unsigned64_max_decimal": "18446744073709551615"
+  },
+  "toolchains": [
+    {
+      "id": "CANT",
+      "tools": [
+        "cantools",
+        "python-can",
+        "SocketCAN_OR_QUALIFIED_VENDOR_SDK"
+      ],
+      "role": "SEND",
+      "transport": "CANFD",
+      "qualification": "REQUIRED"
+    },
+    {
+      "id": "CUTIL",
+      "tools": [
+        "can-utils",
+        "SocketCAN"
+      ],
+      "role": "OBSERVE_OR_AUTHORIZED_SEND",
+      "transport": "CANFD",
+      "qualification": "REQUIRED"
+    },
+    {
+      "id": "SAVVY",
+      "tools": [
+        "SavvyCAN",
+        "SocketCAN"
+      ],
+      "role": "OBSERVE_OR_AUTHORIZED_SEND",
+      "transport": "CANFD",
+      "qualification": "REQUIRED"
+    },
+    {
+      "id": "CANREPLAY",
+      "tools": [
+        "CAN_LOG",
+        "canplayer",
+        "SocketCAN"
+      ],
+      "role": "REPLAY_ONLY_VALIDATED_RAW_OR_REENCODE_UPSTREAM",
+      "transport": "CANFD",
+      "qualification": "REQUIRED"
+    },
+    {
+      "id": "ETHGEN",
+      "tools": [
+        "Ostinato_OR_Scapy",
+        "AUTOMOTIVE_ETHERNET"
+      ],
+      "role": "SEND",
+      "transport": "UDP",
+      "qualification": "REQUIRED"
+    },
+    {
+      "id": "ETHREPLAY",
+      "tools": [
+        "PCAP_OR_PCAPNG",
+        "tcpreplay",
+        "AUTOMOTIVE_ETHERNET"
+      ],
+      "role": "RAW_VALIDATED_OR_PREPROCESSED_NEW_SESSION",
+      "transport": "UDP",
+      "qualification": "REQUIRED"
+    }
+  ],
+  "model_message_matrix": {
+    "quadrotor_hil": [
+      "FlightQuad",
+      "FaultQuad",
+      "ActuatorQuad",
+      "TuneQuad"
+    ],
+    "multirotor_6_hil": [
+      "FlightHex",
+      "FaultHex",
+      "ActuatorHex",
+      "TuneHex"
+    ],
+    "fixed_wing_hil": [
+      "FlightFixed",
+      "FaultFixed",
+      "ActuatorFixed",
+      "TuneFixed"
+    ]
+  },
+  "probe_catalog": [
+    {
+      "id": 0,
+      "name": "NO_PROBE",
+      "meaning": "No actual consumer application has occurred"
+    },
+    {
+      "id": 1,
+      "name": "fixed_wing_hil.input.flight_control.throttle",
+      "model_id": "fixed_wing_hil",
+      "target": "flight_control.throttle",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 2,
+      "name": "fixed_wing_hil.input.flight_control.roll_cmd",
+      "model_id": "fixed_wing_hil",
+      "target": "flight_control.roll_cmd",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 3,
+      "name": "fixed_wing_hil.input.flight_control.pitch_cmd",
+      "model_id": "fixed_wing_hil",
+      "target": "flight_control.pitch_cmd",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 4,
+      "name": "fixed_wing_hil.input.flight_control.yaw_cmd",
+      "model_id": "fixed_wing_hil",
+      "target": "flight_control.yaw_cmd",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 5,
+      "name": "fixed_wing_hil.input.environment.wind_n_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.wind_n_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 6,
+      "name": "fixed_wing_hil.input.environment.wind_e_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.wind_e_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 7,
+      "name": "fixed_wing_hil.input.environment.wind_d_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.wind_d_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 8,
+      "name": "fixed_wing_hil.input.environment.pressure_pa",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.pressure_pa",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 9,
+      "name": "fixed_wing_hil.input.environment.temperature_k",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.temperature_k",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 10,
+      "name": "fixed_wing_hil.input.environment.ground_height_m",
+      "model_id": "fixed_wing_hil",
+      "target": "environment.ground_height_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 11,
+      "name": "fixed_wing_hil.input.fault.gps_bias_n_m",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.gps_bias_n_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 12,
+      "name": "fixed_wing_hil.input.fault.gps_bias_e_m",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.gps_bias_e_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 13,
+      "name": "fixed_wing_hil.input.fault.gps_bias_d_m",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.gps_bias_d_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 14,
+      "name": "fixed_wing_hil.input.fault.imu_bias_p_radps",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.imu_bias_p_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 15,
+      "name": "fixed_wing_hil.input.fault.imu_bias_q_radps",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.imu_bias_q_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 16,
+      "name": "fixed_wing_hil.input.fault.imu_bias_r_radps",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.imu_bias_r_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 17,
+      "name": "fixed_wing_hil.input.fault.motor_1_failed",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.motor_1_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 18,
+      "name": "fixed_wing_hil.input.fault.motor_2_failed",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.motor_2_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 19,
+      "name": "fixed_wing_hil.input.fault.motor_3_failed",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.motor_3_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 20,
+      "name": "fixed_wing_hil.input.fault.motor_4_failed",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.motor_4_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 21,
+      "name": "fixed_wing_hil.input.fault.command_delay_ms",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.command_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 22,
+      "name": "fixed_wing_hil.input.fault.sensor_delay_ms",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.sensor_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 23,
+      "name": "fixed_wing_hil.input.fault.packet_loss_ratio",
+      "model_id": "fixed_wing_hil",
+      "target": "fault.packet_loss_ratio",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 24,
+      "name": "fixed_wing_hil.input.parameters.mass_kg",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.mass_kg",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 25,
+      "name": "fixed_wing_hil.input.parameters.inertia_xx_kgm2",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.inertia_xx_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 26,
+      "name": "fixed_wing_hil.input.parameters.inertia_yy_kgm2",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.inertia_yy_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 27,
+      "name": "fixed_wing_hil.input.parameters.inertia_zz_kgm2",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.inertia_zz_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 28,
+      "name": "fixed_wing_hil.input.parameters.linear_drag_ns_m",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.linear_drag_ns_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 29,
+      "name": "fixed_wing_hil.input.parameters.angular_drag_nms",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.angular_drag_nms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 30,
+      "name": "fixed_wing_hil.input.parameters.wind_n_bias_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.wind_n_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 31,
+      "name": "fixed_wing_hil.input.parameters.wind_e_bias_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.wind_e_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 32,
+      "name": "fixed_wing_hil.input.parameters.wind_d_bias_mps",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.wind_d_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 33,
+      "name": "fixed_wing_hil.input.parameters.wing_area_m2",
+      "model_id": "fixed_wing_hil",
+      "target": "parameters.wing_area_m2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 34,
+      "name": "multirotor_6_hil.input.flight_control.motor_command",
+      "model_id": "multirotor_6_hil",
+      "target": "flight_control.motor_command",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 35,
+      "name": "multirotor_6_hil.input.environment.wind_n_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.wind_n_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 36,
+      "name": "multirotor_6_hil.input.environment.wind_e_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.wind_e_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 37,
+      "name": "multirotor_6_hil.input.environment.wind_d_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.wind_d_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 38,
+      "name": "multirotor_6_hil.input.environment.pressure_pa",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.pressure_pa",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 39,
+      "name": "multirotor_6_hil.input.environment.temperature_k",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.temperature_k",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 40,
+      "name": "multirotor_6_hil.input.environment.ground_height_m",
+      "model_id": "multirotor_6_hil",
+      "target": "environment.ground_height_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 41,
+      "name": "multirotor_6_hil.input.fault.gps_bias_n_m",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.gps_bias_n_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 42,
+      "name": "multirotor_6_hil.input.fault.gps_bias_e_m",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.gps_bias_e_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 43,
+      "name": "multirotor_6_hil.input.fault.gps_bias_d_m",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.gps_bias_d_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 44,
+      "name": "multirotor_6_hil.input.fault.imu_bias_p_radps",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.imu_bias_p_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 45,
+      "name": "multirotor_6_hil.input.fault.imu_bias_q_radps",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.imu_bias_q_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 46,
+      "name": "multirotor_6_hil.input.fault.imu_bias_r_radps",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.imu_bias_r_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 47,
+      "name": "multirotor_6_hil.input.fault.motor_1_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_1_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 48,
+      "name": "multirotor_6_hil.input.fault.motor_2_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_2_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 49,
+      "name": "multirotor_6_hil.input.fault.motor_3_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_3_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 50,
+      "name": "multirotor_6_hil.input.fault.motor_4_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_4_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 51,
+      "name": "multirotor_6_hil.input.fault.command_delay_ms",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.command_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 52,
+      "name": "multirotor_6_hil.input.fault.sensor_delay_ms",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.sensor_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 53,
+      "name": "multirotor_6_hil.input.fault.packet_loss_ratio",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.packet_loss_ratio",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 54,
+      "name": "multirotor_6_hil.input.parameters.mass_kg",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.mass_kg",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 55,
+      "name": "multirotor_6_hil.input.parameters.inertia_xx_kgm2",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.inertia_xx_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 56,
+      "name": "multirotor_6_hil.input.parameters.inertia_yy_kgm2",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.inertia_yy_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 57,
+      "name": "multirotor_6_hil.input.parameters.inertia_zz_kgm2",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.inertia_zz_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 58,
+      "name": "multirotor_6_hil.input.parameters.linear_drag_ns_m",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.linear_drag_ns_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 59,
+      "name": "multirotor_6_hil.input.parameters.angular_drag_nms",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.angular_drag_nms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 60,
+      "name": "multirotor_6_hil.input.parameters.wind_n_bias_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.wind_n_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 61,
+      "name": "multirotor_6_hil.input.parameters.wind_e_bias_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.wind_e_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 62,
+      "name": "multirotor_6_hil.input.parameters.wind_d_bias_mps",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.wind_d_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 63,
+      "name": "multirotor_6_hil.input.parameters.thrust_coefficient_n",
+      "model_id": "multirotor_6_hil",
+      "target": "parameters.thrust_coefficient_n",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 64,
+      "name": "quadrotor_hil.input.flight_control.motor_command",
+      "model_id": "quadrotor_hil",
+      "target": "flight_control.motor_command",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 65,
+      "name": "quadrotor_hil.input.environment.wind_n_mps",
+      "model_id": "quadrotor_hil",
+      "target": "environment.wind_n_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 66,
+      "name": "quadrotor_hil.input.environment.wind_e_mps",
+      "model_id": "quadrotor_hil",
+      "target": "environment.wind_e_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 67,
+      "name": "quadrotor_hil.input.environment.wind_d_mps",
+      "model_id": "quadrotor_hil",
+      "target": "environment.wind_d_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 68,
+      "name": "quadrotor_hil.input.environment.pressure_pa",
+      "model_id": "quadrotor_hil",
+      "target": "environment.pressure_pa",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 69,
+      "name": "quadrotor_hil.input.environment.temperature_k",
+      "model_id": "quadrotor_hil",
+      "target": "environment.temperature_k",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 70,
+      "name": "quadrotor_hil.input.environment.ground_height_m",
+      "model_id": "quadrotor_hil",
+      "target": "environment.ground_height_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 71,
+      "name": "quadrotor_hil.input.fault.gps_bias_n_m",
+      "model_id": "quadrotor_hil",
+      "target": "fault.gps_bias_n_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 72,
+      "name": "quadrotor_hil.input.fault.gps_bias_e_m",
+      "model_id": "quadrotor_hil",
+      "target": "fault.gps_bias_e_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 73,
+      "name": "quadrotor_hil.input.fault.gps_bias_d_m",
+      "model_id": "quadrotor_hil",
+      "target": "fault.gps_bias_d_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 74,
+      "name": "quadrotor_hil.input.fault.imu_bias_p_radps",
+      "model_id": "quadrotor_hil",
+      "target": "fault.imu_bias_p_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 75,
+      "name": "quadrotor_hil.input.fault.imu_bias_q_radps",
+      "model_id": "quadrotor_hil",
+      "target": "fault.imu_bias_q_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 76,
+      "name": "quadrotor_hil.input.fault.imu_bias_r_radps",
+      "model_id": "quadrotor_hil",
+      "target": "fault.imu_bias_r_radps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 77,
+      "name": "quadrotor_hil.input.fault.motor_1_failed",
+      "model_id": "quadrotor_hil",
+      "target": "fault.motor_1_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 78,
+      "name": "quadrotor_hil.input.fault.motor_2_failed",
+      "model_id": "quadrotor_hil",
+      "target": "fault.motor_2_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 79,
+      "name": "quadrotor_hil.input.fault.motor_3_failed",
+      "model_id": "quadrotor_hil",
+      "target": "fault.motor_3_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 80,
+      "name": "quadrotor_hil.input.fault.motor_4_failed",
+      "model_id": "quadrotor_hil",
+      "target": "fault.motor_4_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 81,
+      "name": "quadrotor_hil.input.fault.command_delay_ms",
+      "model_id": "quadrotor_hil",
+      "target": "fault.command_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 82,
+      "name": "quadrotor_hil.input.fault.sensor_delay_ms",
+      "model_id": "quadrotor_hil",
+      "target": "fault.sensor_delay_ms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 83,
+      "name": "quadrotor_hil.input.fault.packet_loss_ratio",
+      "model_id": "quadrotor_hil",
+      "target": "fault.packet_loss_ratio",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 84,
+      "name": "quadrotor_hil.input.parameters.mass_kg",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.mass_kg",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 85,
+      "name": "quadrotor_hil.input.parameters.inertia_xx_kgm2",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.inertia_xx_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 86,
+      "name": "quadrotor_hil.input.parameters.inertia_yy_kgm2",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.inertia_yy_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 87,
+      "name": "quadrotor_hil.input.parameters.inertia_zz_kgm2",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.inertia_zz_kgm2",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 88,
+      "name": "quadrotor_hil.input.parameters.thrust_coefficient_n",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.thrust_coefficient_n",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 89,
+      "name": "quadrotor_hil.input.parameters.moment_coefficient_nm",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.moment_coefficient_nm",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 90,
+      "name": "quadrotor_hil.input.parameters.linear_drag_ns_m",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.linear_drag_ns_m",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 91,
+      "name": "quadrotor_hil.input.parameters.angular_drag_nms",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.angular_drag_nms",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 92,
+      "name": "quadrotor_hil.input.parameters.wind_n_bias_mps",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.wind_n_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 93,
+      "name": "quadrotor_hil.input.parameters.wind_e_bias_mps",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.wind_e_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 94,
+      "name": "quadrotor_hil.input.parameters.wind_d_bias_mps",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.wind_d_bias_mps",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 95,
+      "name": "quadrotor_hil.input.parameters.motor_efficiency",
+      "model_id": "quadrotor_hil",
+      "target": "parameters.motor_efficiency",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 96,
+      "name": "multirotor_6_hil.input.fault.motor_5_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_5_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 97,
+      "name": "multirotor_6_hil.input.fault.motor_6_failed",
+      "model_id": "multirotor_6_hil",
+      "target": "fault.motor_6_failed",
+      "meaning": "Actual setter/getter probe, not sender acknowledgment"
+    },
+    {
+      "id": 1001,
+      "name": "consumer.SessionOpen",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 1
+    },
+    {
+      "id": 1002,
+      "name": "consumer.Heartbeat",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 2
+    },
+    {
+      "id": 1003,
+      "name": "consumer.RunConfigure",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 3
+    },
+    {
+      "id": 1004,
+      "name": "consumer.Lifecycle",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 4
+    },
+    {
+      "id": 1005,
+      "name": "consumer.InitialState",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 5
+    },
+    {
+      "id": 1006,
+      "name": "consumer.ControlOwner",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 6
+    },
+    {
+      "id": 1007,
+      "name": "consumer.FlightQuad",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 7
+    },
+    {
+      "id": 1008,
+      "name": "consumer.FlightHex",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 8
+    },
+    {
+      "id": 1009,
+      "name": "consumer.FlightFixed",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 9
+    },
+    {
+      "id": 1010,
+      "name": "consumer.Environment",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 10
+    },
+    {
+      "id": 1011,
+      "name": "consumer.FaultQuad",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 11
+    },
+    {
+      "id": 1012,
+      "name": "consumer.FaultHex",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 12
+    },
+    {
+      "id": 1013,
+      "name": "consumer.FaultFixed",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 13
+    },
+    {
+      "id": 1014,
+      "name": "consumer.ActuatorQuad",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 14
+    },
+    {
+      "id": 1015,
+      "name": "consumer.ActuatorHex",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 15
+    },
+    {
+      "id": 1016,
+      "name": "consumer.ActuatorFixed",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 16
+    },
+    {
+      "id": 1017,
+      "name": "consumer.TuneQuad",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 17
+    },
+    {
+      "id": 1018,
+      "name": "consumer.TuneHex",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 18
+    },
+    {
+      "id": 1019,
+      "name": "consumer.TuneFixed",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 19
+    },
+    {
+      "id": 1020,
+      "name": "consumer.MissionLoad",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 20
+    },
+    {
+      "id": 1021,
+      "name": "consumer.MissionControl",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 21
+    },
+    {
+      "id": 1022,
+      "name": "consumer.FlightCommand",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 22
+    },
+    {
+      "id": 1023,
+      "name": "consumer.Targets",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 23
+    },
+    {
+      "id": 1024,
+      "name": "consumer.EnvironmentExt",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 24
+    },
+    {
+      "id": 1025,
+      "name": "consumer.SystemStimulus",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 25
+    },
+    {
+      "id": 1026,
+      "name": "consumer.BusFault",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 26
+    },
+    {
+      "id": 1027,
+      "name": "consumer.SerialWrite",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 27
+    },
+    {
+      "id": 1028,
+      "name": "consumer.AnalogWrite",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 28
+    },
+    {
+      "id": 1029,
+      "name": "consumer.DigitalWrite",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 29
+    },
+    {
+      "id": 1030,
+      "name": "consumer.VideoConfig",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 30
+    },
+    {
+      "id": 1031,
+      "name": "consumer.VideoControl",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 31
+    },
+    {
+      "id": 1032,
+      "name": "consumer.VideoAnnotation",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 32
+    },
+    {
+      "id": 1033,
+      "name": "consumer.ClockSync",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 33
+    },
+    {
+      "id": 1034,
+      "name": "consumer.ResourceChunk",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 34
+    },
+    {
+      "id": 1035,
+      "name": "consumer.Query",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 35
+    },
+    {
+      "id": 1036,
+      "name": "consumer.RecordControl",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 36
+    },
+    {
+      "id": 1037,
+      "name": "consumer.Cleanup",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 37
+    },
+    {
+      "id": 1038,
+      "name": "consumer.SessionClose",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 38
+    },
+    {
+      "id": 1039,
+      "name": "consumer.SensorConfig",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 39
+    },
+    {
+      "id": 1040,
+      "name": "consumer.PhysicalChannelConfig",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 40
+    },
+    {
+      "id": 1041,
+      "name": "consumer.Terrain",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 41
+    },
+    {
+      "id": 1042,
+      "name": "consumer.Obstacles",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 42
+    },
+    {
+      "id": 1043,
+      "name": "consumer.VideoFrameMetadata",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 43
+    },
+    {
+      "id": 1129,
+      "name": "consumer.SessionOpened",
+      "meaning": "Actual feedback producer",
+      "message_id": 129
+    },
+    {
+      "id": 1130,
+      "name": "consumer.Ack",
+      "meaning": "Actual feedback producer",
+      "message_id": 130
+    },
+    {
+      "id": 1131,
+      "name": "consumer.Status",
+      "meaning": "Actual feedback producer",
+      "message_id": 131
+    },
+    {
+      "id": 1132,
+      "name": "consumer.State",
+      "meaning": "Actual feedback producer",
+      "message_id": 132
+    },
+    {
+      "id": 1133,
+      "name": "consumer.Sensors",
+      "meaning": "Actual feedback producer",
+      "message_id": 133
+    },
+    {
+      "id": 1134,
+      "name": "consumer.IOStatus",
+      "meaning": "Actual feedback producer",
+      "message_id": 134
+    },
+    {
+      "id": 1135,
+      "name": "consumer.VideoStatus",
+      "meaning": "Actual feedback producer",
+      "message_id": 135
+    },
+    {
+      "id": 1136,
+      "name": "consumer.TaskStatus",
+      "meaning": "Actual feedback producer",
+      "message_id": 136
+    },
+    {
+      "id": 1137,
+      "name": "consumer.RecordStatus",
+      "meaning": "Actual feedback producer",
+      "message_id": 137
+    },
+    {
+      "id": 1138,
+      "name": "consumer.Diagnostic",
+      "meaning": "Actual feedback producer",
+      "message_id": 138
+    },
+    {
+      "id": 1139,
+      "name": "consumer.Capabilities",
+      "meaning": "Actual feedback producer",
+      "message_id": 139
+    },
+    {
+      "id": 1140,
+      "name": "consumer.Evidence",
+      "meaning": "Actual feedback producer",
+      "message_id": 140
+    },
+    {
+      "id": 1141,
+      "name": "consumer.ResourceAck",
+      "meaning": "Actual feedback producer",
+      "message_id": 141
+    },
+    {
+      "id": 1142,
+      "name": "consumer.ClockStatus",
+      "meaning": "Actual feedback producer",
+      "message_id": 142
+    },
+    {
+      "id": 1044,
+      "name": "consumer.RawBus",
+      "meaning": "Actual receiving business consumer",
+      "message_id": 44
+    },
+    {
+      "id": 1045,
+      "name": "consumer.SensorFault",
+      "meaning": "Actual sensor fault adapter write and readback",
+      "message_id": 45
+    }
+  ]
+}

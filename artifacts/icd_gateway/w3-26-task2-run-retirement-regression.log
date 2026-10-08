@@ -1,0 +1,996 @@
+W3.26 Task 2 local run-session retirement progress
+Historical RED/GREEN outputs below precede final fixed-source verification.
+These tests do not qualify C model lifecycle, physical safety or RT.
+
+=== runRetirementInitialRed; exit_code=1 ===
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... FAIL
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... FAIL
+
+======================================================================
+FAIL: test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 45, in test_receiver_retirement_is_scoped_retained_and_not_model_success
+    self.assertTrue(hasattr(self.receiver,'retire_run'),'actual group retirement missing')
+AssertionError: False is not true : actual group retirement missing
+
+======================================================================
+FAIL: test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 37, in test_registry_resolves_all_original_sources_but_not_other_run
+    self.assertTrue(hasattr(self.registry,'run_session_ids'),'actual run-session resolver missing')
+AssertionError: False is not true : actual run-session resolver missing
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.190s
+
+FAILED (failures=2)
+
+=== runRetirementExpanded; exit_code=0 ===
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 6.937s
+
+OK
+
+=== runRetirementOwnerRed; exit_code=1 ===
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... FAIL
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ERROR
+
+======================================================================
+ERROR: test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 215, in test_replaced_owner_after_first_effect_keeps_original_partial_record
+    record=self.receiver.retire_run(self.sids[0],now_ns=0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\icd_gateway\receiver.py", line 251, in retire_run
+    retired=tuple(sid for sid in selected if sid not in self.registry.session_ids)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\icd_gateway\receiver.py", line 251, in <genexpr>
+    retired=tuple(sid for sid in selected if sid not in self.registry.session_ids)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'session_ids'
+
+======================================================================
+FAIL: test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 227, in test_closed_original_queue_refuses_retirement_before_deletion
+    self.rejects('STATE',lambda:self.receiver.retire_run(self.sids[0],now_ns=0))
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\common.py", line 24, in rejects
+    with self.assertRaises(ICDError) as error:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ICDError not raised
+
+----------------------------------------------------------------------
+Ran 3 tests in 1.781s
+
+FAILED (failures=1, errors=1)
+
+=== runRetirementOwnerGreen; exit_code=0 ===
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 8.213s
+
+OK
+
+=== runRetirementResourceGreen; exit_code=0 ===
+test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early (test_run_retirement.RunRetirementTests.test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early) ... ok
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 9.331s
+
+OK
+
+=== runRetirementReviewRedReentrant; exit_code=1 ===
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... FAIL
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+
+======================================================================
+FAIL: test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 271, in test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups
+    self.assertIsNone(record.error)
+AssertionError: 'RESOURCE' is not None
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.188s
+
+FAILED (failures=1)
+
+=== runRetirementReviewRedWorker; exit_code=1 ===
+test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation) ... FAIL
+
+======================================================================
+FAIL: test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 290, in test_other_registry_actual_worker_is_rejected_before_wrong_cancellation
+    self.rejects('STATE',lambda:self.receiver.retire_run(self.sids[0],now_ns=0))
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\common.py", line 24, in rejects
+    with self.assertRaises(ICDError) as error:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ICDError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.644s
+
+FAILED (failures=1)
+
+=== runRetirementReentrantGreen; exit_code=0 ===
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.215s
+
+OK
+
+=== runRetirementReviewGreen; exit_code=0 ===
+test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early (test_run_retirement.RunRetirementTests.test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early) ... ok
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 10.388s
+
+OK
+
+=== runRetirementWorkerCallbackRed; exit_code=1 ===
+test_worker_replaced_inside_callback_cannot_cancel_foreign_session (test_run_retirement.RunRetirementTests.test_worker_replaced_inside_callback_cannot_cancel_foreign_session) ... FAIL
+
+======================================================================
+FAIL: test_worker_replaced_inside_callback_cannot_cancel_foreign_session (test_run_retirement.RunRetirementTests.test_worker_replaced_inside_callback_cannot_cancel_foreign_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\裴鹏飞\Desktop\hil_simulation\tests\icd_gateway\test_run_retirement.py", line 314, in test_worker_replaced_inside_callback_cannot_cancel_foreign_session
+    self.assertEqual(record.retired_sessions,())
+AssertionError: Tuples differ: (1301736881,) != ()
+
+First tuple contains 1 additional elements.
+First extra element 0:
+1301736881
+
+- (1301736881,)
++ ()
+
+----------------------------------------------------------------------
+Ran 1 test in 0.658s
+
+FAILED (failures=1)
+
+=== runRetirementCallbackGreen; exit_code=0 ===
+test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early (test_run_retirement.RunRetirementTests.test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early) ... ok
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+test_worker_replaced_inside_callback_cannot_cancel_foreign_session (test_run_retirement.RunRetirementTests.test_worker_replaced_inside_callback_cannot_cancel_foreign_session) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 10.904s
+
+OK
+
+=== runRetirementFinalFocused; exit_code=0 ===
+test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early (test_run_retirement.RunRetirementTests.test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early) ... ok
+test_closed_actual_worker_rejects_before_local_session_deletion (test_run_retirement.RunRetirementTests.test_closed_actual_worker_rejects_before_local_session_deletion) ... ok
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_original_worker_binding_cannot_be_adopted_by_historical_retry (test_run_retirement.RunRetirementTests.test_original_worker_binding_cannot_be_adopted_by_historical_retry) ... ok
+test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+test_worker_replaced_after_first_effect_preserves_partial_record (test_run_retirement.RunRetirementTests.test_worker_replaced_after_first_effect_preserves_partial_record) ... ok
+test_worker_replaced_inside_callback_cannot_cancel_foreign_session (test_run_retirement.RunRetirementTests.test_worker_replaced_inside_callback_cannot_cancel_foreign_session) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 13.504s
+
+OK
+
+=== FINAL_FIXED_158_SOURCE_RELATED_VERIFICATION ===
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_run_retirement.py -v
+EXIT_CODE: 0
+test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early (test_run_retirement.RunRetirementTests.test_actual_resource_worker_cancels_staging_without_claiming_file_cleanup_early) ... ok
+test_closed_actual_worker_rejects_before_local_session_deletion (test_run_retirement.RunRetirementTests.test_closed_actual_worker_rejects_before_local_session_deletion) ... ok
+test_closed_original_queue_refuses_retirement_before_deletion (test_run_retirement.RunRetirementTests.test_closed_original_queue_refuses_retirement_before_deletion) ... ok
+test_context_selection_does_not_cross_vehicle_scenario_or_model (test_run_retirement.RunRetirementTests.test_context_selection_does_not_cross_vehicle_scenario_or_model) ... ok
+test_exact_local_retry_returns_old_record_without_adopting_new_sid (test_run_retirement.RunRetirementTests.test_exact_local_retry_returns_old_record_without_adopting_new_sid) ... ok
+test_exception_retains_actual_partial_deletion_and_does_not_restart (test_run_retirement.RunRetirementTests.test_exception_retains_actual_partial_deletion_and_does_not_restart) ... ok
+test_history_is_immutable_and_survives_close (test_run_retirement.RunRetirementTests.test_history_is_immutable_and_survives_close) ... ok
+test_matching_expired_actor_is_selected_without_unrelated_maintenance (test_run_retirement.RunRetirementTests.test_matching_expired_actor_is_selected_without_unrelated_maintenance) ... ok
+test_original_worker_binding_cannot_be_adopted_by_historical_retry (test_run_retirement.RunRetirementTests.test_original_worker_binding_cannot_be_adopted_by_historical_retry) ... ok
+test_other_registry_actual_worker_is_rejected_before_wrong_cancellation (test_run_retirement.RunRetirementTests.test_other_registry_actual_worker_is_rejected_before_wrong_cancellation) ... ok
+test_queue_fragment_cache_and_model_step_provenance_are_preserved (test_run_retirement.RunRetirementTests.test_queue_fragment_cache_and_model_step_provenance_are_preserved) ... ok
+test_receiver_retirement_is_scoped_retained_and_not_model_success (test_run_retirement.RunRetirementTests.test_receiver_retirement_is_scoped_retained_and_not_model_success) ... ok
+test_record_byte_and_input_capacity_fail_before_deletion (test_run_retirement.RunRetirementTests.test_record_byte_and_input_capacity_fail_before_deletion) ... ok
+test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups (test_run_retirement.RunRetirementTests.test_reentrant_ingress_and_retirement_cannot_add_or_delete_uncaptured_groups) ... ok
+test_reentrant_shutdown_cannot_partially_close_the_receiver (test_run_retirement.RunRetirementTests.test_reentrant_shutdown_cannot_partially_close_the_receiver) ... ok
+test_registry_resolves_all_original_sources_but_not_other_run (test_run_retirement.RunRetirementTests.test_registry_resolves_all_original_sources_but_not_other_run) ... ok
+test_regressed_time_and_changed_registry_reject_before_mutation (test_run_retirement.RunRetirementTests.test_regressed_time_and_changed_registry_reject_before_mutation) ... ok
+test_replaced_owner_after_first_effect_keeps_original_partial_record (test_run_retirement.RunRetirementTests.test_replaced_owner_after_first_effect_keeps_original_partial_record) ... ok
+test_strict_origins_and_uint64_times_never_delete_or_allocate (test_run_retirement.RunRetirementTests.test_strict_origins_and_uint64_times_never_delete_or_allocate) ... ok
+test_worker_replaced_after_first_effect_preserves_partial_record (test_run_retirement.RunRetirementTests.test_worker_replaced_after_first_effect_preserves_partial_record) ... ok
+test_worker_replaced_inside_callback_cannot_cancel_foreign_session (test_run_retirement.RunRetirementTests.test_worker_replaced_inside_callback_cannot_cancel_foreign_session) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 13.954s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_retirement.py -v
+EXIT_CODE: 0
+test_both_messages_require_all_nine_operations_and_no_success_is_claimed (test_retirement.CleanupGuardTests.test_both_messages_require_all_nine_operations_and_no_success_is_claimed) ... ok
+test_cleanup_accepts_safety_boundary_in_all_states_including_failed (test_retirement.CleanupGuardTests.test_cleanup_accepts_safety_boundary_in_all_states_including_failed) ... ok
+test_false_missing_extra_and_non_boolean_cleanup_fields_are_rejected (test_retirement.CleanupGuardTests.test_false_missing_extra_and_non_boolean_cleanup_fields_are_rejected) ... ok
+test_model_cleanup_running_and_frozen_targets_obey_actual_boundary (test_retirement.CleanupGuardTests.test_model_cleanup_running_and_frozen_targets_obey_actual_boundary) ... ok
+test_session_close_preserves_each_explicit_reason_and_rejects_other_messages (test_retirement.CleanupGuardTests.test_session_close_preserves_each_explicit_reason_and_rejects_other_messages) ... ok
+test_session_close_uses_actual_service_boundary_not_future_or_late_header_target (test_retirement.CleanupGuardTests.test_session_close_uses_actual_service_boundary_not_future_or_late_header_target) ... ok
+test_failed_maintenance_clock_preflight_does_not_delete_any_resource (test_retirement.RetirementTests.test_failed_maintenance_clock_preflight_does_not_delete_any_resource) ... ok
+test_idle_queue_maintenance_preserves_original_rejections_and_other_session (test_retirement.RetirementTests.test_idle_queue_maintenance_preserves_original_rejections_and_other_session) ... ok
+test_idle_revoke_releases_fragments_even_without_pending_model_input (test_retirement.RetirementTests.test_idle_revoke_releases_fragments_even_without_pending_model_input) ... ok
+test_implicit_ingress_maintenance_keeps_original_rejection_until_drained (test_retirement.RetirementTests.test_implicit_ingress_maintenance_keeps_original_rejection_until_drained) ... ok
+test_inactive_cleanup_preserves_pending_pre_session_zero_until_shutdown (test_retirement.RetirementTests.test_inactive_cleanup_preserves_pending_pre_session_zero_until_shutdown) ... ok
+test_maintenance_capacity_is_local_strict_and_cannot_expand_protocol_limits (test_retirement.RetirementTests.test_maintenance_capacity_is_local_strict_and_cannot_expand_protocol_limits) ... ok
+test_maintenance_mailbox_full_refuses_deletion_until_prior_records_drained (test_retirement.RetirementTests.test_maintenance_mailbox_full_refuses_deletion_until_prior_records_drained) ... ok
+test_maintenance_preview_is_read_only_and_its_sessions_are_strict (test_retirement.RetirementTests.test_maintenance_preview_is_read_only_and_its_sessions_are_strict) ... ok
+test_reassembler_inactive_filter_is_strict_and_clear_preserves_clock (test_retirement.RetirementTests.test_reassembler_inactive_filter_is_strict_and_clear_preserves_clock) ... ok
+test_receiver_close_clears_revoked_fragments_and_returns_all_original_inputs (test_retirement.RetirementTests.test_receiver_close_clears_revoked_fragments_and_returns_all_original_inputs) ... ok
+test_receiver_idle_expiry_releases_queue_without_a_model_step (test_retirement.RetirementTests.test_receiver_idle_expiry_releases_queue_without_a_model_step) ... ok
+test_receiver_retirement_releases_only_named_fragments_and_queue (test_retirement.RetirementTests.test_receiver_retirement_releases_only_named_fragments_and_queue) ... ok
+test_registry_shutdown_returns_discarded_inputs_and_is_permanent (test_retirement.RetirementTests.test_registry_shutdown_returns_discarded_inputs_and_is_permanent) ... ok
+test_registry_without_model_queue_retirement_and_maintenance_still_work (test_retirement.RetirementTests.test_registry_without_model_queue_retirement_and_maintenance_still_work) ... ok
+test_retired_feedback_is_retained_but_cannot_admit_retry_or_open_again (test_retirement.RetirementTests.test_retired_feedback_is_retained_but_cannot_admit_retry_or_open_again) ... ok
+test_retirement_identity_is_strict_and_cannot_delete_another_session (test_retirement.RetirementTests.test_retirement_identity_is_strict_and_cannot_delete_another_session) ... ok
+test_retirement_preserves_model_step_and_does_not_reclaim_old_admission (test_retirement.RetirementTests.test_retirement_preserves_model_step_and_does_not_reclaim_old_admission) ... ok
+test_retirement_releases_only_its_owned_queue_and_retains_original_input (test_retirement.RetirementTests.test_retirement_releases_only_its_owned_queue_and_retains_original_input) ... ok
+test_shutdown_inputs_survive_implicit_close_and_can_be_drained_once (test_retirement.RetirementTests.test_shutdown_inputs_survive_implicit_close_and_can_be_drained_once) ... ok
+test_shutdown_keeps_prior_maintenance_separate_from_remaining_queue (test_retirement.RetirementTests.test_shutdown_keeps_prior_maintenance_separate_from_remaining_queue) ... ok
+test_wire_cleanup_without_consumers_is_failure_and_not_local_retirement (test_retirement.RetirementTests.test_wire_cleanup_without_consumers_is_failure_and_not_local_retirement) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 14.866s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_session.py -v
+EXIT_CODE: 0
+test_common_gateway_package_exists (test_session.AvailabilityTests.test_common_gateway_package_exists) ... ok
+test_actual_8192_retry_cache_eviction_preserves_high_water_mark (test_session.SessionTests.test_actual_8192_retry_cache_eviction_preserves_high_water_mark) ... ok
+test_cache_expiry_does_not_reset_session_sequence (test_session.SessionTests.test_cache_expiry_does_not_reset_session_sequence) ... ok
+test_capacity_and_pending_duplicate_never_allocate_second_session (test_session.SessionTests.test_capacity_and_pending_duplicate_never_allocate_second_session) ... ok
+test_cross_link_complete_duplicate_replays_original_failure_once (test_session.SessionTests.test_cross_link_complete_duplicate_replays_original_failure_once) ... ok
+test_duplicate_complete_grant_identity_cannot_split_session_ownership (test_session.SessionTests.test_duplicate_complete_grant_identity_cannot_split_session_ownership) ... ok
+test_expired_or_revoked_session_cannot_write_and_ids_are_not_reused (test_session.SessionTests.test_expired_or_revoked_session_cannot_write_and_ids_are_not_reused) ... ok
+test_feedback_counter_and_response_bounds (test_session.SessionTests.test_feedback_counter_and_response_bounds) ... ok
+test_fixed_lease_and_only_fresh_heartbeat_renewal (test_session.SessionTests.test_fixed_lease_and_only_fresh_heartbeat_renewal) ... ok
+test_grants_and_request_identity_are_not_mutable_aliases (test_session.SessionTests.test_grants_and_request_identity_are_not_mutable_aliases) ... ok
+test_open_requires_exact_identity_and_granted_roles (test_session.SessionTests.test_open_requires_exact_identity_and_granted_roles) ... ok
+test_same_sequence_different_value_or_transaction_is_rejected (test_session.SessionTests.test_same_sequence_different_value_or_transaction_is_rejected) ... ok
+test_unregistered_link_and_role_rejected_before_fragment_allocation (test_session.SessionTests.test_unregistered_link_and_role_rejected_before_fragment_allocation) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 18.940s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v
+EXIT_CODE: 0
+test_acl_role_and_expiry_checks_precede_reassembly (test_receiver.ReceiverTests.test_acl_role_and_expiry_checks_precede_reassembly) ... ok
+test_bad_open_identity_has_zero_session_failed_ack (test_receiver.ReceiverTests.test_bad_open_identity_has_zero_session_failed_ack) ... ok
+test_common_receiver_exists (test_receiver.ReceiverTests.test_common_receiver_exists) ... ok
+test_complete_retry_reemits_same_feedback_without_second_admission (test_receiver.ReceiverTests.test_complete_retry_reemits_same_feedback_without_second_admission) ... ok
+test_different_value_reusing_sequence_is_failed_duplicate (test_receiver.ReceiverTests.test_different_value_reusing_sequence_is_failed_duplicate) ... ok
+test_interleaved_fragmented_opens_are_isolated_by_authorized_grant (test_receiver.ReceiverTests.test_interleaved_fragmented_opens_are_isolated_by_authorized_grant) ... ok
+test_missing_consumer_has_received_then_failed_and_no_application (test_receiver.ReceiverTests.test_missing_consumer_has_received_then_failed_and_no_application) ... ok
+test_open_is_source_transparent_and_does_not_claim_model_readiness (test_receiver.ReceiverTests.test_open_is_source_transparent_and_does_not_claim_model_readiness) ... ok
+test_partial_groups_expire_even_without_traffic_and_session_shutdown_frees (test_receiver.ReceiverTests.test_partial_groups_expire_even_without_traffic_and_session_shutdown_frees) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 4.908s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_queue.py -v
+EXIT_CODE: 0
+test_100ms_control_age_uses_first_receive_even_with_fresh_heartbeat (test_model_queue.QueueTests.test_100ms_control_age_uses_first_receive_even_with_fresh_heartbeat) ... ok
+test_clear_preserves_model_step_close_refuses_use_and_clocks_do_not_rewind (test_model_queue.QueueTests.test_clear_preserves_model_step_close_refuses_use_and_clocks_do_not_rewind) ... ok
+test_closed_queue_cannot_reset_step_history_for_still_live_sessions (test_model_queue.QueueTests.test_closed_queue_cannot_reset_step_history_for_still_live_sessions) ... ok
+test_control_age_below_deadline_can_release_but_no_safety_is_claimed (test_model_queue.QueueTests.test_control_age_below_deadline_can_release_but_no_safety_is_claimed) ... ok
+test_controller_source_lane_model_and_stimulus_metadata_are_strict (test_model_queue.QueueTests.test_controller_source_lane_model_and_stimulus_metadata_are_strict) ... ok
+test_cross_session_writer_conflict_and_whole_snapshot_rollback (test_model_queue.QueueTests.test_cross_session_writer_conflict_and_whole_snapshot_rollback) ... ok
+test_duplicate_or_cleared_admission_cannot_enter_queue_twice (test_model_queue.QueueTests.test_duplicate_or_cleared_admission_cannot_enter_queue_twice) ... ok
+test_expired_before_enqueue_control_is_not_reserved (test_model_queue.QueueTests.test_expired_before_enqueue_control_is_not_reserved) ... ok
+test_failed_admission_cannot_be_queued (test_model_queue.QueueTests.test_failed_admission_cannot_be_queued) ... ok
+test_idle_expiry_returns_rejections_and_removes_writer_reservations (test_model_queue.QueueTests.test_idle_expiry_returns_rejections_and_removes_writer_reservations) ... ok
+test_invalid_boundary_state_model_range_and_clock_never_release (test_model_queue.QueueTests.test_invalid_boundary_state_model_range_and_clock_never_release) ... ok
+test_lane_alias_cannot_be_enabled_concurrently (test_model_queue.QueueTests.test_lane_alias_cannot_be_enabled_concurrently) ... ok
+test_missing_or_duplicate_model_mapping_refuses_construction (test_model_queue.QueueTests.test_missing_or_duplicate_model_mapping_refuses_construction) ... ok
+test_model_queue_exists (test_model_queue.QueueTests.test_model_queue_exists) ... ok
+test_only_exact_next_step_can_release_no_late_catchup (test_model_queue.QueueTests.test_only_exact_next_step_can_release_no_late_catchup) ... ok
+test_original_admission_receiving_time_not_retry_time_is_returned (test_model_queue.QueueTests.test_original_admission_receiving_time_not_retry_time_is_returned) ... ok
+test_paused_and_service_consumers_cannot_enter_running_model_queue (test_model_queue.QueueTests.test_paused_and_service_consumers_cannot_enter_running_model_queue) ... ok
+test_pending_is_immutable_full_message_and_is_not_application_evidence (test_model_queue.QueueTests.test_pending_is_immutable_full_message_and_is_not_application_evidence) ... ok
+test_queue_capacity_is_4096_globally_without_overwrite (test_model_queue.QueueTests.test_queue_capacity_is_4096_globally_without_overwrite) ... ok
+test_registry_has_one_global_queue_even_for_disjoint_model_sets (test_model_queue.QueueTests.test_registry_has_one_global_queue_even_for_disjoint_model_sets) ... ok
+test_registry_shutdown_also_closes_its_owned_queue (test_model_queue.QueueTests.test_registry_shutdown_also_closes_its_owned_queue) ... ok
+test_same_target_overlap_is_rejected_not_last_write_wins (test_model_queue.QueueTests.test_same_target_overlap_is_rejected_not_last_write_wins) ... ok
+test_session_expiry_and_external_revoke_purge_pending_inputs (test_model_queue.QueueTests.test_session_expiry_and_external_revoke_purge_pending_inputs) ... ok
+test_target_ahead_late_and_run_duration_bounds (test_model_queue.QueueTests.test_target_ahead_late_and_run_duration_bounds) ... ok
+test_wrong_registry_model_and_unadmitted_input_are_not_queued (test_model_queue.QueueTests.test_wrong_registry_model_and_unadmitted_input_are_not_queued) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 34.537s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_worker.py -v
+EXIT_CODE: 0
+test_actual_udp_overhead_and_no_burst_reservations (test_resource_worker.ResourceBudgetTests.test_actual_udp_overhead_and_no_burst_reservations) ... ok
+test_background_rate_cannot_exceed_frozen_policy (test_resource_worker.ResourceBudgetTests.test_background_rate_cannot_exceed_frozen_policy) ... ok
+test_background_wire_budget_exists (test_resource_worker.ResourceBudgetTests.test_background_wire_budget_exists) ... ok
+test_actual_background_file_and_original_outcome (test_resource_worker.ResourceWorkerTests.test_actual_background_file_and_original_outcome) ... ok
+test_actual_background_worker_exists (test_resource_worker.ResourceWorkerTests.test_actual_background_worker_exists) ... ok
+test_cancelled_session_cleans_actual_staging_and_keeps_originals (test_resource_worker.ResourceWorkerTests.test_cancelled_session_cleans_actual_staging_and_keeps_originals) ... ok
+test_cleanup_failure_shutdown_preserves_aborted_and_unfinished_originals (test_resource_worker.ResourceWorkerTests.test_cleanup_failure_shutdown_preserves_aborted_and_unfinished_originals) ... ok
+test_expired_nonfinal_write_aborts_only_its_owned_resource (test_resource_worker.ResourceWorkerTests.test_expired_nonfinal_write_aborts_only_its_owned_resource) ... ok
+test_failed_thread_start_releases_owned_root_and_does_not_attach_worker (test_resource_worker.ResourceWorkerTests.test_failed_thread_start_releases_owned_root_and_does_not_attach_worker) ... ok
+test_foreign_expired_same_hash_job_does_not_kill_worker_or_abort_owner (test_resource_worker.ResourceWorkerTests.test_foreign_expired_same_hash_job_does_not_kill_worker_or_abort_owner) ... ok
+test_future_wire_budget_rejection_never_claims_or_mutates_original (test_resource_worker.ResourceWorkerTests.test_future_wire_budget_rejection_never_claims_or_mutates_original) ... ok
+test_invalid_worker_limits_are_rejected_before_lifetime_claim (test_resource_worker.ResourceWorkerTests.test_invalid_worker_limits_are_rejected_before_lifetime_claim) ... ok
+test_original_message_byte_capacity_and_invalid_limits (test_resource_worker.ResourceWorkerTests.test_original_message_byte_capacity_and_invalid_limits) ... ok
+test_original_request_cannot_be_claimed_twice (test_resource_worker.ResourceWorkerTests.test_original_request_cannot_be_claimed_twice) ... ok
+test_registry_close_waits_for_owned_worker_and_retains_shutdown (test_resource_worker.ResourceWorkerTests.test_registry_close_waits_for_owned_worker_and_retains_shutdown) ... ok
+test_registry_retire_cancels_owned_upload_without_manual_worker_sync (test_resource_worker.ResourceWorkerTests.test_registry_retire_cancels_owned_upload_without_manual_worker_sync) ... ok
+test_restricted_resource_submit_requires_actual_model_state_before_claim (test_resource_worker.ResourceWorkerTests.test_restricted_resource_submit_requires_actual_model_state_before_claim) ... ok
+test_result_capacity_is_reserved_until_released (test_resource_worker.ResourceWorkerTests.test_result_capacity_is_reserved_until_released) ... ok
+test_store_has_one_worker_lifetime_and_no_caller_file_io (test_resource_worker.ResourceWorkerTests.test_store_has_one_worker_lifetime_and_no_caller_file_io) ... ok
+test_timed_out_abort_drain_can_be_retried_without_losing_originals (test_resource_worker.ResourceWorkerTests.test_timed_out_abort_drain_can_be_retried_without_losing_originals) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 13.144s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_udp.py -v
+EXIT_CODE: 0
+test_actual_chunk_hash_error_is_storage_not_application_failure (test_resource_udp.ResourceUDPTests.test_actual_chunk_hash_error_is_storage_not_application_failure) ... ok
+test_actual_multichunk_udp_file_and_capabilities (test_resource_udp.ResourceUDPTests.test_actual_multichunk_udp_file_and_capabilities) ... ok
+test_bounded_records_leave_original_worker_results_until_drain (test_resource_udp.ResourceUDPTests.test_bounded_records_leave_original_worker_results_until_drain) ... ok
+test_capacity_failure_has_no_second_original_job (test_resource_udp.ResourceUDPTests.test_capacity_failure_has_no_second_original_job) ... ok
+test_changed_duplicate_never_creates_a_new_job (test_resource_udp.ResourceUDPTests.test_changed_duplicate_never_creates_a_new_job) ... ok
+test_idle_feedback_and_terminal_duplicate_keep_original_result (test_resource_udp.ResourceUDPTests.test_idle_feedback_and_terminal_duplicate_keep_original_result) ... ok
+test_model_and_terrain_do_not_bypass_missing_actual_state_gate (test_resource_udp.ResourceUDPTests.test_model_and_terrain_do_not_bypass_missing_actual_state_gate) ... ok
+test_pending_duplicate_and_retire_do_not_block_on_actual_file_io (test_resource_udp.ResourceUDPTests.test_pending_duplicate_and_retire_do_not_block_on_actual_file_io) ... ok
+test_retired_result_retained_without_live_session_feedback (test_resource_udp.ResourceUDPTests.test_retired_result_retained_without_live_session_feedback) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 6.006s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v
+EXIT_CODE: 0
+test_actual_socket_open_fragmented_input_and_cached_failure_feedback (test_udp.UDPTests.test_actual_socket_open_fragmented_input_and_cached_failure_feedback) ... ok
+test_actual_udp_idle_poll_releases_owned_queue_without_model_execution (test_udp.UDPTests.test_actual_udp_idle_poll_releases_owned_queue_without_model_execution) ... ok
+test_actual_wire_cleanup_remains_failure_until_all_real_consumers_exist (test_udp.UDPTests.test_actual_wire_cleanup_remains_failure_until_all_real_consumers_exist) ... ok
+test_common_udp_and_source_packages_exist (test_udp.UDPTests.test_common_udp_and_source_packages_exist) ... ok
+test_defined_port_roles_36100_36101_36102_use_actual_sockets (test_udp.UDPTests.test_defined_port_roles_36100_36101_36102_use_actual_sockets) ... ok
+test_feedback_cache_expiry_cannot_rollback_highwater (test_udp.UDPTests.test_feedback_cache_expiry_cannot_rollback_highwater) ... ok
+test_feedback_sequence_reuse_for_a_different_reply_is_rejected (test_udp.UDPTests.test_feedback_sequence_reuse_for_a_different_reply_is_rejected) ... ok
+test_forward_acl_bad_crc_and_oversize_do_not_allocate (test_udp.UDPTests.test_forward_acl_bad_crc_and_oversize_do_not_allocate) ... ok
+test_reliable_retries_are_identical_and_periodic_control_is_not_retried (test_udp.UDPTests.test_reliable_retries_are_identical_and_periodic_control_is_not_retried) ... ok
+test_reverse_acl_and_transaction_filter_ignore_foreign_feedback (test_udp.UDPTests.test_reverse_acl_and_transaction_filter_ignore_foreign_feedback) ... ok
+test_source_request_waits_for_terminal_and_gateway_idle_expires_session (test_udp.UDPTests.test_source_request_waits_for_terminal_and_gateway_idle_expires_session) ... ok
+test_source_tracking_capacity_is_explicit_not_misreported_as_timeout (test_udp.UDPTests.test_source_tracking_capacity_is_explicit_not_misreported_as_timeout) ... ok
+test_storage_library_does_not_enable_wire_resource_consumer (test_udp.UDPTests.test_storage_library_does_not_enable_wire_resource_consumer) ... ok
+test_udp_close_preserves_receiver_shutdown_records_after_socket_release (test_udp.UDPTests.test_udp_close_preserves_receiver_shutdown_records_after_socket_release) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 11.242s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_configuration_service.py -v
+EXIT_CODE: 0
+test_actual_udp_source_receives_original_configuration_consumer_applied (test_configuration_service.ConfigurationServiceTests.test_actual_udp_source_receives_original_configuration_consumer_applied) ... ok
+test_actual_view_metadata_cannot_escape_bounded_immutable_evidence (test_configuration_service.ConfigurationServiceTests.test_actual_view_metadata_cannot_escape_bounded_immutable_evidence) ... ok
+test_applied_configuration_state_and_input_readback_must_match_every_field (test_configuration_service.ConfigurationServiceTests.test_applied_configuration_state_and_input_readback_must_match_every_field) ... ok
+test_busy_status_cannot_partially_close_installed_configuration_service (test_configuration_service.ConfigurationServiceTests.test_busy_status_cannot_partially_close_installed_configuration_service) ... ok
+test_byte_budget_refuses_before_read_and_write (test_configuration_service.ConfigurationServiceTests.test_byte_budget_refuses_before_read_and_write) ... ok
+test_complete_three_model_receipts_on_frozen_udp_transport (test_configuration_service.ConfigurationServiceTests.test_complete_three_model_receipts_on_frozen_udp_transport) ... ok
+test_configuration_keeps_frozen_udp_only_transport (test_configuration_service.ConfigurationServiceTests.test_configuration_keeps_frozen_udp_only_transport) ... ok
+test_context_and_receipt_are_strict_immutable_bounded_samples (test_configuration_service.ConfigurationServiceTests.test_context_and_receipt_are_strict_immutable_bounded_samples) ... ok
+test_context_expiry_during_getter_cannot_write (test_configuration_service.ConfigurationServiceTests.test_context_expiry_during_getter_cannot_write) ... ok
+test_context_from_another_requested_terrain_or_point_cannot_write (test_configuration_service.ConfigurationServiceTests.test_context_from_another_requested_terrain_or_point_cannot_write) ... ok
+test_context_request_and_maximum_failed_receipt_are_reserved_before_getter (test_configuration_service.ConfigurationServiceTests.test_context_request_and_maximum_failed_receipt_are_reserved_before_getter) ... ok
+test_default_receiver_does_not_publish_or_apply_configuration (test_configuration_service.ConfigurationServiceTests.test_default_receiver_does_not_publish_or_apply_configuration) ... ok
+test_exact_retry_keeps_original_terminal_feedback_without_read_write_or_renewal (test_configuration_service.ConfigurationServiceTests.test_exact_retry_keeps_original_terminal_feedback_without_read_write_or_renewal) ... ok
+test_failed_maximum_receipt_reservation_cannot_exceed_history_budget (test_configuration_service.ConfigurationServiceTests.test_failed_maximum_receipt_reservation_cannot_exceed_history_budget) ... ok
+test_feedback_counter_limit_refuses_write (test_configuration_service.ConfigurationServiceTests.test_feedback_counter_limit_refuses_write) ... ok
+test_forged_direct_configuration_completion_is_refused_outside_original_operation (test_configuration_service.ConfigurationServiceTests.test_forged_direct_configuration_completion_is_refused_outside_original_operation) ... ok
+test_history_reservation_precedes_getter_and_preserves_first_record (test_configuration_service.ConfigurationServiceTests.test_history_reservation_precedes_getter_and_preserves_first_record) ... ok
+test_installed_capability_is_only_consumer_not_hardware_qualification (test_configuration_service.ConfigurationServiceTests.test_installed_capability_is_only_consumer_not_hardware_qualification) ... ok
+test_invalid_raw_readback_is_retained_and_failure_retry_never_rewrites (test_configuration_service.ConfigurationServiceTests.test_invalid_raw_readback_is_retained_and_failure_retry_never_rewrites) ... ok
+test_invalid_semantics_reject_before_write_and_keep_context (test_configuration_service.ConfigurationServiceTests.test_invalid_semantics_reject_before_write_and_keep_context) ... ok
+test_late_or_throwing_writer_retains_completion_without_claiming_no_effect (test_configuration_service.ConfigurationServiceTests.test_late_or_throwing_writer_retains_completion_without_claiming_no_effect) ... ok
+test_missing_backend_and_unhashable_model_ids_are_typed_errors (test_configuration_service.ConfigurationServiceTests.test_missing_backend_and_unhashable_model_ids_are_typed_errors) ... ok
+test_ordinary_session_layer_still_cannot_forge_consumer_applied (test_configuration_service.ConfigurationServiceTests.test_ordinary_session_layer_still_cannot_forge_consumer_applied) ... ok
+test_owner_replacement_after_context_read_refuses_before_write (test_configuration_service.ConfigurationServiceTests.test_owner_replacement_after_context_read_refuses_before_write) ... ok
+test_real_model_queue_pending_inputs_are_not_silently_discarded_for_configuration (test_configuration_service.ConfigurationServiceTests.test_real_model_queue_pending_inputs_are_not_silently_discarded_for_configuration) ... ok
+test_receipt_state_control_boundary_and_future_sampling_fail_closed (test_configuration_service.ConfigurationServiceTests.test_receipt_state_control_boundary_and_future_sampling_fail_closed) ... ok
+test_requested_terrain_origin_and_initial_point_reach_getter_before_write (test_configuration_service.ConfigurationServiceTests.test_requested_terrain_origin_and_initial_point_reach_getter_before_write) ... ok
+test_throwing_getter_retains_original_error_and_actual_completion_without_write (test_configuration_service.ConfigurationServiceTests.test_throwing_getter_retains_original_error_and_actual_completion_without_write) ... ok
+test_unsafe_initial_input_and_unresolved_terrain_cannot_write (test_configuration_service.ConfigurationServiceTests.test_unsafe_initial_input_and_unresolved_terrain_cannot_write) ... ok
+test_wrong_original_request_or_receipt_identity_cannot_mint_applied (test_configuration_service.ConfigurationServiceTests.test_wrong_original_request_or_receipt_identity_cannot_mint_applied) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 18.822s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_status_service.py -v
+EXIT_CODE: 0
+test_actual_udp_receiver_status_feeds_original_source_clock_and_reader (test_status_service.StatusServiceTests.test_actual_udp_receiver_status_feeds_original_source_clock_and_reader) ... ok
+test_all_frozen_models_and_new_sid_allow_new_model_epoch_without_reusing_old_floor (test_status_service.StatusServiceTests.test_all_frozen_models_and_new_sid_allow_new_model_epoch_without_reusing_old_floor) ... ok
+test_all_twelve_fields_required_exact_types_and_unknown_fields_rejected (test_status_service.StatusServiceTests.test_all_twelve_fields_required_exact_types_and_unknown_fields_rejected) ... ok
+test_backend_error_and_untyped_sample_never_create_status_or_application (test_status_service.StatusServiceTests.test_backend_error_and_untyped_sample_never_create_status_or_application) ... ok
+test_backend_returns_after_lease_expiry_no_status_or_stale_ack_is_minted (test_status_service.StatusServiceTests.test_backend_returns_after_lease_expiry_no_status_or_stale_ack_is_minted) ... ok
+test_direct_service_requires_original_admission_and_typed_request (test_status_service.StatusServiceTests.test_direct_service_requires_original_admission_and_typed_request) ... ok
+test_failed_open_after_field_validation_retries_original_error_without_read (test_status_service.StatusServiceTests.test_failed_open_after_field_validation_retries_original_error_without_read) ... ok
+test_failed_open_snapshot_retained_no_grant_and_exact_attempt_not_resampled (test_status_service.StatusServiceTests.test_failed_open_snapshot_retained_no_grant_and_exact_attempt_not_resampled) ... ok
+test_finite_evidence_reservation_refuses_before_backend_read (test_status_service.StatusServiceTests.test_finite_evidence_reservation_refuses_before_backend_read) ... ok
+test_full_pending_retry_cache_rejects_open_before_read_or_sid_allocation (test_status_service.StatusServiceTests.test_full_pending_retry_cache_rejects_open_before_read_or_sid_allocation) ... ok
+test_immutable_sample_strict_time_and_byte_bounds (test_status_service.StatusServiceTests.test_immutable_sample_strict_time_and_byte_bounds) ... ok
+test_installed_backend_open_grant_uses_actual_model_step_not_interface_origin (test_status_service.StatusServiceTests.test_installed_backend_open_grant_uses_actual_model_step_not_interface_origin) ... ok
+test_no_backend_can_be_created_or_implicitly_enabled (test_status_service.StatusServiceTests.test_no_backend_can_be_created_or_implicitly_enabled) ... ok
+test_only_installed_status_capability_is_published_without_model_ready_claims (test_status_service.StatusServiceTests.test_only_installed_status_capability_is_published_without_model_ready_claims) ... ok
+test_open_invalid_context_freshness_type_or_backend_failure_never_allocates (test_status_service.StatusServiceTests.test_open_invalid_context_freshness_type_or_backend_failure_never_allocates) ... ok
+test_open_outliving_request_never_grants_even_with_fresh_model_sample (test_status_service.StatusServiceTests.test_open_outliving_request_never_grants_even_with_fresh_model_sample) ... ok
+test_open_retry_preserves_original_grant_and_sample_without_new_sid (test_status_service.StatusServiceTests.test_open_retry_preserves_original_grant_and_sample_without_new_sid) ... ok
+test_opening_sample_seeds_same_sid_model_floor_before_first_heartbeat (test_status_service.StatusServiceTests.test_opening_sample_seeds_same_sid_model_floor_before_first_heartbeat) ... ok
+test_original_retry_uses_identical_cached_status_without_resampling_or_renewal (test_status_service.StatusServiceTests.test_original_retry_uses_identical_cached_status_without_resampling_or_renewal) ... ok
+test_original_sample_identity_all_context_fields_must_match (test_status_service.StatusServiceTests.test_original_sample_identity_all_context_fields_must_match) ... ok
+test_preview_open_checks_identity_roles_nonce_and_capacity_without_allocation (test_status_service.StatusServiceTests.test_preview_open_checks_identity_roles_nonce_and_capacity_without_allocation) ... ok
+test_reentrant_backend_and_closed_service_do_not_lose_original_records (test_status_service.StatusServiceTests.test_reentrant_backend_and_closed_service_do_not_lose_original_records) ... ok
+test_same_receiver_registry_and_backend_identity_cannot_be_replaced (test_status_service.StatusServiceTests.test_same_receiver_registry_and_backend_identity_cannot_be_replaced) ... ok
+test_same_sid_model_step_and_sample_time_cannot_regress (test_status_service.StatusServiceTests.test_same_sid_model_step_and_sample_time_cannot_regress) ... ok
+test_slow_backend_snapshot_expiry_is_checked_at_actual_completion_not_ingress (test_status_service.StatusServiceTests.test_slow_backend_snapshot_expiry_is_checked_at_actual_completion_not_ingress) ... ok
+test_slow_open_allocates_lease_and_caches_reply_at_actual_completion (test_status_service.StatusServiceTests.test_slow_open_allocates_lease_and_caches_reply_at_actual_completion) ... ok
+test_snapshot_half_open_deadline_future_and_frozen_240ms_freshness (test_status_service.StatusServiceTests.test_snapshot_half_open_deadline_future_and_frozen_240ms_freshness) ... ok
+test_standard_heartbeat_status_exact_payload_and_original_correlation (test_status_service.StatusServiceTests.test_standard_heartbeat_status_exact_payload_and_original_correlation) ... ok
+test_throwing_backend_retains_actual_completion_time_and_does_not_ack_expired_sid (test_status_service.StatusServiceTests.test_throwing_backend_retains_actual_completion_time_and_does_not_ack_expired_sid) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 16.706s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v
+EXIT_CODE: 0
+test_real_grant_header_feeds_replay_and_actual_resource_exchange (test_source_session.ActualResourceSessionTests.test_real_grant_header_feeds_replay_and_actual_resource_exchange) ... WARNING: No libpcap provider available ! pcap won't be used
+ok
+test_claim_blocks_manual_tx_and_feedback_read_after_construction (test_source_session.ActualSourceSessionTests.test_claim_blocks_manual_tx_and_feedback_read_after_construction) ... ok
+test_opening_transaction_follows_prior_manual_transport_use (test_source_session.ActualSourceSessionTests.test_opening_transaction_follows_prior_manual_transport_use) ... ok
+test_real_receiver_grant_used_and_missing_capability_stops_before_tx (test_source_session.ActualSourceSessionTests.test_real_receiver_grant_used_and_missing_capability_stops_before_tx) ... ok
+test_real_receiver_rejects_wrong_identity_without_local_grant (test_source_session.ActualSourceSessionTests.test_real_receiver_rejects_wrong_identity_without_local_grant) ... ok
+test_real_transport_rejects_new_manager_and_delayed_old_grant (test_source_session.ActualSourceSessionTests.test_real_transport_rejects_new_manager_and_delayed_old_grant) ... ok
+test_clock_status_nonce_and_request_type_are_correlated (test_source_session.FeedbackCorrelationTests.test_clock_status_nonce_and_request_type_are_correlated) ... ok
+test_status_is_only_a_heartbeat_response (test_source_session.FeedbackCorrelationTests.test_status_is_only_a_heartbeat_response) ... ok
+test_unrelated_status_clock_feedback_is_not_an_ack (test_source_session.FeedbackCorrelationTests.test_unrelated_status_clock_feedback_is_not_an_ack) ... ok
+test_backward_or_bool_source_mono_is_rejected_without_send (test_source_session.SourceSessionTests.test_backward_or_bool_source_mono_is_rejected_without_send) ... ok
+test_bad_target_and_counter_wrap_reject (test_source_session.SourceSessionTests.test_bad_target_and_counter_wrap_reject) ... ok
+test_clock_failure_after_reply_keeps_untrusted_exchange_record (test_source_session.SourceSessionTests.test_clock_failure_after_reply_keeps_untrusted_exchange_record) ... ok
+test_conservative_lease_starts_before_exchange_not_on_late_reply (test_source_session.SourceSessionTests.test_conservative_lease_starts_before_exchange_not_on_late_reply) ... ok
+test_explicit_transaction_reservation_never_collides_with_auto_counter (test_source_session.SourceSessionTests.test_explicit_transaction_reservation_never_collides_with_auto_counter) ... ok
+test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease (test_source_session.SourceSessionTests.test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease) ... ok
+test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step (test_source_session.SourceSessionTests.test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step) ... ok
+test_invalid_constructor_limits_identity_and_roles_reject (test_source_session.SourceSessionTests.test_invalid_constructor_limits_identity_and_roles_reject) ... ok
+test_invalid_payload_does_not_consume_sequence_or_send (test_source_session.SourceSessionTests.test_invalid_payload_does_not_consume_sequence_or_send) ... ok
+test_local_abandon_is_not_a_remote_close_reset_or_clear_queues (test_source_session.SourceSessionTests.test_local_abandon_is_not_a_remote_close_reset_or_clear_queues) ... ok
+test_one_counter_owner_per_transport_even_after_local_close (test_source_session.SourceSessionTests.test_one_counter_owner_per_transport_even_after_local_close) ... ok
+test_open_after_the_entire_lease_cannot_create_a_live_local_session (test_source_session.SourceSessionTests.test_open_after_the_entire_lease_cannot_create_a_live_local_session) ... ok
+test_open_captures_actual_grant_and_allocates_global_fresh_headers (test_source_session.SourceSessionTests.test_open_captures_actual_grant_and_allocates_global_fresh_headers) ... ok
+test_open_validates_both_baselines_roles_sid_and_model (test_source_session.SourceSessionTests.test_open_validates_both_baselines_roles_sid_and_model) ... ok
+test_record_capacity_rejects_before_send_and_drain_does_not_clear_session (test_source_session.SourceSessionTests.test_record_capacity_rejects_before_send_and_drain_does_not_clear_session) ... ok
+test_records_and_capabilities_are_immutable_detached (test_source_session.SourceSessionTests.test_records_and_capabilities_are_immutable_detached) ... ok
+test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid (test_source_session.SourceSessionTests.test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid) ... ok
+test_request_keeps_real_failed_feedback_without_manufacturing_stage (test_source_session.SourceSessionTests.test_request_keeps_real_failed_feedback_without_manufacturing_stage) ... ok
+test_request_payload_detaches_from_callers_during_transport_exchange (test_source_session.SourceSessionTests.test_request_payload_detaches_from_callers_during_transport_exchange) ... ok
+test_roles_capability_and_model_are_checked_before_allocation (test_source_session.SourceSessionTests.test_roles_capability_and_model_are_checked_before_allocation) ... ok
+test_session_module_exists (test_source_session.SourceSessionTests.test_session_module_exists) ... ok
+test_transport_timeout_is_recorded_without_faking_response_or_session (test_source_session.SourceSessionTests.test_transport_timeout_is_recorded_without_faking_response_or_session) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 6.490s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_registered_controller.py -v
+EXIT_CODE: 0
+test_actual_granted_roles_not_configured_or_requested_roles_are_used (test_registered_controller.RegisteredControllerTests.test_actual_granted_roles_not_configured_or_requested_roles_are_used) ... ok
+test_actual_terminal_selector_request_cannot_later_authorize (test_registered_controller.RegisteredControllerTests.test_actual_terminal_selector_request_cannot_later_authorize) ... ok
+test_all_three_models_use_original_external_source_and_lanes (test_registered_controller.RegisteredControllerTests.test_all_three_models_use_original_external_source_and_lanes) ... ok
+test_complete_identity_is_required_not_a_model_or_source_string (test_registered_controller.RegisteredControllerTests.test_complete_identity_is_required_not_a_model_or_source_string) ... ok
+test_cross_model_actual_producer_is_not_selected_for_the_view (test_registered_controller.RegisteredControllerTests.test_cross_model_actual_producer_is_not_selected_for_the_view) ... ok
+test_cross_vehicle_or_run_producer_cannot_authorize_selector (test_registered_controller.RegisteredControllerTests.test_cross_vehicle_or_run_producer_cannot_authorize_selector) ... ok
+test_expired_other_sid_does_not_make_live_controller_ambiguous (test_registered_controller.RegisteredControllerTests.test_expired_other_sid_does_not_make_live_controller_ambiguous) ... ok
+test_expiry_is_half_open_and_read_does_not_delete_records (test_registered_controller.RegisteredControllerTests.test_expiry_is_half_open_and_read_does_not_delete_records) ... ok
+test_external_gate_rejects_unavailable_registry_and_non_controller_session (test_registered_controller.RegisteredControllerTests.test_external_gate_rejects_unavailable_registry_and_non_controller_session) ... ok
+test_external_owner_uses_distinct_actual_controller_not_selector_sid (test_registered_controller.RegisteredControllerTests.test_external_owner_uses_distinct_actual_controller_not_selector_sid) ... ok
+test_fresh_heartbeat_updates_actual_session_not_control_lease (test_registered_controller.RegisteredControllerTests.test_fresh_heartbeat_updates_actual_session_not_control_lease) ... ok
+test_frozen_target_and_demo_model_rules_are_not_weakened (test_registered_controller.RegisteredControllerTests.test_frozen_target_and_demo_model_rules_are_not_weakened) ... ok
+test_list_valued_grant_bindings_cannot_escape_as_mutable_alias (test_registered_controller.RegisteredControllerTests.test_list_valued_grant_bindings_cannot_escape_as_mutable_alias) ... ok
+test_monotonic_nanoseconds_are_strict (test_registered_controller.RegisteredControllerTests.test_monotonic_nanoseconds_are_strict) ... ok
+test_none_revocation_does_not_require_live_producer (test_registered_controller.RegisteredControllerTests.test_none_revocation_does_not_require_live_producer) ... ok
+test_original_selector_request_must_actually_be_admitted (test_registered_controller.RegisteredControllerTests.test_original_selector_request_must_actually_be_admitted) ... ok
+test_readonly_admission_does_not_revive_expired_retry_record (test_registered_controller.RegisteredControllerTests.test_readonly_admission_does_not_revive_expired_retry_record) ... ok
+test_readonly_admission_rejects_expired_selector_without_removing_it (test_registered_controller.RegisteredControllerTests.test_readonly_admission_rejects_expired_selector_without_removing_it) ... ok
+test_readonly_admission_returns_first_receive_and_rejects_claimed_record (test_registered_controller.RegisteredControllerTests.test_readonly_admission_returns_first_receive_and_rejects_claimed_record) ... ok
+test_reads_do_not_renew_allocate_or_overwrite_receiver_history (test_registered_controller.RegisteredControllerTests.test_reads_do_not_renew_allocate_or_overwrite_receiver_history) ... ok
+test_required_registry_and_semantic_apis_exist (test_registered_controller.RegisteredControllerTests.test_required_registry_and_semantic_apis_exist) ... ok
+test_revoked_closed_and_missing_live_producer_fail (test_registered_controller.RegisteredControllerTests.test_revoked_closed_and_missing_live_producer_fail) ... ok
+test_selector_model_view_must_match_actual_receiver_session (test_registered_controller.RegisteredControllerTests.test_selector_model_view_must_match_actual_receiver_session) ... ok
+test_semantic_gate_does_not_run_unrelated_receiver_maintenance (test_registered_controller.RegisteredControllerTests.test_semantic_gate_does_not_run_unrelated_receiver_maintenance) ... ok
+test_snapshot_identity_is_detached_and_record_is_immutable (test_registered_controller.RegisteredControllerTests.test_snapshot_identity_is_detached_and_record_is_immutable) ... ok
+test_snapshot_retains_actual_sid_grant_roles_links_and_nonce (test_registered_controller.RegisteredControllerTests.test_snapshot_retains_actual_sid_grant_roles_links_and_nonce) ... ok
+test_source_lane_model_and_paused_rules_remain_original (test_registered_controller.RegisteredControllerTests.test_source_lane_model_and_paused_rules_remain_original) ... ok
+test_stimulus_session_does_not_make_the_controller_ambiguous (test_registered_controller.RegisteredControllerTests.test_stimulus_session_does_not_make_the_controller_ambiguous) ... ok
+test_unique_controller_session_cannot_be_selected_by_latest_nonce (test_registered_controller.RegisteredControllerTests.test_unique_controller_session_cannot_be_selected_by_latest_nonce) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 15.361s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v
+EXIT_CODE: 0
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_original_native_tx_and_feedback_inside_controller (test_scenario_driver.ScenarioDriverTests.test_actual_original_native_tx_and_feedback_inside_controller) ... ok
+test_bad_local_cleanup_clock_still_attempts_remote_cleanup (test_scenario_driver.ScenarioDriverTests.test_bad_local_cleanup_clock_still_attempts_remote_cleanup) ... ok
+test_cleanup_accumulates_original_incremental_receipts (test_scenario_driver.ScenarioDriverTests.test_cleanup_accumulates_original_incremental_receipts) ... ok
+test_cleanup_can_confirm_actual_original_source_close (test_scenario_driver.ScenarioDriverTests.test_cleanup_can_confirm_actual_original_source_close) ... ok
+test_cleanup_deadline_clock_failure_is_local_not_remote (test_scenario_driver.ScenarioDriverTests.test_cleanup_deadline_clock_failure_is_local_not_remote) ... ok
+test_cleanup_error_history_stays_bounded_and_invalid_receipts_are_closed (test_scenario_driver.ScenarioDriverTests.test_cleanup_error_history_stays_bounded_and_invalid_receipts_are_closed) ... ok
+test_cleanup_has_local_monotonic_deadline (test_scenario_driver.ScenarioDriverTests.test_cleanup_has_local_monotonic_deadline) ... ok
+test_cleanup_provider_session_change_cannot_count_new_receipts (test_scenario_driver.ScenarioDriverTests.test_cleanup_provider_session_change_cannot_count_new_receipts) ... ok
+test_cleanup_session_change_before_poll_never_calls_remote (test_scenario_driver.ScenarioDriverTests.test_cleanup_session_change_before_poll_never_calls_remote) ... ok
+test_cleanup_stale_session_stops_local_without_remote_begin (test_scenario_driver.ScenarioDriverTests.test_cleanup_stale_session_stops_local_without_remote_begin) ... ok
+test_cleanup_starts_remote_even_when_local_stop_needs_retry (test_scenario_driver.ScenarioDriverTests.test_cleanup_starts_remote_even_when_local_stop_needs_retry) ... ok
+test_cleanup_synchronous_original_close_can_deliver_final_receipt (test_scenario_driver.ScenarioDriverTests.test_cleanup_synchronous_original_close_can_deliver_final_receipt) ... ok
+test_closing_another_sid_cannot_confirm_original_cleanup (test_scenario_driver.ScenarioDriverTests.test_closing_another_sid_cannot_confirm_original_cleanup) ... ok
+test_delegate_begin_failure_is_not_retried (test_scenario_driver.ScenarioDriverTests.test_delegate_begin_failure_is_not_retried) ... ok
+test_empty_provider_handle_cannot_be_wrapped_as_valid_action (test_scenario_driver.ScenarioDriverTests.test_empty_provider_handle_cannot_be_wrapped_as_valid_action) ... ok
+test_empty_provider_handle_cannot_be_wrapped_as_valid_root_assertion (test_scenario_driver.ScenarioDriverTests.test_empty_provider_handle_cannot_be_wrapped_as_valid_root_assertion) ... ok
+test_explicit_none_step_cannot_start_remote_cleanup (test_scenario_driver.ScenarioDriverTests.test_explicit_none_step_cannot_start_remote_cleanup) ... ok
+test_finite_handle_budget_and_reentry_are_rejected (test_scenario_driver.ScenarioDriverTests.test_finite_handle_budget_and_reentry_are_rejected) ... ok
+test_forged_root_assertion_metadata_is_rejected_before_service_begin (test_scenario_driver.ScenarioDriverTests.test_forged_root_assertion_metadata_is_rejected_before_service_begin) ... ok
+test_frozen_model_native_target_must_equal_actual_current_step (test_scenario_driver.ScenarioDriverTests.test_frozen_model_native_target_must_equal_actual_current_step) ... ok
+test_missing_receipt_never_becomes_complete (test_scenario_driver.ScenarioDriverTests.test_missing_receipt_never_becomes_complete) ... ok
+test_missing_services_or_status_never_allocates_or_transmits (test_scenario_driver.ScenarioDriverTests.test_missing_services_or_status_never_allocates_or_transmits) ... ok
+test_partition_preserves_original_nonnative_link_and_plan (test_scenario_driver.ScenarioDriverTests.test_partition_preserves_original_nonnative_link_and_plan) ... ok
+test_remote_terminal_receipt_is_not_repolled_while_local_recovery_pending (test_scenario_driver.ScenarioDriverTests.test_remote_terminal_receipt_is_not_repolled_while_local_recovery_pending) ... ok
+test_service_begin_session_change_retains_attempt_without_retry (test_scenario_driver.ScenarioDriverTests.test_service_begin_session_change_retains_attempt_without_retry) ... ok
+test_service_poll_exception_retains_context_and_separate_remote_error (test_scenario_driver.ScenarioDriverTests.test_service_poll_exception_retains_context_and_separate_remote_error) ... ok
+test_service_poll_session_change_cannot_cache_completion (test_scenario_driver.ScenarioDriverTests.test_service_poll_session_change_cannot_cache_completion) ... ok
+test_strict_observed_step_target_and_action_before_native_allocation (test_scenario_driver.ScenarioDriverTests.test_strict_observed_step_target_and_action_before_native_allocation) ... ok
+test_whole_plan_service_preflight_failure_precedes_native_send (test_scenario_driver.ScenarioDriverTests.test_whole_plan_service_preflight_failure_precedes_native_send) ... ok
+test_wrapped_original_handles_reject_forged_or_foreign_progress (test_scenario_driver.ScenarioDriverTests.test_wrapped_original_handles_reject_forged_or_foreign_progress) ... ok
+test_wrong_kind_on_native_link_remains_service_event (test_scenario_driver.ScenarioDriverTests.test_wrong_kind_on_native_link_remains_service_event) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 55.442s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_runtime_lifecycle.py -v
+EXIT_CODE: 0
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_submitted_lifecycle_payload_cannot_replace_approved_steps (test_runtime_lifecycle.RuntimeLifecycleTests.test_actual_submitted_lifecycle_payload_cannot_replace_approved_steps) ... ok
+test_actual_transition_state_is_checked_before_allocation (test_runtime_lifecycle.RuntimeLifecycleTests.test_actual_transition_state_is_checked_before_allocation) ... ok
+test_all_six_actions_keep_the_original_semantic_decision (test_runtime_lifecycle.RuntimeLifecycleTests.test_all_six_actions_keep_the_original_semantic_decision) ... ok
+test_encoded_lifecycle_packet_cannot_replace_approved_steps (test_runtime_lifecycle.RuntimeLifecycleTests.test_encoded_lifecycle_packet_cannot_replace_approved_steps) ... ok
+test_exact_applied_resume_transaction_can_finish_after_clock_retirement (test_runtime_lifecycle.RuntimeLifecycleTests.test_exact_applied_resume_transaction_can_finish_after_clock_retirement) ... ok
+test_exact_reset_can_finish_but_wrong_step_cannot_use_retirement (test_runtime_lifecycle.RuntimeLifecycleTests.test_exact_reset_can_finish_but_wrong_step_cannot_use_retirement) ... ok
+test_first_retirement_is_immutable_and_status_cannot_revive_old_epoch (test_runtime_lifecycle.RuntimeLifecycleTests.test_first_retirement_is_immutable_and_status_cannot_revive_old_epoch) ... ok
+test_lifecycle_probe_is_rechecked_before_allocation_without_counter_use (test_runtime_lifecycle.RuntimeLifecycleTests.test_lifecycle_probe_is_rechecked_before_allocation_without_counter_use) ... ok
+test_offline_step_rejects_physical_loop_and_actual_run_duration (test_runtime_lifecycle.RuntimeLifecycleTests.test_offline_step_rejects_physical_loop_and_actual_run_duration) ... ok
+test_published_message_without_actual_lifecycle_probe_is_not_ready (test_runtime_lifecycle.RuntimeLifecycleTests.test_published_message_without_actual_lifecycle_probe_is_not_ready) ... ok
+test_retirement_does_not_finish_another_pending_native_transaction (test_runtime_lifecycle.RuntimeLifecycleTests.test_retirement_does_not_finish_another_pending_native_transaction) ... ok
+test_stopped_reset_is_management_only_not_permission_for_data (test_runtime_lifecycle.RuntimeLifecycleTests.test_stopped_reset_is_management_only_not_permission_for_data) ... ok
+test_validated_ack_does_not_retire_or_finish_lifecycle (test_runtime_lifecycle.RuntimeLifecycleTests.test_validated_ack_does_not_retire_or_finish_lifecycle) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 37.401s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v
+EXIT_CODE: 0
+WARNING: No libpcap provider available ! pcap won't be used
+test_applied_reset_and_resume_invalidate_old_sid_until_new_grant (test_model_clock.ModelClockTests.test_applied_reset_and_resume_invalidate_old_sid_until_new_grant) ... ok
+test_can_heartbeat_attempt_blocks_reuse_by_serial_udp (test_model_clock.ModelClockTests.test_can_heartbeat_attempt_blocks_reuse_by_serial_udp) ... ok
+test_current_lease_is_required_even_with_cached_status (test_model_clock.ModelClockTests.test_current_lease_is_required_even_with_cached_status) ... ok
+test_dispatcher_feedback_reader_never_sends_or_drains (test_model_clock.ModelClockTests.test_dispatcher_feedback_reader_never_sends_or_drains) ... ok
+test_duplicate_feedback_cannot_refresh_original_deadline (test_model_clock.ModelClockTests.test_duplicate_feedback_cannot_refresh_original_deadline) ... ok
+test_failed_received_or_unpublished_lifecycle_does_not_claim_reset (test_model_clock.ModelClockTests.test_failed_received_or_unpublished_lifecycle_does_not_claim_reset) ... ok
+test_failed_serial_heartbeat_attempt_cannot_reuse_transaction (test_model_clock.ModelClockTests.test_failed_serial_heartbeat_attempt_cannot_reuse_transaction) ... ok
+test_frozen_240ms_validity_exact_boundary_and_delayed_arrival (test_model_clock.ModelClockTests.test_frozen_240ms_validity_exact_boundary_and_delayed_arrival) ... ok
+test_immutable_detached_snapshot_retains_original_exchange_and_identity (test_model_clock.ModelClockTests.test_immutable_detached_snapshot_retains_original_exchange_and_identity) ... ok
+test_interleaved_older_heartbeat_still_contributes_model_step_floor (test_model_clock.ModelClockTests.test_interleaved_older_heartbeat_still_contributes_model_step_floor) ... ok
+test_local_elapsed_time_never_advances_reported_model_step (test_model_clock.ModelClockTests.test_local_elapsed_time_never_advances_reported_model_step) ... ok
+test_local_monotonic_clock_reversal_is_not_a_model_reset (test_model_clock.ModelClockTests.test_local_monotonic_clock_reversal_is_not_a_model_reset) ... ok
+test_new_sid_requires_new_status_and_allows_reset_step (test_model_clock.ModelClockTests.test_new_sid_requires_new_status_and_allows_reset_step) ... ok
+test_original_can_feedback_uses_source_clock_domain (test_model_clock.ModelClockTests.test_original_can_feedback_uses_source_clock_domain) ... ok
+test_private_feedback_capture_cannot_bypass_actual_operation_owner (test_model_clock.ModelClockTests.test_private_feedback_capture_cannot_bypass_actual_operation_owner) ... ok
+test_requires_actual_status_not_grant_or_an_arbitrary_object (test_model_clock.ModelClockTests.test_requires_actual_status_not_grant_or_an_arbitrary_object) ... ok
+test_reused_heartbeat_transaction_cannot_retime_or_replace_sample (test_model_clock.ModelClockTests.test_reused_heartbeat_transaction_cannot_retime_or_replace_sample) ... ok
+test_serial_udp_status_is_bound_to_actual_socket_request (test_model_clock.ModelClockTests.test_serial_udp_status_is_bound_to_actual_socket_request) ... ok
+test_source_owner_lock_and_closed_session_are_respected (test_model_clock.ModelClockTests.test_source_owner_lock_and_closed_session_are_respected) ... ok
+test_strict_exact_step_and_required_state (test_model_clock.ModelClockTests.test_strict_exact_step_and_required_state) ... ok
+test_temporarily_deferred_original_heartbeat_claims_transaction_once (test_model_clock.ModelClockTests.test_temporarily_deferred_original_heartbeat_claims_transaction_once) ... ok
+test_timed_out_heartbeat_transaction_cannot_be_reused_after_dispatch_replacement (test_model_clock.ModelClockTests.test_timed_out_heartbeat_transaction_cannot_be_reused_after_dispatch_replacement) ... ok
+test_unread_regression_survives_drain_and_reader_replacement (test_model_clock.ModelClockTests.test_unread_regression_survives_drain_and_reader_replacement) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 16.055s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v
+EXIT_CODE: 0
+test_actual_can_command_and_udp_share_one_lease_observation (test_control_lease.ControlLeaseSocketTests.test_actual_can_command_and_udp_share_one_lease_observation) ... WARNING: No libpcap provider available ! pcap won't be used
+ok
+test_actual_interleaved_owner_replies_keep_latest_attempt_only (test_control_lease.ControlLeaseSocketTests.test_actual_interleaved_owner_replies_keep_latest_attempt_only) ... ok
+test_actual_udp_validated_command_extends_same_original_lease (test_control_lease.ControlLeaseSocketTests.test_actual_udp_validated_command_extends_same_original_lease) ... ok
+test_earlier_heartbeat_conflict_permanently_revokes_applied_owner (test_control_lease.ControlLeaseSocketTests.test_earlier_heartbeat_conflict_permanently_revokes_applied_owner) ... ok
+test_fresh_conflicting_status_revokes_even_if_clock_cache_keeps_newer_request (test_control_lease.ControlLeaseSocketTests.test_fresh_conflicting_status_revokes_even_if_clock_cache_keeps_newer_request) ... ok
+test_pending_owner_ack_cannot_undo_later_safety_status (test_control_lease.ControlLeaseSocketTests.test_pending_owner_ack_cannot_undo_later_safety_status) ... ok
+test_pending_owner_source_conflict_requires_a_new_owner_exchange (test_control_lease.ControlLeaseSocketTests.test_pending_owner_source_conflict_requires_a_new_owner_exchange) ... ok
+test_abandon_and_new_sid_never_adopt_previous_lease (test_control_lease.ControlLeaseTests.test_abandon_and_new_sid_never_adopt_previous_lease) ... ok
+test_applied_owner_cannot_establish_from_an_active_safety_status (test_control_lease.ControlLeaseTests.test_applied_owner_cannot_establish_from_an_active_safety_status) ... ok
+test_control_capture_requires_actual_source_operation_owner (test_control_lease.ControlLeaseTests.test_control_capture_requires_actual_source_operation_owner) ... ok
+test_control_deadline_exact_boundary_and_heartbeat_do_not_renew (test_control_lease.ControlLeaseTests.test_control_deadline_exact_boundary_and_heartbeat_do_not_renew) ... ok
+test_control_permission_failure_revokes_existing_lease (test_control_lease.ControlLeaseTests.test_control_permission_failure_revokes_existing_lease) ... ok
+test_control_reader_does_not_transmit_allocate_or_drain (test_control_lease.ControlLeaseTests.test_control_reader_does_not_transmit_allocate_or_drain) ... ok
+test_drain_and_reader_replacement_never_reset_deadline (test_control_lease.ControlLeaseTests.test_drain_and_reader_replacement_never_reset_deadline) ... ok
+test_duplicate_command_feedback_cannot_renew_again (test_control_lease.ControlLeaseTests.test_duplicate_command_feedback_cannot_renew_again) ... ok
+test_exact_applied_owner_retains_original_provenance_without_qualification (test_control_lease.ControlLeaseTests.test_exact_applied_owner_retains_original_provenance_without_qualification) ... ok
+test_expired_lease_cannot_be_recreated_by_late_command_ack (test_control_lease.ControlLeaseTests.test_expired_lease_cannot_be_recreated_by_late_command_ack) ... ok
+test_new_owner_attempt_invalidates_old_even_when_send_fails (test_control_lease.ControlLeaseTests.test_new_owner_attempt_invalidates_old_even_when_send_fails) ... ok
+test_old_owner_reply_after_new_attempt_cannot_restore_old_lease (test_control_lease.ControlLeaseTests.test_old_owner_reply_after_new_attempt_cannot_restore_old_lease) ... ok
+test_old_owner_reply_after_status_revocation_cannot_restore_old_lease (test_control_lease.ControlLeaseTests.test_old_owner_reply_after_status_revocation_cannot_restore_old_lease) ... ok
+test_received_failed_environment_and_wrong_lane_never_renew (test_control_lease.ControlLeaseTests.test_received_failed_environment_and_wrong_lane_never_renew) ... ok
+test_safety_lifecycle_attempt_revokes_before_reply (test_control_lease.ControlLeaseTests.test_safety_lifecycle_attempt_revokes_before_reply) ... ok
+test_safety_status_and_changed_source_revoke_without_regain (test_control_lease.ControlLeaseTests.test_safety_status_and_changed_source_revoke_without_regain) ... ok
+test_status_alone_cannot_invent_control_lease (test_control_lease.ControlLeaseTests.test_status_alone_cannot_invent_control_lease) ... ok
+test_status_step_freshness_and_strict_expected_source_lane_are_required (test_control_lease.ControlLeaseTests.test_status_step_freshness_and_strict_expected_source_lane_are_required) ... ok
+test_unpublished_or_received_owner_never_establishes_lease (test_control_lease.ControlLeaseTests.test_unpublished_or_received_owner_never_establishes_lease) ... ok
+test_unpublished_owner_probe_never_establishes_lease (test_control_lease.ControlLeaseTests.test_unpublished_owner_probe_never_establishes_lease) ... ok
+test_validated_matching_control_renews_from_first_tx_not_reply (test_control_lease.ControlLeaseTests.test_validated_matching_control_renews_from_first_tx_not_reply) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 20.561s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests/icd_runtime -p test_*.py -v
+EXIT_CODE: 0
+test_mutated_fixtures_cannot_pass_by_rewriting_local_manifest (test_cli.CLITests.test_mutated_fixtures_cannot_pass_by_rewriting_local_manifest) ... ok
+test_no_platform_specific_behavior_or_qa_imports (test_cli.CLITests.test_no_platform_specific_behavior_or_qa_imports) ... ok
+test_offline_common_cli_checks_all_goldens_and_no_runtime_claim (test_cli.CLITests.test_offline_common_cli_checks_all_goldens_and_no_runtime_claim) ... ok
+test_wrong_pinned_baseline_exits_nonzero (test_cli.CLITests.test_wrong_pinned_baseline_exits_nonzero) ... ok
+test_runtime_is_a_real_separate_package (test_contract_payload.AvailabilityTest.test_runtime_is_a_real_separate_package) ... ok
+test_baseline_and_all_59_fixtures_without_mutation (test_contract_payload.ContractPayloadTests.test_baseline_and_all_59_fixtures_without_mutation) ... ok
+test_date_time_fields_reject_invalid_calendar_values (test_contract_payload.ContractPayloadTests.test_date_time_fields_reject_invalid_calendar_values) ... ok
+test_each_frozen_component_tamper_is_rejected (test_contract_payload.ContractPayloadTests.test_each_frozen_component_tamper_is_rejected) ... ok
+test_external_expected_hash_is_mandatory_and_not_trusted_from_file (test_contract_payload.ContractPayloadTests.test_external_expected_hash_is_mandatory_and_not_trusted_from_file) ... ok
+test_ieee754_exact_large_numbers_are_not_uint64_fields (test_contract_payload.ContractPayloadTests.test_ieee754_exact_large_numbers_are_not_uint64_fields) ... ok
+test_missing_unknown_types_arrays_and_nonfinite_rejected (test_contract_payload.ContractPayloadTests.test_missing_unknown_types_arrays_and_nonfinite_rejected) ... ok
+test_packed_layout_offsets_boolean_and_enum_codes (test_contract_payload.ContractPayloadTests.test_packed_layout_offsets_boolean_and_enum_codes) ... ok
+test_session_open_and_nonzero_session_header_rules (test_contract_payload.ContractPayloadTests.test_session_open_and_nonzero_session_header_rules) ... ok
+test_strict_json_rejects_ambiguous_and_noncanonical_input (test_contract_payload.ContractPayloadTests.test_strict_json_rejects_ambiguous_and_noncanonical_input) ... ok
+test_uint64_string_overflow_is_rejected (test_contract_payload.ContractPayloadTests.test_uint64_string_overflow_is_rejected) ... ok
+test_unknown_id_direction_and_wrong_model_rejected (test_contract_payload.ContractPayloadTests.test_unknown_id_direction_and_wrong_model_rejected) ... ok
+test_bounded_common_reassembly_exists (test_reassembly.ReassemblyAvailabilityTests.test_bounded_common_reassembly_exists) ... ok
+test_64_slots_per_channel_no_eviction (test_reassembly.ReassemblyTests.test_64_slots_per_channel_no_eviction) ... ok
+test_all_transports_reassemble_in_reverse_order (test_reassembly.ReassemblyTests.test_all_transports_reassemble_in_reverse_order) ... ok
+test_can_timeout_is_20ms (test_reassembly.ReassemblyTests.test_can_timeout_is_20ms) ... ok
+test_channel_half_groups_cannot_be_spliced (test_reassembly.ReassemblyTests.test_channel_half_groups_cannot_be_spliced) ... ok
+test_clock_cannot_go_backwards_and_terminal_entries_expire (test_reassembly.ReassemblyTests.test_clock_cannot_go_backwards_and_terminal_entries_expire) ... ok
+test_completed_retransmission_cannot_emit_second_completion (test_reassembly.ReassemblyTests.test_completed_retransmission_cannot_emit_second_completion) ... ok
+test_conflict_invalidates_whole_group_and_blocks_restart (test_reassembly.ReassemblyTests.test_conflict_invalidates_whole_group_and_blocks_restart) ... ok
+test_decoded_fragment_metadata_cannot_bypass_reservation_limits (test_reassembly.ReassemblyTests.test_decoded_fragment_metadata_cannot_bypass_reservation_limits) ... ok
+test_explicit_session_dedup_owner_can_reassemble_complete_retries (test_reassembly.ReassemblyTests.test_explicit_session_dedup_owner_can_reassemble_complete_retries) ... ok
+test_global_8mib_reservation_is_enforced (test_reassembly.ReassemblyTests.test_global_8mib_reservation_is_enforced) ... ok
+test_header_inconsistency_invalidates_group (test_reassembly.ReassemblyTests.test_header_inconsistency_invalidates_group) ... ok
+test_identical_duplicate_never_extends_fixed_deadline (test_reassembly.ReassemblyTests.test_identical_duplicate_never_extends_fixed_deadline) ... ok
+test_pre_session_namespace_cannot_partition_established_business (test_reassembly.ReassemblyTests.test_pre_session_namespace_cannot_partition_established_business) ... ok
+test_pre_session_namespaces_share_channel_capacity (test_reassembly.ReassemblyTests.test_pre_session_namespaces_share_channel_capacity) ... ok
+test_reassembled_invalid_payload_is_rejected_not_returned (test_reassembly.ReassemblyTests.test_reassembled_invalid_payload_is_rejected_not_returned) ... ok
+test_session_discard_frees_only_its_groups_and_terminal_entries (test_reassembly.ReassemblyTests.test_session_discard_frees_only_its_groups_and_terminal_entries) ... ok
+test_terminal_cache_overflow_evicts_oldest_at_8192_entries (test_reassembly.ReassemblyTests.test_terminal_cache_overflow_evicts_oldest_at_8192_entries) ... ok
+test_unauthorized_direction_or_channel_never_allocates (test_reassembly.ReassemblyTests.test_unauthorized_direction_or_channel_never_allocates) ... ok
+test_unknown_channel_and_wrong_medium_never_allocate (test_reassembly.ReassemblyTests.test_unknown_channel_and_wrong_medium_never_allocate) ... ok
+test_video_complete_frame_hash_and_four_frame_capacity (test_reassembly.ReassemblyTests.test_video_complete_frame_hash_and_four_frame_capacity) ... ok
+test_all_45_input_stimuli_and_model_gate (test_source_contract.SourceContractTests.test_all_45_input_stimuli_and_model_gate) ... ok
+test_all_ten_event_branches_use_frozen_closed_definitions (test_source_contract.SourceContractTests.test_all_ten_event_branches_use_frozen_closed_definitions) ... ok
+test_complete_source_structure_is_unchanged (test_source_contract.SourceContractTests.test_complete_source_structure_is_unchanged) ... ok
+test_component_hashes_are_actual_read_only_copies (test_source_contract.SourceContractTests.test_component_hashes_are_actual_read_only_copies) ... ok
+test_decimal_time_cannot_use_trailing_newline_to_bypass_range (test_source_contract.SourceContractTests.test_decimal_time_cannot_use_trailing_newline_to_bypass_range) ... ok
+test_decimal_uint64_limit_is_preserved_for_replay (test_source_contract.SourceContractTests.test_decimal_uint64_limit_is_preserved_for_replay) ... ok
+test_definition_names_are_a_closed_allowlist (test_source_contract.SourceContractTests.test_definition_names_are_a_closed_allowlist) ... ok
+test_each_source_required_field_and_unknown_key_are_rejected (test_source_contract.SourceContractTests.test_each_source_required_field_and_unknown_key_are_rejected) ... ok
+test_source_validation_entry_points_exist (test_source_contract.SourceContractTests.test_source_validation_entry_points_exist) ... ok
+test_stimulus_cannot_include_session_header_or_feedback (test_source_contract.SourceContractTests.test_stimulus_cannot_include_session_header_or_feedback) ... ok
+test_common_video_framing_exists (test_video.VideoAvailabilityTests.test_common_video_framing_exists) ... ok
+test_h264_h265_fragment_shapes_and_capacity (test_video.VideoTests.test_h264_h265_fragment_shapes_and_capacity) ... ok
+test_invalid_raw_size_codec_header_and_empty_data (test_video.VideoTests.test_invalid_raw_size_codec_header_and_empty_data) ... ok
+test_raw_800_fragments_and_all_existing_video_goldens (test_video.VideoTests.test_raw_800_fragments_and_all_existing_video_goldens) ... ok
+test_reject_crc_version_flags_reserved_and_fragment_length (test_video.VideoTests.test_reject_crc_version_flags_reserved_and_fragment_length) ... ok
+test_wire_codec_exists (test_wire.WireAvailabilityTests.test_wire_codec_exists) ... ok
+test_all_business_golden_fragments_byte_exact (test_wire.WireTests.test_all_business_golden_fragments_byte_exact) ... ok
+test_can_transport_attributes_and_padding_rejected (test_wire.WireTests.test_can_transport_attributes_and_padding_rejected) ... ok
+test_crc_and_truncation_rejected (test_wire.WireTests.test_crc_and_truncation_rejected) ... ok
+test_crc_reference_check_values (test_wire.WireTests.test_crc_reference_check_values) ... ok
+test_decode_every_logical_message_fragment (test_wire.WireTests.test_decode_every_logical_message_fragment) ... ok
+test_integral_json_header_numbers_encode_without_struct_errors (test_wire.WireTests.test_integral_json_header_numbers_encode_without_struct_errors) ... ok
+test_json_cannot_be_sent_over_can_and_no_unknown_transport (test_wire.WireTests.test_json_cannot_be_sent_over_can_and_no_unknown_transport) ... ok
+test_udp_65536_byte_capacity_requires_a_576_byte_final_chunk (test_wire.WireTests.test_udp_65536_byte_capacity_requires_a_576_byte_final_chunk) ... ok
+test_udp_fragment_indexes_counts_and_payload_lengths (test_wire.WireTests.test_udp_fragment_indexes_counts_and_payload_lengths) ... ok
+test_udp_magic_version_flags_reserved_and_ids (test_wire.WireTests.test_udp_magic_version_flags_reserved_and_ids) ... ok
+test_wire_headers_checked_before_payload_reassembly (test_wire.WireTests.test_wire_headers_checked_before_payload_reassembly) ... ok
+test_every_formal_fragment_retains_payload_layout (test_wire_rewrite.RewriteTests.test_every_formal_fragment_retains_payload_layout) ... ok
+test_invalid_original_or_header_never_rewritten (test_wire_rewrite.RewriteTests.test_invalid_original_or_header_never_rewritten) ... ok
+test_rewrite_exists (test_wire_rewrite.RewriteTests.test_rewrite_exists) ... ok
+
+----------------------------------------------------------------------
+Ran 67 tests in 27.650s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v
+EXIT_CODE: 0
+test_all_41_plan_items_have_common_and_linux_ownership (test_development_backlog.BacklogTests.test_all_41_plan_items_have_common_and_linux_ownership) ... ok
+test_removed_or_duplicated_plan_item_cannot_pass_coverage (test_development_backlog.BacklogTests.test_removed_or_duplicated_plan_item_cannot_pass_coverage) ... ok
+test_stage_closeout_is_append_only_and_linux_completion_requires_evidence (test_development_backlog.BacklogTests.test_stage_closeout_is_append_only_and_linux_completion_requires_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.014s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v
+EXIT_CODE: 0
+test_all_field_rows_and_management_definitions_present (test_contract_single_file.SingleFileContractTests.test_all_field_rows_and_management_definitions_present) ... ok
+test_all_original_artifacts_are_embedded_byte_exact (test_contract_single_file.SingleFileContractTests.test_all_original_artifacts_are_embedded_byte_exact) ... ok
+test_all_schema_references_resolve_inside_document (test_contract_single_file.SingleFileContractTests.test_all_schema_references_resolve_inside_document) ... ok
+test_missing_or_corrupt_snapshot_fails_verification (test_contract_single_file.SingleFileContractTests.test_missing_or_corrupt_snapshot_fails_verification) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.149s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_static_contract.py -v
+EXIT_CODE: 0
+test_acceptance_directory_name_and_result_are_git_traceable (test_static_contract.RuntimeContractStaticTests.test_acceptance_directory_name_and_result_are_git_traceable) ... ok
+test_acceptance_refuses_wrong_target_or_unconfirmed_lifecycle_event (test_static_contract.RuntimeContractStaticTests.test_acceptance_refuses_wrong_target_or_unconfirmed_lifecycle_event) ... ok
+test_acceptance_submits_complete_task_4_mission_schema (test_static_contract.RuntimeContractStaticTests.test_acceptance_submits_complete_task_4_mission_schema) ... ok
+test_actuator_commands_use_contract_bound_generic_setter (test_static_contract.RuntimeContractStaticTests.test_actuator_commands_use_contract_bound_generic_setter) ... ok
+test_adapter_requires_explicit_ned_contract_not_aliases (test_static_contract.RuntimeContractStaticTests.test_adapter_requires_explicit_ned_contract_not_aliases) ... ok
+test_bridge_does_not_fabricate_default_mission_or_nonfinite_values (test_static_contract.RuntimeContractStaticTests.test_bridge_does_not_fabricate_default_mission_or_nonfinite_values) ... ok
+test_build_request_is_controlled_and_auditable (test_static_contract.RuntimeContractStaticTests.test_build_request_is_controlled_and_auditable) ... ok
+test_build_validates_generated_abi_and_emits_no_defaults (test_static_contract.RuntimeContractStaticTests.test_build_validates_generated_abi_and_emits_no_defaults) ... ok
+test_core_enables_realtime_scheduler_and_memory_lock (test_static_contract.RuntimeContractStaticTests.test_core_enables_realtime_scheduler_and_memory_lock) ... ok
+test_core_has_fixed_state_receipts_and_lifecycle (test_static_contract.RuntimeContractStaticTests.test_core_has_fixed_state_receipts_and_lifecycle) ... ok
+test_core_reserves_capacity_for_50_route_points_plus_landing (test_static_contract.RuntimeContractStaticTests.test_core_reserves_capacity_for_50_route_points_plus_landing) ... ok
+test_mission_controller_is_independent_of_generated_model_globals (test_static_contract.RuntimeContractStaticTests.test_mission_controller_is_independent_of_generated_model_globals) ... ok
+test_no_model_registry_or_hot_reload_implementation (test_static_contract.RuntimeContractStaticTests.test_no_model_registry_or_hot_reload_implementation) ... ok
+test_one_command_ubuntu_acceptance_runner_exists (test_static_contract.RuntimeContractStaticTests.test_one_command_ubuntu_acceptance_runner_exists) ... ok
+test_production_deploy_uses_systemd_and_health_gate (test_static_contract.RuntimeContractStaticTests.test_production_deploy_uses_systemd_and_health_gate) ... ok
+test_python_only_location_of_ned_to_ue4_conversion (test_static_contract.RuntimeContractStaticTests.test_python_only_location_of_ned_to_ue4_conversion) ... ok
+test_runtime_ends_once_when_controller_reports_landed (test_static_contract.RuntimeContractStaticTests.test_runtime_ends_once_when_controller_reports_landed) ... ok
+test_target_toolchain_and_python_dependencies_are_pinned (test_static_contract.RuntimeContractStaticTests.test_target_toolchain_and_python_dependencies_are_pinned) ... ok
+test_ue4_acceptance_contract_excludes_internal_acceleration_and_rate (test_static_contract.RuntimeContractStaticTests.test_ue4_acceptance_contract_excludes_internal_acceleration_and_rate) ... ok
+test_v3_fixed_wing_uses_protocol_defined_tcp_roles (test_static_contract.RuntimeContractStaticTests.test_v3_fixed_wing_uses_protocol_defined_tcp_roles) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.024s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v
+EXIT_CODE: 0
+test_acceptance_fixture_uses_internal_acceleration_contract (test_quadrotor_model_contract.QuadrotorModelContractTests.test_acceptance_fixture_uses_internal_acceleration_contract) ... ok
+test_builder_rejects_missing_generated_parameter_and_confines_artifacts (test_quadrotor_model_contract.QuadrotorModelContractTests.test_builder_rejects_missing_generated_parameter_and_confines_artifacts) ... ok
+test_contract_declares_all_generated_tunable_abi (test_quadrotor_model_contract.QuadrotorModelContractTests.test_contract_declares_all_generated_tunable_abi) ... ok
+test_contract_declares_motor_mode_internal_rate_and_state_mapping (test_quadrotor_model_contract.QuadrotorModelContractTests.test_contract_declares_motor_mode_internal_rate_and_state_mapping) ... ok
+test_environment_defaults_reach_generated_external_inputs_and_takeoff (test_quadrotor_model_contract.QuadrotorModelContractTests.test_environment_defaults_reach_generated_external_inputs_and_takeoff) ... ok
+test_generator_is_fixed_step_exported_global_four_rotor_plant (test_quadrotor_model_contract.QuadrotorModelContractTests.test_generator_is_fixed_step_exported_global_four_rotor_plant) ... ok
+test_matlab_validators_require_internal_acceleration_contract (test_quadrotor_model_contract.QuadrotorModelContractTests.test_matlab_validators_require_internal_acceleration_contract) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.006s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v
+EXIT_CODE: 0
+test_analysis_emits_review_only_candidate_report (test_parameter_registry_static.ParameterRegistryStaticTests.test_analysis_emits_review_only_candidate_report) ... ok
+test_runtime_query_returns_contract_metadata_and_current_value (test_parameter_registry_static.ParameterRegistryStaticTests.test_runtime_query_returns_contract_metadata_and_current_value) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v
+EXIT_CODE: 0
+test_build_emits_surface_values_only_from_explicit_v3_mapping (test_generic_contract_templates.GenericContractTemplateTests.test_build_emits_surface_values_only_from_explicit_v3_mapping) ... ok
+test_declares_v3_n_motor_and_fixed_wing_template_paths (test_generic_contract_templates.GenericContractTemplateTests.test_declares_v3_n_motor_and_fixed_wing_template_paths) ... ok
+test_fixed_wing_cannot_select_quadrotor_demo_controller (test_generic_contract_templates.GenericContractTemplateTests.test_fixed_wing_cannot_select_quadrotor_demo_controller) ... ok
+test_fixed_wing_template_declares_v3_phase_thresholds_without_fake_surfaces (test_generic_contract_templates.GenericContractTemplateTests.test_fixed_wing_template_declares_v3_phase_thresholds_without_fake_surfaces) ... ok
+test_template_covers_sensor_rates_faults_and_complex_parameters (test_generic_contract_templates.GenericContractTemplateTests.test_template_covers_sensor_rates_faults_and_complex_parameters) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.002s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check
+EXIT_CODE: 0
+{
+  "status": "SINGLE_FILE_CONTENT_VERIFIED",
+  "embedded_sources": 14,
+  "resolved_schema_references": 663,
+  "business_messages": 59,
+  "management_commands": 25,
+  "golden_vectors": 85,
+  "physical_channels": 56,
+  "model_bindings": 97,
+  "runtime_hardware_replacement": "NOT_VERIFIED_BY_THIS_CONSOLIDATION"
+}
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m pip check
+EXIT_CODE: 0
+No broken requirements found.
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m compileall -q input_simulator icd_gateway icd_runtime tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py scripts/build_contract_single_file.py
+EXIT_CODE: 0
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27
+EXIT_CODE: 0
+{
+  "status": "OFFLINE_CODEC_PASS",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "business_messages": 59,
+  "business_transport_completions": 72,
+  "golden_fragments": 85,
+  "video_raw_fragments": 800,
+  "pending_groups": 0,
+  "reserved_payload_bytes": 0,
+  "runtime_network_model_hardware_replacement": "NOT_EXECUTED"
+}
+
+=== POST_DOCUMENT_GUARDS (duplicate tests excluded from 460) ===
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v
+EXIT_CODE: 0
+test_all_41_plan_items_have_common_and_linux_ownership (test_development_backlog.BacklogTests.test_all_41_plan_items_have_common_and_linux_ownership) ... ok
+test_removed_or_duplicated_plan_item_cannot_pass_coverage (test_development_backlog.BacklogTests.test_removed_or_duplicated_plan_item_cannot_pass_coverage) ... ok
+test_stage_closeout_is_append_only_and_linux_completion_requires_evidence (test_development_backlog.BacklogTests.test_stage_closeout_is_append_only_and_linux_completion_requires_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.013s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v
+EXIT_CODE: 0
+test_all_field_rows_and_management_definitions_present (test_contract_single_file.SingleFileContractTests.test_all_field_rows_and_management_definitions_present) ... ok
+test_all_original_artifacts_are_embedded_byte_exact (test_contract_single_file.SingleFileContractTests.test_all_original_artifacts_are_embedded_byte_exact) ... ok
+test_all_schema_references_resolve_inside_document (test_contract_single_file.SingleFileContractTests.test_all_schema_references_resolve_inside_document) ... ok
+test_missing_or_corrupt_snapshot_fails_verification (test_contract_single_file.SingleFileContractTests.test_missing_or_corrupt_snapshot_fails_verification) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.158s
+
+OK
+
+COMMAND: & './runtime/icd-venv/Scripts/python.exe' -X utf8 scripts/build_contract_single_file.py --check
+EXIT_CODE: 0
+{
+  "status": "SINGLE_FILE_CONTENT_VERIFIED",
+  "embedded_sources": 14,
+  "resolved_schema_references": 663,
+  "business_messages": 59,
+  "management_commands": 25,
+  "golden_vectors": 85,
+  "physical_channels": 56,
+  "model_bindings": 97,
+  "runtime_hardware_replacement": "NOT_VERIFIED_BY_THIS_CONSOLIDATION"
+}
+
+INTEGRITY: {"source_hashes_verified":158,"third_hashes_verified":20,"ledger_prefix_length":108370,"ledger_prefix_sha256":"d39caad203219f389abf00ed07ca4ee5eece7f920b3f0b698933d204edc35d8b","ledger_prefix_preserved":true,"responsibilities":41,"linux_unchecked":17,"linux_checked":0}

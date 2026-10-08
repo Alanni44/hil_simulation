@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "status": "ROUND3_ISOLATED_NETWORK_TX_RX_VALIDATED",
+  "environment_class": "WSL2_SOFTWARE_ONLY",
+  "host_os": "Microsoft Windows 10.0.26200",
+  "linux_distribution": "Ubuntu 24.04.3 LTS",
+  "linux_kernel": "6.6.87.2-microsoft-standard-WSL2",
+  "tcpreplay_version": "4.4.4",
+  "tcpdump_version": "4.99.4",
+  "libpcap_version": "1.10.4",
+  "iproute2_version": "6.1.0",
+  "target_kylin_qualified": false,
+  "final_attempt": "retry_2",
+  "initial_blocker_archived": "artifacts/history/round3/initial_blocked/",
+  "retry_1_note": "Actual isolated TX/RX succeeded, but tcpdump -s 0 produced snaplen 262144, outside the project CaptureParser profile; evidence retained and not used for qualification.",
+  "retry_2_note": "Retried with tcpdump snaplen 65535; isolated TX/RX and formal byte-level validation passed.",
+  "temporary_install_network_changes_restored": true,
+  "namespace_cleanup_complete": true,
+  "residual_tcpreplay_process": false,
+  "residual_tcpdump_process": false
+}

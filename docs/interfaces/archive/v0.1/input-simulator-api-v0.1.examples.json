@@ -1,0 +1,118 @@
+{
+  "notice": "Review-only examples. IDs, hashes, model bindings and signal limits are illustrative, not an approved ICD or deployed API. Each sample.value is the actual JSON DTO or message; schema_def identifies its schema definition.",
+  "samples": [
+    {"name": "capabilities_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_capabilities_get", "params": {"api_version": "0.1", "request_id": "ui-cap-001"}}},
+    {"name": "profiles_list_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_profiles_list", "params": {"api_version": "0.1", "request_id": "ui-profiles-001", "limit": 100}}},
+    {"name": "profile_get_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_profile_get", "params": {"api_version": "0.1", "request_id": "ui-profile-001", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}},
+    {"name": "resources_list_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_resources_list", "params": {"api_version": "0.1", "request_id": "ui-resources-001", "kind": "HISTORY", "limit": 100}}},
+    {"name": "scenarios_list_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_scenarios_list", "params": {"api_version": "0.1", "request_id": "ui-scenarios-001", "limit": 100}}},
+    {"name": "scenario_get_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_scenario_get", "params": {"api_version": "0.1", "request_id": "ui-scenario-001", "scenario_ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}}},
+    {
+      "name": "scenario_save_request", "schema_def": "Request", "expected_schema_valid": true,
+      "value": {
+        "cmd": "simulator_scenario_save",
+        "params": {
+          "api_version": "0.1", "request_id": "ui-save-001",
+          "definition": {
+            "name": "Example wind input", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+            "model_binding_ref": "model-demo-wind", "resource_ids": [],
+            "steps": [
+              {"step_id": "wind-step-1", "kind": "INPUT", "at_sim_time_us": "0", "message_id": "demo.environment.wind", "values": {"wind_n_mps": 3.0}},
+              {"step_id": "wait-1", "kind": "WAIT", "at_sim_time_us": "0", "input_step_id": "wind-step-1", "stage": "APPLIED", "timeout_ms": 1000}
+            ]
+          }
+        }
+      }
+    },
+    {"name": "run_create_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_run_create", "params": {"api_version": "0.1", "request_id": "ui-create-001", "scenario_ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, "mode": "EXPLORE", "source_binding_ref": "source-demo-local", "toolchain_ids": ["ethernet-scapy"]}}},
+    {"name": "run_control_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_run_control", "params": {"api_version": "0.1", "request_id": "ui-start-001", "run_id": "run-demo-001", "expected_revision": "1", "action": "START"}}},
+    {"name": "update_inputs_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_run_update_inputs", "params": {"api_version": "0.1", "request_id": "ui-update-001", "run_id": "run-demo-001", "expected_revision": "3", "message_id": "demo.environment.wind", "values": {"wind_n_mps": 4.0}}}},
+    {"name": "run_get_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_run_get", "params": {"api_version": "0.1", "request_id": "ui-run-001", "run_id": "run-demo-001"}}},
+    {"name": "runs_list_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_runs_list", "params": {"api_version": "0.1", "request_id": "ui-runs-001", "limit": 100}}},
+    {"name": "records_list_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_records_list", "params": {"api_version": "0.1", "request_id": "ui-records-001", "run_id": "run-demo-001", "after_cursor": "cursor-demo-0001", "limit": 100}}},
+    {"name": "report_get_request", "schema_def": "Request", "expected_schema_valid": true, "value": {"cmd": "simulator_report_get", "params": {"api_version": "0.1", "request_id": "ui-report-001", "run_id": "run-demo-001"}}},
+    {
+      "name": "draft_profile", "schema_def": "Profile", "expected_schema_valid": true,
+      "value": {
+        "ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        "name": "Example profile only", "approval": "DRAFT", "transports": ["ETHERNET"],
+        "messages": [
+          {"message_id": "demo.environment.wind", "name": "Example north wind component", "direction": "TO_36", "category": "ENVIRONMENT", "transport": "ETHERNET", "wire_definition_ref": "wire-demo-wind", "mapping_ref": "mapping-demo-wind",
+            "signals": [{"signal_id": "wind_n_mps", "name": "Example north wind component", "value_type": "NUMBER", "unit": "m/s", "minimum": -20.0, "maximum": 20.0, "dimension": null, "writable": true}]}
+        ]
+      }
+    },
+    {"name": "profile_summary", "schema_def": "ProfileSummary", "expected_schema_valid": true, "value": {"ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "name": "Example profile only", "approval": "DRAFT", "transports": ["ETHERNET"], "message_count": 1}},
+    {"name": "scenario_summary", "schema_def": "ScenarioSummary", "expected_schema_valid": true, "value": {"ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, "name": "Example wind input", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "validation_status": "VALID", "step_count": 2}},
+    {"name": "can_history_resource", "schema_def": "Resource", "expected_schema_valid": true, "value": {"resource_id": "history-demo-can", "name": "Example CAN log", "kind": "HISTORY", "format": "CAN_LOG", "size_bytes": "8192", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "validation_status": "VALID", "validation_errors": []}},
+    {"name": "replay_step", "schema_def": "Step", "expected_schema_valid": true, "value": {"step_id": "replay-1", "kind": "REPLAY", "at_sim_time_us": "1000000", "resource_id": "history-demo-can", "replay_policy_ref": "replay-demo-approved"}},
+    {"name": "fault_step", "schema_def": "Step", "expected_schema_valid": true, "value": {"step_id": "fault-1", "kind": "FAULT", "at_sim_time_us": "2000000", "fault_case_ref": "fault-demo-drop"}},
+    {
+      "name": "run_ready", "schema_def": "Run", "expected_schema_valid": true,
+      "value": {
+        "run_id": "run-demo-001", "revision": "1", "mode": "EXPLORE",
+        "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        "scenario_ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        "source_binding_ref": "source-demo-local", "toolchain_ids": ["ethernet-scapy"], "state": "READY", "result": "NOT_RUN", "available_actions": ["START"],
+        "stats": {"tx_frames": "0", "rx_frames": "0", "received_inputs": "0", "applied_inputs": "0", "rejected_inputs": "0"},
+        "evidence_complete": true, "last_error": null, "created_at": "2026-10-02T02:00:00.000Z", "updated_at": "2026-10-02T02:00:00.000Z"
+      }
+    },
+    {
+      "name": "control_accepted_response", "schema_def": "Response", "expected_schema_valid": true,
+      "value": {
+        "kind": "RESPONSE", "api_version": "0.1", "request_id": "ui-start-001", "cmd": "simulator_run_control", "status": "ACCEPTED", "code": "QUEUED", "message": "Start operation queued; query its actual result.", "timestamp": "2026-10-02T02:00:01.000Z", "operation_id": "op-start-demo-001", "error": null,
+        "data": {
+          "run_id": "run-demo-001", "revision": "2", "mode": "EXPLORE",
+          "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+          "scenario_ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+          "source_binding_ref": "source-demo-local", "toolchain_ids": ["ethernet-scapy"], "state": "READY", "result": "NOT_RUN", "available_actions": [],
+          "stats": {"tx_frames": "0", "rx_frames": "0", "received_inputs": "0", "applied_inputs": "0", "rejected_inputs": "0"},
+          "evidence_complete": true, "last_error": null, "created_at": "2026-10-02T02:00:00.000Z", "updated_at": "2026-10-02T02:00:01.000Z"
+        }
+      }
+    },
+    {"name": "rejected_response", "schema_def": "Response", "expected_schema_valid": true, "value": {"kind": "RESPONSE", "api_version": "0.1", "request_id": "ui-start-002", "cmd": "simulator_run_control", "status": "REJECTED", "code": "VERSION_CONFLICT", "message": "Refresh run state before issuing a new action.", "timestamp": "2026-10-02T02:00:02.000Z", "operation_id": null, "data": null, "error": {"code": "VERSION_CONFLICT", "retryable": false, "details": [{"path": "/params/expected_revision", "code": "VERSION_CONFLICT", "message": "Run revision changed."}]}}},
+    {
+      "name": "applied_record", "schema_def": "Record", "expected_schema_valid": true,
+      "value": {"record_id": "record-demo-0002", "cursor": "cursor-demo-0002", "run_id": "run-demo-001", "input_event_id": "input-demo-001", "operation_id": "op-start-demo-001", "kind": "APPLIED", "timestamp": "2026-10-02T02:00:01.010Z", "clock_domain": "model-core-host-a", "monotonic_us": "9010010", "message_id": "demo.environment.wind", "reason_code": "MODEL_INPUT_APPLIED", "evidence_refs": ["evidence-demo-application"], "step_index": "10", "sim_time_us": "10000", "applied_values": {"wind_n_mps": 3.0}}
+    },
+    {"name": "reset_result_record", "schema_def": "Record", "expected_schema_valid": true, "value": {"record_id": "record-demo-reset", "cursor": "cursor-demo-reset", "run_id": "run-demo-001", "input_event_id": null, "operation_id": "op-reset-demo", "kind": "OPERATION_RESULT", "timestamp": "2026-10-02T02:05:00.000Z", "clock_domain": "simulator-service-a", "monotonic_us": "308000000", "message_id": null, "reason_code": "RESET_CREATED_NEW_RUN", "evidence_refs": ["evidence-demo-safe-stop"], "operation_result": "SUCCEEDED", "new_run_id": "run-demo-002"}},
+    {
+      "name": "explore_report", "schema_def": "Report", "expected_schema_valid": true,
+      "value": {"run_id": "run-demo-001", "mode": "EXPLORE", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "scenario_ref": {"scenario_id": "scenario-demo-wind", "revision": "1", "scenario_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, "overall_result": "PASS", "evidence_complete": true, "cases": [{"case_id": "demo-input-application", "required": true, "result": "PASS", "reason_code": "EXAMPLE_APPLICATION_VERIFIED", "evidence_refs": ["evidence-demo-application"]}], "artifact_refs": ["artifact-demo-report"]}
+    },
+    {
+      "name": "capabilities_response", "schema_def": "Response", "expected_schema_valid": true,
+      "value": {
+        "kind": "RESPONSE", "api_version": "0.1", "request_id": "ui-cap-001", "cmd": "simulator_capabilities_get", "status": "SUCCESS", "code": "OK", "message": "Example capability snapshot.", "timestamp": "2026-10-02T02:00:00.000Z", "operation_id": null, "error": null,
+        "data": {
+          "api_version": "0.1", "supported_commands": ["simulator_capabilities_get", "simulator_profiles_list", "simulator_profile_get", "simulator_resources_list", "simulator_scenarios_list", "simulator_scenario_get", "simulator_scenario_save", "simulator_run_create", "simulator_run_control", "simulator_run_update_inputs", "simulator_run_get", "simulator_runs_list", "simulator_records_list", "simulator_report_get"],
+          "supported_actions": ["START", "PAUSE", "RESUME", "STOP"], "modes": ["EXPLORE"],
+          "toolchains": [{"branch_id": "ethernet-scapy", "status": "AVAILABLE", "reason": "Illustrative deployment; not formal conformance evidence."}, {"branch_id": "can-signal", "status": "UNVERIFIED", "reason": "Illustrative hardware verification pending."}],
+          "bindings": [
+            {"binding_id": "source-demo-local", "kind": "SOURCE", "name": "Example approved source", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "available": true},
+            {"binding_id": "model-demo-wind", "kind": "MODEL", "name": "Example model mapping", "profile_ref": {"profile_id": "profile-demo-wind", "version": "demo-1", "profile_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "available": true}
+          ],
+          "idempotency_retention_ms": 86400000, "subscriptions_supported": false
+        }
+      }
+    },
+    {"name": "unknown_param_rejected", "schema_def": "Request", "expected_schema_valid": false, "value": {"cmd": "simulator_run_control", "params": {"api_version": "0.1", "request_id": "bad-extra", "run_id": "run-demo-001", "expected_revision": "1", "action": "START", "shell": "arbitrary command"}}},
+    {"name": "numeric_revision_rejected", "schema_def": "Request", "expected_schema_valid": false, "value": {"cmd": "simulator_run_control", "params": {"api_version": "0.1", "request_id": "bad-revision", "run_id": "run-demo-001", "expected_revision": 1, "action": "START"}}},
+    {"name": "missing_request_id_rejected", "schema_def": "Request", "expected_schema_valid": false, "value": {"cmd": "simulator_run_get", "params": {"api_version": "0.1", "run_id": "run-demo-001"}}},
+    {"name": "history_dbc_rejected", "schema_def": "Resource", "expected_schema_valid": false, "value": {"resource_id": "bad-resource", "name": "Invalid history format", "kind": "HISTORY", "format": "DBC", "size_bytes": "8192", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "validation_status": "VALID", "validation_errors": []}},
+    {"name": "applied_without_probe_rejected", "schema_def": "Record", "expected_schema_valid": false, "value": {"record_id": "bad-record", "cursor": "bad-cursor", "run_id": "run-demo-001", "input_event_id": "input-demo-001", "operation_id": null, "kind": "APPLIED", "timestamp": "2026-10-02T02:00:01.010Z", "clock_domain": "model-core-host-a", "monotonic_us": "9010010", "message_id": "demo.environment.wind", "reason_code": "MODEL_INPUT_APPLIED", "evidence_refs": []}},
+    {"name": "required_case_not_applicable_rejected", "schema_def": "CaseResult", "expected_schema_valid": false, "value": {"case_id": "L03", "required": true, "result": "NOT_APPLICABLE", "reason_code": "NO_HARDWARE", "evidence_refs": []}},
+    {"name": "input_with_wait_fields_rejected", "schema_def": "Step", "expected_schema_valid": false, "value": {"step_id": "bad-step", "kind": "INPUT", "at_sim_time_us": "0", "message_id": "demo.environment.wind", "values": {"wind_n_mps": 3.0}, "stage": "APPLIED"}},
+    {"name": "control_success_without_async_result_rejected", "schema_def": "Response", "expected_schema_valid": false, "value": {"kind": "RESPONSE", "api_version": "0.1", "request_id": "bad-control", "cmd": "simulator_run_control", "status": "SUCCESS", "code": "OK", "message": "Not a valid control receipt in this draft.", "timestamp": "2026-10-02T02:00:01.000Z", "operation_id": null, "data": null, "error": null}}
+  ],
+  "business_rule_cases": [
+    {"name": "formal_requires_approved_profile", "condition": "run_create mode FORMAL with profile approval DRAFT", "expected_code": "ICD_NOT_FROZEN", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"},
+    {"name": "actual_content_hash_mismatch", "condition": "Client ref hash differs from server-owned immutable content", "expected_code": "PROFILE_MISMATCH", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"},
+    {"name": "unknown_signal_id", "condition": "values contains a signal not in the bound message catalog", "expected_code": "INVALID_REQUEST", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"},
+    {"name": "stale_run_revision", "condition": "expected_revision does not match current server run revision", "expected_code": "VERSION_CONFLICT", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"},
+    {"name": "uint64_overflow", "condition": "Decimal string is greater than 18446744073709551615", "expected_code": "INVALID_REQUEST", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"},
+    {"name": "stopped_before_required_cases", "condition": "User stops safely before all required cases execute", "expected_result": "INCOMPLETE", "validation_layer": "SERVER_RUNTIME_NOT_IMPLEMENTED"}
+  ]
+}

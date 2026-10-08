@@ -1,0 +1,98 @@
+{
+  "phase": "W3.26_TASK_2_STATUS_ASSERTION_PROGRESS",
+  "date": "2026-10-06",
+  "status": "STATUS_ASSERTIONS_SOFTWARE_VERIFIED_TASK_2_AND_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": {
+    "reader": "StatusObservationReader attached to the actual original SourceSession feedback owner",
+    "handler": "StatusScenarioAssertions delegated through the original abstract ScenarioRuntimeServices boundary",
+    "standard_message_id": 131,
+    "probe_id": "consumer.Status",
+    "evidence_stage": "E1",
+    "frozen_scalar_fields": 12,
+    "operators": ["EQ", "NE", "LT", "LE", "GT", "GE", "WITHIN", "EVENTUALLY"],
+    "entry_points": ["original root assertions", "original WAIT events", "original ASSERT events"],
+    "retained_provenance": ["original request/reply bytes", "SID", "model", "model_step", "sequence", "transport", "channel", "original TX/RX timestamps"],
+    "bounded_history": true,
+    "eviction_or_drain_to_fit": false,
+    "default_success_without_reader": false
+  },
+  "focused_regression_tests": 189,
+  "full_runtime_regression_rerun": false,
+  "verification": [
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_assertions.py -v", "exit_code": 0, "tests": 28, "duration_seconds": 34.894},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_assertion.py -v", "exit_code": 0, "tests": 16, "duration_seconds": 8.826},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v", "exit_code": 0, "tests": 31, "duration_seconds": 6.482},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v", "exit_code": 0, "tests": 23, "duration_seconds": 16.255},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_control_lease.py -v", "exit_code": 0, "tests": 28, "duration_seconds": 20.728},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v", "exit_code": 0, "tests": 31, "duration_seconds": 54.376},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_execution.py -v", "exit_code": 0, "tests": 32, "duration_seconds": 17.055},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources": 14, "resolved_schema_references": 663},
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0},
+    {"command": "python -X utf8 -m compileall -q input_simulator icd_gateway icd_runtime tests/icd_gateway", "exit_code": 0},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v", "exit_code": 0, "tests": 3, "duration_seconds": 0.010},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v", "exit_code": 0, "tests": 4, "duration_seconds": 0.157}
+  ],
+  "red_green_evidence": {
+    "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_assertions.py -k full_sample_history -v",
+    "before_exit_code": 1,
+    "before_tests": 1,
+    "before_failures": 1,
+    "failure": "ICDError not raised: a second handle exceeded the combined retained record budget",
+    "after_exit_code": 0,
+    "after_tests": 1,
+    "after_duration_seconds": 1.224,
+    "preserved_on_rejection": ["sample prefix", "handles", "begun assertion IDs", "byte accounting", "Source sequence"]
+  },
+  "log": "artifacts/icd_gateway/w3-26-task2-assertion-regression.log",
+  "verified_source_sha256": {
+    "input_simulator/session.py": "60eee03a10ebb8c0b8415cc94d641ea6742024a4fb2d21796823c5d8061e1433",
+    "input_simulator/scenario_driver.py": "941034086e35e0ec66df533a9e25f6ab3a7b45e6f9affdaacc9a4c03e1754142",
+    "input_simulator/scenario_assertions.py": "37e1805f68588e9df4862aba7f3cba279803a929005a8c6ba46777335a59fb59",
+    "tests/icd_gateway/test_scenario_assertions.py": "13aafe794864ee53b0122946bacd9253b21d33316ceeeb24ce4926881e60e6d3"
+  },
+  "source_hashes_fixed_during_focused_regression": true,
+  "review": {
+    "scope": "Status assertion component and record-capacity fix only",
+    "method": "Bounded read-only static review and follow-up; no reviewer-run tests",
+    "original_P2": "CLOSED",
+    "remaining_confirmed_important_findings": 0
+  },
+  "ledger_prior_prefix": {
+    "normalized_utf16_length": 76429,
+    "normalized_utf8_sha256": "00dce0cd672673e1f74134a9b4bba42e9ba24c44472723cb073475a25e729621"
+  },
+  "post_save_verification": {
+    "ledger_historical_prefix_match": true,
+    "source_hashes_match": true,
+    "responsibilities": 41,
+    "unchecked_linux": 17,
+    "checked_linux": 0
+  },
+  "qualification_status": "NOT_EVALUATED",
+  "execution_ready": false,
+  "safety_verified": false,
+  "complete_runtime_services_installed": false,
+  "three_source_end_to_end_acceptances_completed": 0,
+  "remaining_original_scope": [
+    "Actual unique configured producer identity, control authorization and per-target approval",
+    "Actual model getters, all original root/event assertions and E2/E3 association with standard 140",
+    "Actual lifecycle effects, RESET/initial_inputs and all nine cleanup receipts",
+    "All three complete replay modes, repeat/new SID/inter-round queues and negative must_not_apply evidence",
+    "All six original tool lifecycle adapters, continuous native Run/Report and three-source end-to-end acceptance"
+  ],
+  "limitations": [
+    "UDP protocol peers and original CAN VirtualBus prove shared software exchanges, not actual C application, physical hardware, safety or RT.",
+    "Status fields cannot replace model-root getters or E2/E3 field evidence; standard 140 has no arbitrary sampled value.",
+    "ScenarioRuntimeServices remains abstract; focused test subclasses are not installed production services.",
+    "No libpcap provider or qualified target backend is available on this host; no new backend or SDK was installed.",
+    "The historical 921 and 862 full-regression results do not verify this source version.",
+    "New self-generated data configuration and W4/W5 remain deferred, not deleted."
+  ]
+}

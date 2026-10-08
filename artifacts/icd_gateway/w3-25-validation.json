@@ -1,0 +1,269 @@
+{
+  "phase": "W3.25_ORIGINAL_NATIVE_SCENARIO_SEND_ACTIONS",
+  "date": "2026-10-05",
+  "status": "SCOPED_SOFTWARE_VERIFIED_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 862,
+      "suites": {
+        "icd_runtime": {
+          "duration_seconds": 27.525,
+          "tests": 67
+        },
+        "icd_gateway": {
+          "duration_seconds": 498.227,
+          "tests": 788
+        },
+        "plan_coverage_ledger": {
+          "duration_seconds": 0.009,
+          "tests": 3
+        },
+        "single_file_contract": {
+          "duration_seconds": 0.148,
+          "tests": 4
+        }
+      },
+      "log": "artifacts/icd_gateway/w3-25-full-regression.log",
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_scenario_actions.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 36.654
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_tools.py -v",
+      "exit_code": 0,
+      "tests": 27,
+      "duration_seconds": 33.066
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"
+    }
+  ],
+  "verified_source_sha256": {
+    "input_simulator/native_scenario_actions.py": "12cbd3bc93267889953ce46a046a1c10c88b51a17797e313cc95a78e5f3541c0",
+    "input_simulator/can_signal.py": "beba8a21afdb3aecbc5cc79bd5b317c21bf7d6cb6f0f8e9e5fcbf9c0c9127217",
+    "input_simulator/native_tools.py": "7230a8042eebaf24c223d464cd98e46c993287ad92149fa5c2e2797241609b79",
+    "input_simulator/dispatch.py": "a63269a13713ee5b5072d0987ecfcab64163df2143ab096a048f8e5fcb2c0915",
+    "input_simulator/_native_scope.py": "cb9f9942bad951bb17e4d2e4653ec74d27fccbc3cd34968cabf1ddd9dc8adf6e",
+    "input_simulator/live_tool_input.py": "4be846fcc8188ddaab338c0860af45263a546bbb965eb7014070661aa031e718",
+    "tests/icd_gateway/test_native_scenario_actions.py": "2255e091be0025b37cf404644d458006fed69e7ff891662823d578b5c5638699",
+    "tests/icd_gateway/test_native_tools.py": "0af10a94316483f5ccc0a9c8ed8f5de1dabba55e56b97088cebc378d6fc30321",
+    "tests/icd_gateway/test_scapy_source.py": "719584576ed21e80e4f254fe0be8a8b7b4c3642fc6c3f5d5cfc01676dfa695e4",
+    "tests/icd_gateway/test_live_tool_input.py": "bbb426bd5f097601794332020d6ba44300d9f830b617c223e7fa1b3d30af1520"
+  },
+  "source_hashes_unchanged_before_after": true,
+  "implemented_scope": {
+    "native_action_kinds": [
+      "SEND",
+      "FAULT",
+      "WAVEFORM",
+      "PERIODIC_START",
+      "PERIODIC_SAMPLE",
+      "PERIODIC_STOP"
+    ],
+    "native_branches": [
+      "CANT",
+      "ETHGEN"
+    ],
+    "standalone_original_scapy_supported": true,
+    "plain_udp_ethgen_fallback": false,
+    "exact_original_stimulus_and_shared_sid_counters": true,
+    "selected_protocol_declared_messages_and_original_encoding_preflight": true,
+    "can_only_scapy_can_reservation_book_checked": true,
+    "nonblocking_empty_can_poll_not_timeout": true,
+    "original_blocking_can_default_and_20ms_limits_unchanged": true,
+    "exact_header_scoped_local_udp_cancel": true,
+    "native_send_not_retried_by_handler": true,
+    "original_udp_retry_authoritative": true,
+    "explicit_nondecreasing_model_step_and_separate_target_step": true,
+    "missed_step_catchup": false,
+    "max_pending": 64,
+    "default_max_records": 4096,
+    "default_max_bytes": 16777216,
+    "complete_finite_history_budget": true,
+    "record_drain_not_used_for_admission": true,
+    "standard_remote_terminal_and_local_reclaim_failure_distinct": true,
+    "exact_owner_cleanup_after_closing_closed_detached": true,
+    "current_dispatcher_preserved": true,
+    "failed_post_allocation_preparation_captured_under_original_locks": true,
+    "failed_preparation_retains_source_input_header_request_bytes": true,
+    "failed_preparation_is_successful_live_tool_input": false,
+    "failed_preparation_shares_builder_plan_count_byte_budget": true,
+    "failed_preparation_forgery_revoke_cleanup_counter_preservation_verified": true,
+    "unrelated_shared_input_scan_or_counter_rollback": false,
+    "periodic_stop_scope": "ORIGINAL_COMPILED_SCHEDULE_LOCAL_BOUNDARY_NOT_DEVICE_TASK_STOP",
+    "stop_scope": "LOCAL_OWNED_GROUP_CANCEL_ONLY_NOT_SHARED_BACKEND_CLOSE_OR_REMOTE_NINE_PART_CLEANUP",
+    "frozen_sources_original_c_and_six_tool_definitions_changed": false,
+    "new_dependencies": []
+  },
+  "review": {
+    "initial_missing_module_red": {
+      "tests": 17,
+      "exit_code": 1
+    },
+    "before_review_fixes_red": {
+      "tests": 27,
+      "passed": 23,
+      "failures": 2,
+      "errors": 2,
+      "duration_seconds": 35.149
+    },
+    "failed_preparation_red": {
+      "tests": 1,
+      "exit_code": 1,
+      "duration_seconds": 1.533,
+      "failure": "pending_local_cleanup false while actual allocated source input retained"
+    },
+    "red_green_fixed": [
+      "SELECTED_PROTOCOL_MISSING_MESSAGE_NOT_REJECTED_AT_PREFLIGHT",
+      "CAN_ONLY_PLAN_SKIPPED_COMMON_SCAPY_CAN_RESERVATION_BOOK",
+      "CLOSING_OR_DETACHED_OWNER_BLOCKED_LOCAL_CAN_RECOVERY",
+      "POST_ALLOCATION_PREPARATION_FAILURE_LOST_OWNED_CLEANUP_IDENTITY",
+      "FAILED_UDP_BEGIN_POLL_LEFT_PENDING_GROUP_AFTER_STOP",
+      "REMOTE_COMPLETE_HID_LOCAL_RECLAIM_FAILURE",
+      "BOOLEAN_EQUAL_ACTION_METADATA_AND_INVALID_CONTRACT_NOT_CLOSED_REJECTIONS"
+    ],
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_focused": {
+      "tests": 7,
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "groups": [
+        {
+          "tests": 1,
+          "duration_seconds": 1.546
+        },
+        {
+          "tests": 1,
+          "duration_seconds": 0.671
+        },
+        {
+          "tests": 1,
+          "duration_seconds": 1.243
+        },
+        {
+          "tests": 4,
+          "duration_seconds": 5.401
+        }
+      ]
+    },
+    "no_full_independent_suite_claim": true
+  },
+  "ledger_history_prefix_expected": {
+    "normalized_utf16_length": 70807,
+    "normalized_utf8_sha256": "788f0dfdca9b2cc25691cdcd1c6ef65adcc487179d945b0c66c13c2c52f5db15"
+  },
+  "post_save_verification": {
+    "ledger_old_prefix_exact": true,
+    "responsibility_rows": 41,
+    "linux_unchecked": 17,
+    "linux_checked": 0,
+    "tests": [
+      {
+        "file": "test_development_backlog.py",
+        "exit_code": 0,
+        "tests": 3,
+        "duration_seconds": 0.009
+      },
+      {
+        "file": "test_contract_single_file.py",
+        "exit_code": 0,
+        "tests": 4,
+        "duration_seconds": 0.153
+      }
+    ],
+    "single_file_check_embedded_sources": 14,
+    "single_file_check_resolved_schema_references": 663
+  },
+  "remaining_original_work": [
+    "complete production ScenarioDriver and every original event handler",
+    "real authorized clock/control-owner/target-step source and ClockSync",
+    "root and event WAIT/ASSERT qualified readers and actual probe evidence",
+    "authorized NEGATIVE_SEND and must_not_apply evidence",
+    "all six original tools/GUI/actual process-tree lifecycle",
+    "complete three replay modes/repeat/new SID/RESET/initial_inputs/inter-round queue cleanup",
+    "pause/resume and conditional STEP/RESET",
+    "all nine real cleanup receipts and safe values",
+    "native CAN/Scapy continuous persistence and complete Run/Report",
+    "multiple Ethernet dispatcher coordination",
+    "Linux original backend, physical channels and formal 3.6 consumers"
+  ],
+  "linux_target_work": [
+    "L-002",
+    "L-003",
+    "L-004",
+    "L-010",
+    "L-011",
+    "L-013",
+    "L-014",
+    "L-017"
+  ],
+  "three_input_chains_end_to_end_complete": false,
+  "production_scenario_driver_complete": false,
+  "deferred_generated_data_entry": true,
+  "execution_ready": false,
+  "safety_verified": false,
+  "qualification_status": "NOT_EVALUATED",
+  "goal_status": "active"
+}

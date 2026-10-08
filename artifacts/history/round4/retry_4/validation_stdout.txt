@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "status": "ROUND4_LIVE_SESSION_GATEWAY_ADMISSION_VALIDATED",
+  "stages": {
+    "session_open": {
+      "status": "PASS",
+      "session_id": 2017155087,
+      "lease_ms": 1000,
+      "accepted_roles": [
+        "CONTROLLER"
+      ],
+      "implemented_message_ids": [
+        1
+      ]
+    },
+    "online_pcap": {
+      "status": "PASS",
+      "header": {
+        "sequence": 2,
+        "session_id": 2017155087,
+        "target_step": 201,
+        "transaction_id": 2,
+        "valid_for_ms": 100
+      },
+      "payload_semantics_preserved": true
+    },
+    "network": {
+      "status": "PASS",
+      "request_packets": 2,
+      "feedback_packets": 3,
+      "tcpreplay_exit_code": 0
+    },
+    "gateway_admission": {
+      "status": "PASS",
+      "acks": [
+        {
+          "message_id": 130,
+          "header": {
+            "session_id": 2017155087,
+            "sequence": 2,
+            "target_step": 0,
+            "transaction_id": 2,
+            "valid_for_ms": 1000
+          },
+          "payload": {
+            "request_sequence": 2,
+            "request_message_id": 7,
+            "stage": "RECEIVED",
+            "error": "OK",
+            "applied_step": 0,
+            "model_revision": 0,
+            "probe_id": 0
+          }
+        },
+        {
+          "message_id": 130,
+          "header": {
+            "session_id": 2017155087,
+            "sequence": 3,
+            "target_step": 0,
+            "transaction_id": 2,
+            "valid_for_ms": 1000
+          },
+          "payload": {
+            "request_sequence": 2,
+            "request_message_id": 7,
+            "stage": "FAILED",
+            "error": "TARGET_MISSING",
+            "applied_step": 0,
+            "model_revision": 0,
+            "probe_id": 0
+          }
+        }
+      ]
+    },
+    "cleanup": {
+      "status": "PASS",
+      "cleanup_complete": true
+    }
+  },
+  "claims": {
+    "session_opened": true,
+    "real_session_id": true,
+    "source_capability_authorized": false,
+    "online_pcap_prepared": true,
+    "process_started": true,
+    "actual_network_tx": true,
+    "received_by_3_6": true,
+    "gateway_session_admitted": true,
+    "received_ack_observed": true,
+    "failed_target_missing_observed": true,
+    "applied": false,
+    "consumed": false,
+    "execution_ready": false,
+    "target_step_semantically_qualified": false,
+    "target_kylin_qualified": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schema_metavalidation": "PASS",
+  "samples": 35,
+  "positive_samples": 27,
+  "negative_samples": 8,
+  "commands_covered": 14,
+  "total_asserted_cases": 70,
+  "business_runtime_cases": "NOT_EXECUTED_API_NOT_IMPLEMENTED",
+  "app_code_modified": false
+}

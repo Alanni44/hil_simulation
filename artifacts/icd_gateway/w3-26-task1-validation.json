@@ -1,0 +1,151 @@
+{
+  "phase": "W3.26_TASK_1_ORIGINAL_SCENARIO_CONTROLLER_NATIVE_INTEGRATION",
+  "date": "2026-10-05",
+  "status": "FOCUSED_SOFTWARE_VERIFIED_DRIVER_PROJECT_AND_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "focused_compatibility_tests": 172,
+  "full_runtime_regression_executed_this_task": false,
+  "prior_862_test_result": "HISTORICAL_W3_25_ONLY_NOT_CURRENT_W3_26",
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 54.761
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_execution.py -v",
+      "exit_code": 0,
+      "tests": 32,
+      "duration_seconds": 16.766
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_scenario_actions.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 36.035
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 6.401
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_tools.py -v",
+      "exit_code": 0,
+      "tests": 27,
+      "duration_seconds": 33.318
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v",
+      "exit_code": 0,
+      "tests": 23,
+      "duration_seconds": 16.118
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"SINGLE_FILE_CONTENT_VERIFIED\",\r\n  \"embedded_sources\": 14,\r\n  \"resolved_schema_references\": 663,\r\n  \"business_messages\": 59,\r\n  \"management_commands\": 25,\r\n  \"golden_vectors\": 85,\r\n  \"physical_channels\": 56,\r\n  \"model_bindings\": 97,\r\n  \"runtime_hardware_replacement\": \"NOT_VERIFIED_BY_THIS_CONSOLIDATION\"\r\n}"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "output": "{\r\n  \"status\": \"OFFLINE_CODEC_PASS\",\r\n  \"baseline_sha256\": \"22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27\",\r\n  \"business_messages\": 59,\r\n  \"business_transport_completions\": 72,\r\n  \"golden_fragments\": 85,\r\n  \"video_raw_fragments\": 800,\r\n  \"pending_groups\": 0,\r\n  \"reserved_payload_bytes\": 0,\r\n  \"runtime_network_model_hardware_replacement\": \"NOT_EXECUTED\"\r\n}"
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "output": "No broken requirements found."
+    },
+    {
+      "command": "python -X utf8 -m compileall -q input_simulator tests/icd_gateway",
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "log": "artifacts/icd_gateway/w3-26-task1-regression.log",
+  "verified_source_sha256": {
+    "input_simulator/scenario_driver.py": "a476bab247c95e82e606c1e6023e3f3345fdf4df6a7b0ae859f53330c3d30bb6",
+    "input_simulator/native_scenario_actions.py": "0bdd33ee44786221e6878ad5c67f865dd6e35a8e7609bd8af8733ec1a66ecda3",
+    "input_simulator/session.py": "dbea009a013a744c411681dfc9cfebe86377e4a1ce30a7dbcc8014798f0cc3c9",
+    "tests/icd_gateway/test_scenario_driver.py": "0fbc60e60a1c99aea23b0f72f69e29376677b75ca65dc4dfef4f923119119e4b"
+  },
+  "source_hashes_fixed_during_focused_tests": true,
+  "post_save_verification": {
+    "development_backlog_tests": 3,
+    "single_file_contract_tests": 4,
+    "exit_codes": [0, 0],
+    "source_hashes_match": true,
+    "ledger_historical_prefix_match": true,
+    "original_responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0,
+    "task_1_checkboxes_completed": 4,
+    "later_tasks_checkboxes_completed": 0
+  },
+  "implemented_scope": [
+    "Original ScenarioExecution drives actual native CAN and original Scapy exchanges",
+    "Exact complete plan retained; partition uses original kind and link",
+    "Whole-plan services/native preflight before allocation",
+    "Observed standard Status step and distinct approved native target",
+    "Finite original handle ownership; empty/forged provider handle rejected",
+    "Provider begin never automatically retried",
+    "Remote cleanup attempted despite original local recovery failure",
+    "Only validated incremental cleanup receipts are accumulated",
+    "Validated remote terminal cached; later polls recover only original local resources",
+    "Original source monotonic cleanup deadline; stopped model need not advance",
+    "Original callback Source/SID identity rechecked; no new session adoption",
+    "Actual source close records original closing SID, not remote safety",
+    "Synchronous/asynchronous original close retains handle; completion still requires nine receipts"
+  ],
+  "review": {
+    "closed_important_findings": 6,
+    "remaining_important_findings_in_task_1": 0,
+    "scope": "TASK_1_ONLY_READ_ONLY_REVIEW",
+    "red_green_findings": [
+      "Incremental cleanup receipts falsely failed",
+      "Terminal remote cleanup repolled while local recovery pending",
+      "Provider callback session change accepted",
+      "Empty provider handles wrapped as valid",
+      "Actual same-source close falsely treated as different session",
+      "Synchronous cleanup close prevented final receipt delivery"
+    ]
+  },
+  "qualification": {
+    "execution_ready": false,
+    "safety_verified": false,
+    "status": "NOT_EVALUATED",
+    "production_services_installed": false,
+    "model_service_in_tests": "EXPLICIT_TEST_DOUBLE",
+    "can_backend_evidence": "PYTHON_CAN_VIRTUALBUS_LIBRARY_ONLY",
+    "ethernet_evidence": "ORIGINAL_SCAPY_LIBRARY_FRAME_AND_STANDARD_PROTOCOL_PEER_ONLY",
+    "actual_model_application_verified": false,
+    "physical_or_rt_verified": false,
+    "protocol_path_end_to_end_verified": false,
+    "scenario_path_end_to_end_verified": false,
+    "history_path_end_to_end_verified": false,
+    "original_w3_complete": false
+  },
+  "remaining_tasks": {
+    "task_2": "Actual runtime authorization, 100ms ControlOwner, qualified root/event assertion samples, lifecycle and actual nine-part cleanup",
+    "task_3": "Complete three replay modes/repeat/new SID/RESET/initial inputs, authorized negative mutations and six original tool/GUI services",
+    "task_4": "Native continuous persistence and complete Run/Report; three-source software acceptance and final complete regressions",
+    "generated_data": "Deferred until original W3 closes",
+    "w4_w5": "Deferred, not deleted"
+  },
+  "linux_ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "append_only_prefix_utf16_length": 72919,
+    "append_only_prefix_utf8_sha256": "33b3a3bcde1fd391e5f135e7640cf360a1805a22a8f3ba066c62e93daa9a7ee4",
+    "original_responsibilities": 41,
+    "unchecked_linux_gates": 17,
+    "checked_linux_gates": 0,
+    "new_entry": "2026-10-05 W3.26 Task 1原场景控制器与native发送集成移交",
+    "shared_remaining_logic_not_transferred_to_linux_rewrite": true
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "phase": "W3.4_REAL_PROTOCOL_IMPORT_AND_ORIGINAL_CAN_FRAME_CODEC",
+  "date": "2026-10-03",
+  "status": "W3_4_SUPPORTED_PROTOCOL_IMPORT_VERIFIED_NOT_EXECUTABLE_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 339,
+      "suites": {"icd_runtime": 64, "icd_gateway_including_source": 268, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_phase_tests": {"protocol_parser": 17, "source_audit_integration_additions": 3},
+      "focused_tests_including_existing_source": {"protocol_parser": 17, "source_audit_and_real_file_cli": 32},
+      "gateway_suite_duration_seconds": 201.873,
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "scope": "COMMON_OFFLINE_PROTOCOL_SOURCE_AND_EXISTING_GATEWAY_NOT_FULL_EXECUTORS_TOOLS_TARGET_OR_REPLACEMENT"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_ARE_UNTRACKED"},
+    {"command": "rg -n '[ \\t]+$' input_simulator/protocol.py input_simulator/source_inputs.py tests/icd_gateway/test_protocol.py tests/icd_gateway/test_source_inputs.py requirements-icd.txt", "exit_code": 1, "result": "NO_TRAILING_WHITESPACE_MATCHES"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/protocol.py": "b6f55274c8dde6b9c5fe2b4dc7aa4c626780e5101af7b1ea4248066b4cfacd85",
+    "input_simulator/source_inputs.py": "d1b2be3c18c91152d9670e4c7e5e16a92a15a9799a05dbe6c6a01fb6f96dc431",
+    "tests/icd_gateway/test_protocol.py": "307a5055a8a43f02130d99276215579f7a2db79abe550c7510a5a8213d32f4fe",
+    "tests/icd_gateway/test_source_inputs.py": "6ca20fd71a5238ac99f8634643ce8bdcd2460f8fdf85dde950f3ca8f3eb840cb",
+    "requirements-icd.txt": "7afea10ff3598c9bcc2d88c7a2a8ac46fe21822f5866d34d04b39866d37da49f"
+  },
+  "implemented_scope": {
+    "actual_protocol_parsers": ["PINNED_ICD_JSON", "PINNED_DBC_CANTOOLS_STRICT", "STRICT_EQUIVALENT_AUTOSAR_R4_FRAME_PROFILE_CANTOOLS_STRICT"],
+    "business_schema": "ORIGINAL_EXTERNALLY_PINNED_CONTRACT_LOAD_AND_FROZEN_VALIDATORS_REUSED",
+    "can_frames": 13,
+    "signals_per_frame": 50,
+    "total_signals": 650,
+    "can_golden_fragments_byte_exact": 20,
+    "signal_layout_authority": "FROZEN_CATALOGUE_FIELDS_NOT_CUSTOM_DBC_TEXT_PARSER",
+    "frame_checks": ["UNIQUE_COMPLETE_ORIGINAL_NAMES_IDS", "STANDARD_11_BIT", "CAN_FD", "64_BYTES", "EXACT_PERIOD", "NO_CONTAINERS_OR_MULTIPLEXING"],
+    "signal_checks": ["UNIQUE_COMPLETE_SET", "START_WIDTH_ENDIAN_SIGN", "IDENTITY_SCALE_OFFSET", "FULL_UNSIGNED_RANGE", "NO_CHOICES_FLOAT_MULTIPLEX_INITIAL_INVALID_OR_UNIT"],
+    "arxml_original_xml_checks": ["NO_DTD_ENTITY_OR_EXTERNAL_RESOLUTION", "R4_NAMESPACE_PROFILE", "EXPLICIT_FD_STANDARD_LE_ENUMS", "EXACT_UNROUNDED_PERIODS", "ONE_64_BYTE_PDU_PER_FRAME", "ZERO_PDU_FRAME_START", "NO_UPDATE_BITS_REVERSE_CONVERSION_OR_UNITS", "EXACT_BOUNDED_IDENTITY_COEFFICIENTS_AND_CLOSED_UNSIGNED_RANGES"],
+    "arxml_full_xsd_or_arbitrary_autosar_support": false,
+    "immutable_result": "FROZEN_DATACLASSES_TUPLES_NO_PUBLIC_MUTABLE_CANTOOLS_DATABASE",
+    "unknown_formats": "HASH_AUDITED_EXPLICIT_PENDING_NOT_PARSED_FRAME_CODEC_DISABLED",
+    "failed_parse": "CLEARS_PREVIOUS_PARSED_STATE_AND_DECLARED_SCOPE",
+    "frame_codec": "WIRECODEC_FORMAL_GATE_THEN_REAL_CANTOOLS_RAW_DECODE_AND_ENCODE_BYTE_EQUALITY",
+    "formal_crc_fragment_direction_metadata_session_authority_changed": false,
+    "deployment_limits": {"protocol_resource_bytes": 4194304, "protocol_total_bytes": 16777216, "arxml_numeric_characters": 64},
+    "public_source_audit_status": "SOURCE_INPUTS_AUDITED_NOT_EXECUTABLE",
+    "execution_ready": false,
+    "starts_session_tool_model_or_can_bus": false,
+    "grants_negative_test_authorization": false,
+    "produces_applied_consumed_e2_e3": false,
+    "source_contract_wire_original_c_or_six_tool_changes": false,
+    "qa_vendor_imports": false
+  },
+  "dependencies": {
+    "requirements": "requirements-icd.txt",
+    "installed_only_in": "runtime/icd-venv",
+    "new_pins": {"cantools": "40.7.1", "bitstruct": "8.23.0", "python-can": "4.6.1", "textparser": "0.26.2", "diskcache": "5.6.3", "argparse-addons": "0.12.0", "crccheck": "1.3.1", "wrapt": "1.17.3", "packaging": "26.3", "defusedxml": "0.7.1"},
+    "old_hil_environment_modified": false,
+    "linux_installation_and_actual_bus_qualification": "NOT_EXECUTED"
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_latest_tests": {"protocol_parser": 17, "source_audit_and_cli": 32},
+    "review_discovered_p2_issues": ["ARXML_UNPROJECTED_PDU_OFFSET_LENGTH_AND_UPDATE_BIT", "ARXML_FLOAT_PROJECTION_ROUNDS_CONVERSION_AND_RANGE_DRIFT"],
+    "red_green_fixes": ["XML_ERROR_CLASSIFICATION", "NONFINITE_EXTREME_AND_SUB_PRECISION_PERIOD", "ORIGINAL_XML_PDU_MAPPING_LENGTH_AND_UPDATE_BIT", "UNROUNDED_IDENTITY_COEFFICIENT_AND_RANGE"],
+    "original_five_review_probes_rejected_in_parser_and_source_audit": true,
+    "failed_parse_then_encode_state_retested_independently": true
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W3.4",
+    "associated_linux_items": ["L-001", "L-002", "L-005", "L-006", "L-007", "L-013", "L-014", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_THIS_IMPORT_PHASE"
+  },
+  "not_verified_or_implemented": [
+    "ARBITRARY_COMPLEX_AUTOSAR_AND_FULL_ARXML_XSD_QUALIFICATION",
+    "CAN_LOG_PCAP_PCAPNG_LINKTYPE_DIRECTION_CLOCK_DECODERS",
+    "FULL_SCENARIO_WRITE_TARGET_COLLISION_WAVEFORM_PERIODIC_WAIT_PROBE_ASSERTIONS_AUTHORIZED_NEGATIVE_MUTATIONS_AND_CLEANUP",
+    "THREE_REPLAY_MODES_EXECUTION_ACTUAL_SESSIONS_CLOCK_RESET_QUEUE_RESTORE_AND_ORIGINAL_REWRITTEN_WIRE_HASHES",
+    "SIX_ORIGINAL_TOOL_WRAPPERS_TRANSMIT_MUTEX_FEEDBACK_STOP_AND_LINUX_TARGET_QUALIFICATION",
+    "EXISTING_25_COMMAND_API_CONSOLE_ROBOT_PERSISTENT_TX_RX_EVIDENCE_AND_RELEASE_GATES",
+    "ACTUAL_MODEL_CONSUMERS_ABI_RESOURCE_ACTIVATION_VIDEO_PHYSICAL_IO_RT_PERFORMANCE_AND_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "historical_static_qa": {"report": "artifacts/icd_gateway/w3-2-validation.json", "rerun_this_phase": false, "included_in_fresh_test_count": false},
+  "previous_phase_reports_overwritten": false
+}

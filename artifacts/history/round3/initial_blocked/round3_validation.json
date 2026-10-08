@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "status": "LINUX_ENVIRONMENT_REQUIRED",
+  "round3_executed": false,
+  "blocker": "No accessible Linux kernel; WSL enumeration failed with E_ACCESSDENIED.",
+  "round2_input_hash_verified": true,
+  "round2_prepared_pcap_sha256": "febbf0e10c98b3d4adafa7dcb5027e0e6b0f212b6828a779f404d51ddf172134",
+  "round2_manifest_sha256": "febbf0e10c98b3d4adafa7dcb5027e0e6b0f212b6828a779f404d51ddf172134",
+  "round2_command_resource_sha256": "febbf0e10c98b3d4adafa7dcb5027e0e6b0f212b6828a779f404d51ddf172134",
+  "round2_semantic_argv": [
+    "tcpreplay",
+    "--intf1=eth0",
+    "--loop=1",
+    "--multiplier=1.0",
+    "<Linux path unavailable>"
+  ],
+  "path_translation_only": null,
+  "command_built": true,
+  "process_started": false,
+  "actual_network_tx": false,
+  "actual_network_rx": false,
+  "frame_bytes_matched": false,
+  "expected_packet_count": 1,
+  "actual_packet_count": null,
+  "three_six_receiver_involved": false,
+  "online_session_authorized": false,
+  "received_by_3_6": false,
+  "applied": false,
+  "consumed": false,
+  "execution_ready": false,
+  "target_kylin_qualified": false,
+  "namespace_created": false,
+  "veth_created": false,
+  "tcpdump_started": false,
+  "cleanup_complete": true,
+  "cleanup_scope": "No Round 3 Linux objects or processes were created; nothing from this run required cleanup.",
+  "tests_run": [],
+  "notes": [
+    "No Windows Npcap or physical interface fallback used.",
+    "No Round 1 or Round 2 artifact modified.",
+    "No Round 3 received.pcap or success manifest emitted."
+  ]
+}

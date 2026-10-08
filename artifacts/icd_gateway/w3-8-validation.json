@@ -1,0 +1,110 @@
+{
+  "phase": "W3.8_ACTUAL_SOURCE_SESSION_AND_SERIAL_GLOBAL_ALLOCATION",
+  "date": "2026-10-04",
+  "status": "SOURCE_GRANT_ALLOCATION_VERIFIED_NOT_FULL_EXECUTOR_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 453,
+      "suites": {"icd_runtime": 67, "icd_gateway_including_source_capture_history_replay": 379, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "gateway_suite_duration_seconds": 264.744,
+      "new_phase_tests": 31,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_EXECUTORS_OR_LINUX_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v", "exit_code": 0, "tests": 31},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v", "exit_code": 0, "tests": 14},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v", "exit_code": 0, "tests": 3, "responsibility_rows": 41, "linux_unchecked": 17, "linux_checked": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"},
+    {"command": "rg -n '[ \\t]+$' input_simulator/session.py input_simulator/udp_source.py tests/icd_gateway/test_source_session.py", "exit_code": 1, "result": "NO_TRAILING_WHITESPACE_MATCHES"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/session.py": "a4a2bd54cc716a87187cf4311ba380c23440c685fec095f5d4104421bf2ea449",
+    "input_simulator/udp_source.py": "bf5fb33684c88300be6bf67f68899428bceecfa83ab55b3d265a8f13a7b6770f",
+    "tests/icd_gateway/test_source_session.py": "7b68aa36b1d4bf7e254d8a42e5152af09c22bf91aa4658ec1688726854a7a6ba"
+  },
+  "implemented_scope": {
+    "actual_standard_udp_grant_and_rejection": true,
+    "grant_validation": ["OUTER_AND_NESTED_BASELINE", "HEADER_PAYLOAD_SID", "UNIQUE_ACCEPTED_ROLE_SUBSET", "SELECTED_MODEL", "KNOWN_IMPLEMENTED_IDS", "CONSERVATIVE_LEASE"],
+    "transport_lifetime": "ONE_COUNTER_OWNER_NOT_RELEASED_ON_LOCAL_MANAGER_CLOSE",
+    "transaction_floor": "PRECLAIM_MANUAL_TX_RESERVATIONS_PRESERVED",
+    "claimed_transport_entry_points": ["send", "request", "receive_for"],
+    "owner_is_wire_field": false,
+    "allocator": "GLOBAL_SERIAL_SEQUENCE_AND_TRANSACTION_NO_WRAP_EXPLICIT_TARGET_STEP",
+    "explicit_transaction_reuse": "CALLER_TRANSACTION_GROUP_NOT_AUTOMATIC_MERGE",
+    "heartbeat": "EXPLICIT_SENDER_STEP_REAL_MATCHED_STATUS_ONLY_RENEWS_FROM_REQUEST_START",
+    "feedback_extensions": {"131": "REQUEST_2_ONLY", "142": "REQUEST_33_AND_NONCE_ONLY"},
+    "status_clock_service_actually_implemented_by_receiver": false,
+    "protocol_peer_tests_are_model_qualification": false,
+    "records": "IMMUTABLE_LOGICAL_CANONICAL_REQUEST_REPLY_AND_LOCAL_MONO_ERROR_NOT_PHYSICAL_TX_PACKETS",
+    "default_record_count": 64,
+    "default_record_bytes": 4194304,
+    "capacity": "RESERVE_BEFORE_TX_EXPLICIT_DRAIN_NO_SILENT_EVICTION",
+    "clock_failure": "ACTUAL_FEEDBACK_RETAINED_UNQUALIFIED_NO_SYNTHETIC_COMPLETION_TIME",
+    "caller_payload_mutation": "DEEPCOPY_BEFORE_VALIDATION_PRESERVES_SIGNED_ZERO",
+    "abandon_close": "LOCAL_ONLY_NOT_REMOTE_38_RESET_OR_CLEAR_QUEUES",
+    "actual_resource_test": "STANDARD_34_141_BYTES_STORED_NOT_VIDEO_DECODE_OR_MODEL_APPLICATION",
+    "actual_granted_header_to_replay": true,
+    "prepared_replay_execution_ready": false,
+    "default_receiver_capabilities": [1],
+    "receiver_with_actual_resource_worker_capabilities": [1, 34],
+    "produces_applied_consumed_e2_e3": false,
+    "new_dependencies": [],
+    "frozen_sources_wire_format_original_c_or_six_tool_changes": false
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_tests": {"source_session": 31, "existing_udp": 14},
+    "independent_actual_resource_timeout": "TIMEOUT_CONFIRMS_OWNER_PROPAGATION_TO_FINAL_COMMIT_WAIT",
+    "p1_red_green_fixed": ["SECOND_MANAGER_ACCEPTED_OLD_GRANT_FOR_DIFFERENT_IDENTITY", "POSTCLAIM_MANUAL_OPENING_ACCEPTED_AS_MANAGED_GRANT"],
+    "other_red_green_fixed": ["PRIOR_MANUAL_TRANSACTION_FLOOR", "CALLER_PAYLOAD_MUTATION_DURING_EXCHANGE", "CLOCK_FAILURE_LOST_ACTUAL_FEEDBACK"]
+  },
+  "interim_nonpassing_run": {
+    "command": "python -X utf8 scripts/test_icd_runtime.py",
+    "exit_code": 1,
+    "gateway_tests_loaded": 378,
+    "gateway_errors": 24,
+    "cause": "TEST_PROCESS_LOADED_PRECHANGE_UNITPEER_WHILE_OWNER_KEYWORD_FIX_WAS_EDITED_DURING_RUN",
+    "counted_as_verification": false,
+    "resolution": "COMPLETED_PROCESS_THEN_RERAN_FULL_ENTRY_ON_UNCHANGED_FINAL_SOURCE_453_PASS"
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-04 W3.8",
+    "associated_linux_items": ["L-001", "L-002", "L-004", "L-005", "L-006", "L-007", "L-008", "L-009", "L-010", "L-011", "L-012", "L-013", "L-014", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_SOURCE_SESSION"
+  },
+  "not_verified_or_implemented": [
+    "COMMON_ASYNC_FEEDBACK_DISPATCHER_MULTIPLE_INFLIGHT_REQUESTS_AND_HEARTBEAT_DURING_10S_RESOURCE_WAIT",
+    "BOUNDED_ACTUAL_FEEDBACK_SID_RETIREMENT_BEYOND_CURRENT_64_SIDS_FOR_10000_REPEAT",
+    "FULL_THREE_MODE_REPLAY_EXECUTOR_ACTUAL_TARGET_FRESHNESS_RESET_INITIAL_INPUTS_QUEUES_AND_STEP_GAPS",
+    "ACTUAL_RECEIVER_STATUS_CLOCK_MEASUREMENTS_MODEL_CONSUMER_PROBES_AND_NINE_PART_CLEANUP",
+    "ENGINEERING_JSONL_TCP_VIDEO_HISTORY_COMPLETE_REBUILT_FILES_SIX_TOOL_LIFECYCLES",
+    "FULL_SCENARIO_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_NEGATIVES_AND_25API_CONSOLE_ROBOT",
+    "PERSISTENT_ORIGINAL_TX_RX_EVIDENCE_FORMAL_RELEASE_LINUX_C_RT_DRIVER_PHYSICAL_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

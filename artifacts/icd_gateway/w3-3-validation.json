@@ -1,0 +1,104 @@
+{
+  "phase": "W3.3_COMMON_SOURCE_INPUT_AUDIT_FOUNDATION",
+  "date": "2026-10-03",
+  "status": "W3_3_SOURCE_AUDIT_FOUNDATION_VERIFIED_NOT_EXECUTABLE_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "formal_release": "NOT_RELEASED",
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 319,
+      "suites": {"icd_runtime": 64, "icd_gateway_including_source": 248, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_phase_tests": {"source_contract": 10, "source_audit_and_real_file_cli": 29},
+      "suite_duration_seconds": {"icd_runtime": 26.451, "icd_gateway_including_source": 177.498},
+      "single_file_content_check": "14_BYTE_EXACT_SOURCES_663_RESOLVED_SCHEMA_REFERENCES",
+      "scope": "COMMON_OFFLINE_SOURCE_AND_EXISTING_GATEWAY_SOFTWARE_NOT_FULL_RUN_MODEL_TOOLS_TARGET_OR_REPLACEMENT"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_ARE_UNTRACKED"}
+  ],
+  "verified_source_sha256": {
+    "icd_runtime/contract.py": "0b72f43bd33cddfd4299696e0b89a7cf7f95e0f75f9d7c5da4998e202828c19e",
+    "input_simulator/source_inputs.py": "dff6f422471d460d04b8a9babd0eb3d4c6fdd7951c95a0507b633194695cd185",
+    "tests/icd_runtime/test_source_contract.py": "beb35325415046cd1300db84db1045576fec603a25e397520200400eb34d1d06",
+    "tests/icd_gateway/test_source_inputs.py": "77a22bfb28e29426bee01225ee2fe64654c1ab4bba57744e23724e4197feae93"
+  },
+  "implemented_scope": {
+    "source_types_structurally_validated": ["PROTOCOL", "SCENARIO", "HISTORY"],
+    "event_branches_structurally_validated": 10,
+    "input_stimulus_messages": 45,
+    "no_header_or_feedback_stimulus": true,
+    "protocol_authority": "EXTERNALLY_PINNED_LOAD_AND_EXACT_ORIGINAL_ICD_JSON_DBC_BYTES_NOT_SELF_DECLARED_HASHES",
+    "resources": "EXPLICIT_ID_TO_BYTES_AND_ADMIN_PATH_MAP_ACTUAL_SIZE_HASH_UTF8_NO_FILE_NAME_PATH_DERIVATION",
+    "source_snapshot": "CANONICAL_IMMUTABLE_BYTES_AND_TUPLE_RECORDS_COPY_ON_ACCESS",
+    "scenario_checks": ["UNIQUE_IDS", "DECLARED_INPUT_AND_MODEL", "FAULT_MESSAGE_ALLOWLIST", "NONNUMERIC_ASSERTION_RULES", "UNIQUE_PRIOR_PERIODIC_START_AND_SAME_TOOL_STOP", "REPLAY_REFERENCE_POLICY_AND_ENGINEERING_RANGE"],
+    "history_checks": ["DECODER_BASELINE", "STREAM_IDS_AND_MESSAGE_DIRECTION", "POLICY_ORDER_AND_REWRITE_UNIQUENESS", "INCOMPLETE_ONLINE_REJECTION"],
+    "actual_history_decoder": "ENGINEERING_JSONL_STRICT_UTF8_CLOSED_ROWS_NONDECREASING_UINT64_OFFSET_VALID_STIMULUS_UNIQUE_STREAM_ACTUAL_COUNTS_IDS_RANGE_EPOCH_OVERFLOW",
+    "engineering_supported_audit_mode": "REENCODE_ONLY_NO_ORIGINAL_CAPTURED_HEADERS",
+    "unparsed_history": "BYTE_AUDIT_ONLY_HISTORY_DECODED_FALSE_COMPLETE_CAPTURE_NULL_PARSER_PENDING",
+    "deployment_limits": {"resource_bytes": 67108864, "total_resource_bytes": 134217728, "input_bytes": 16777216, "history_records": 100000, "history_line_bytes": 131072},
+    "public_result_status": "SOURCE_INPUTS_AUDITED_NOT_EXECUTABLE",
+    "execution_ready": false,
+    "starts_session_tool_or_model": false,
+    "grants_negative_test_authorization": false,
+    "produces_applied_consumed_e2_e3": false,
+    "source_contract_or_wire_changes": false,
+    "new_dependencies_or_qa_vendor_imports": false,
+    "full_protocol_parser_scenario_executor_or_replay_complete": false
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_ACTIONABLE_SCOPED_FINDINGS",
+    "independent_latest_tests": {"source_audit_and_cli": 29, "source_contract": 10},
+    "red_green_fixes": ["UNPARSED_CAPTURE_FALSE_COMPLETENESS", "SCENARIO_REPLAY_OWN_POLICY_OUTSIDE_ENGINEERING_CAPTURE", "MODEL_ID_UNCHECKED_WITHOUT_STIMULUS", "RESOURCE_SIZE_ERROR_CLI_CLASSIFICATION", "DECIMAL_UINT64_TRAILING_NEWLINE_BYPASS"],
+    "review_discovered_uint64_bypass_reproduced_then_independently_retested": true
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41,
+    "linux_items": 17,
+    "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W3.3三类输入审核基础移交",
+    "associated_linux_items": ["L-001", "L-002", "L-005", "L-006", "L-007", "L-008", "L-009", "L-010", "L-011", "L-013", "L-014", "L-016", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_THIS_FOUNDATION"
+  },
+  "not_verified_or_implemented": [
+    "ACTUAL_CANTOOLS_DBC_AND_ARXML_EQUIVALENCE_IMPORT",
+    "CAN_LOG_PCAP_PCAPNG_LINKTYPE_DIRECTION_CLOCK_DECODERS",
+    "FULL_SCENARIO_WRITE_TARGET_COLLISION_WAVEFORM_PERIODIC_WAIT_PROBE_ASSERTIONS_AUTHORIZED_NEGATIVE_MUTATIONS_AND_CLEANUP",
+    "THREE_REPLAY_MODES_EXECUTION_ACTUAL_SESSIONS_CLOCK_RESET_QUEUE_RESTORE_AND_ORIGINAL_REWRITTEN_WIRE_HASHES",
+    "SIX_ORIGINAL_TOOL_WRAPPERS_TRANSMIT_MUTEX_FEEDBACK_STOP_AND_LINUX_TARGET_QUALIFICATION",
+    "EXISTING_25_COMMAND_API_CONSOLE_ROBOT_PERSISTENT_TX_RX_EVIDENCE_AND_RELEASE_GATES",
+    "ACTUAL_MODEL_CONSUMERS_ABI_RESOURCE_ACTIVATION_VIDEO_PHYSICAL_IO_RT_PERFORMANCE_AND_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "historical_static_qa": {"report": "artifacts/icd_gateway/w3-2-validation.json", "rerun_this_phase": false, "included_in_fresh_test_count": false},
+  "previous_phase_reports_overwritten": false
+}

@@ -1,0 +1,1458 @@
+{
+  "format": "HIL_RECEPTION_LIBRARY_EVIDENCE_1",
+  "execution_host": "Windows",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+  "receiver": "actual icd_gateway.Receiver shared 3.6 ingress module",
+  "actual_deployed_36_verified": false,
+  "model_application_verified": false,
+  "physical_tool_qualification": "NOT_EVALUATED",
+  "replacement_ready": false,
+  "third_path": "EXTERNAL_OWNER_NOT_EXECUTED",
+  "runs": [
+    {
+      "source_kind": "PROTOCOL",
+      "native_backend": "python-can VirtualBus",
+      "tx": [
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "PROTOCOL",
+          "event_id": "protocol-0-0",
+          "link_id": "CANT",
+          "planned_target_step": 0,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 2,
+              "target_step": 0,
+              "transaction_id": 2,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "header": {
+                "sequence": 2,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 2,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 2,
+                "stage": "RECEIVED"
+              }
+            },
+            {
+              "header": {
+                "sequence": 3,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 2,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 2,
+                "stage": "VALIDATED"
+              }
+            }
+          ],
+          "started_ns": "440850328000000",
+          "completed_ns": "440850375000000",
+          "sent_fragments": 2,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850328000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000263a7018580200000000000000020000000002f00000000000000000000000000000000000000000000000000000000000d0bcf8406666666666023875"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850343000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850343000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "0100000a3a7018580200000000000000020000000102f00072400000000000000000000000000000000000000000000000000000000000000000000000008c62"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850343000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850359000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580200000000000000020000000001e803020000000a0000000000000000000000000000000000000000000000000000000000000000006d43"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.6864378,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c56bee99"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850359000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850375000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a322c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a322c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a322c227374616765223a225245434549564544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850375000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580300000000000000020000000001e803020000000a0001000000000000000000000000000000000000000000000000000000000000004c86"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.6864378,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c56bee99"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850375000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850375000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a332c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a322c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a322c227374616765223a2256414c494441544544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "PROTOCOL",
+          "event_id": "protocol-0-1",
+          "link_id": "CANT",
+          "planned_target_step": 80,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 3,
+              "target_step": 80,
+              "transaction_id": 3,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "header": {
+                "sequence": 4,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 3,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 3,
+                "stage": "RECEIVED"
+              }
+            },
+            {
+              "header": {
+                "sequence": 5,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 3,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 3,
+                "stage": "VALIDATED"
+              }
+            }
+          ],
+          "started_ns": "440850421000000",
+          "completed_ns": "440850453000000",
+          "sent_fragments": 2,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850421000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000263a7018580300000050000000030000000002f00000000000000000000000000000000000000000000000000000000000d0bcf840666666666602e3ab"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850421000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850421000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "0100000a3a7018580300000050000000030000000102f000724000000000000000000000000000000000000000000000000000000000000000000000000057bc"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850421000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850437000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580400000000000000030000000001e803030000000a0000000000000000000000000000000000000000000000000000000000000000003e76"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.7631667,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c570d7b9"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850437000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850437000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a342c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a332c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a332c227374616765223a225245434549564544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850453000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580500000000000000030000000001e803030000000a0001000000000000000000000000000000000000000000000000000000000000001fb3"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.7631667,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c570d7b9"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850453000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850453000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a352c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a332c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a332c227374616765223a2256414c494441544544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "PROTOCOL",
+          "event_id": "protocol-0-2",
+          "link_id": "CANT",
+          "planned_target_step": 160,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 4,
+              "target_step": 160,
+              "transaction_id": 4,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "header": {
+                "sequence": 6,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 4,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 4,
+                "stage": "RECEIVED"
+              }
+            },
+            {
+              "header": {
+                "sequence": 7,
+                "session_id": 1477996602,
+                "target_step": 0,
+                "transaction_id": 4,
+                "valid_for_ms": 1000
+              },
+              "message_id": 130,
+              "payload": {
+                "applied_step": 0,
+                "error": "OK",
+                "model_revision": 0,
+                "probe_id": 0,
+                "request_message_id": 10,
+                "request_sequence": 4,
+                "stage": "VALIDATED"
+              }
+            }
+          ],
+          "started_ns": "440850500000000",
+          "completed_ns": "440850531000000",
+          "sent_fragments": 2,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850500000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000263a70185804000000a0000000040000000002f00000000000000000000000000000000000000000000000000000000000d0bcf840666666666602d70a"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850500000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "TX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850500000000",
+              "arbitration_id": 778,
+              "data": {
+                "encoding": "HEX",
+                "data": "0100000a3a70185804000000a0000000040000000102f0007240000000000000000000000000000000000000000000000000000000000000000000000000631d"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": false,
+              "dlc": 64,
+              "actual_channel": "can0",
+              "library_timestamp": 0,
+              "completed_ns": "440850500000000",
+              "send_completed": true,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "0000000000000000"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850515000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580600000000000000040000000001e803040000000a000000000000000000000000000000000000000000000000000000000000000000deab"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.8415172,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c575db6b"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850515000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850515000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a362c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a342c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a342c227374616765223a225245434549564544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "RX",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850531000000",
+              "arbitration_id": 1153,
+              "data": {
+                "encoding": "HEX",
+                "data": "010000143a7018580700000000000000040000000001e803040000000a000100000000000000000000000000000000000000000000000000000000000000ff6e"
+              },
+              "is_fd": true,
+              "bitrate_switch": true,
+              "is_extended_id": false,
+              "is_remote_frame": false,
+              "is_error_frame": false,
+              "error_state_indicator": false,
+              "is_rx": true,
+              "dlc": 64,
+              "actual_channel": "9ac4b1c16a2b4175ac319a8ae59d3125",
+              "library_timestamp": 1791354645.842517,
+              "completed_ns": null,
+              "send_completed": null,
+              "error": null,
+              "reply_json": null,
+              "request_json": null,
+              "library_timestamp_bits": {
+                "encoding": "HEX",
+                "data": "41dab179c575ebcc"
+              },
+              "qualification_status": "NOT_EVALUATED"
+            },
+            {
+              "kind": "FEEDBACK",
+              "channel_id": "CANFD_0",
+              "interface": "can0",
+              "started_ns": "440850531000000",
+              "arbitration_id": null,
+              "data": null,
+              "is_fd": null,
+              "bitrate_switch": null,
+              "is_extended_id": null,
+              "is_remote_frame": null,
+              "is_error_frame": null,
+              "error_state_indicator": null,
+              "is_rx": null,
+              "dlc": null,
+              "actual_channel": null,
+              "library_timestamp": null,
+              "completed_ns": "440850531000000",
+              "send_completed": null,
+              "error": null,
+              "reply_json": {
+                "encoding": "HEX",
+                "data": "7b22686561646572223a7b2273657175656e6365223a372c2273657373696f6e5f6964223a313437373939363630322c227461726765745f73746570223a302c227472616e73616374696f6e5f6964223a342c2276616c69645f666f725f6d73223a313030307d2c226d6573736167655f6964223a3133302c227061796c6f6164223a7b226170706c6965645f73746570223a302c226572726f72223a224f4b222c226d6f64656c5f7265766973696f6e223a302c2270726f62655f6964223a302c22726571756573745f6d6573736167655f6964223a31302c22726571756573745f73657175656e6365223a342c227374616765223a2256414c494441544544227d7d"
+              },
+              "request_json": null,
+              "library_timestamp_bits": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        }
+      ],
+      "rx": [
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 2,
+              "target_step": 0,
+              "transaction_id": 2,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "CANFD_0",
+            "transport": "CANFD",
+            "peer": "can0"
+          },
+          "received_ns": "440850359000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 3,
+              "target_step": 80,
+              "transaction_id": 3,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "CANFD_0",
+            "transport": "CANFD",
+            "peer": "can0"
+          },
+          "received_ns": "440850437000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1477996602,
+              "sequence": 4,
+              "target_step": 160,
+              "transaction_id": 4,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "CANFD_0",
+            "transport": "CANFD",
+            "peer": "can0"
+          },
+          "received_ns": "440850515000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        }
+      ],
+      "session_exchanges": [
+        {
+          "request": {
+            "header": {
+              "sequence": 1,
+              "session_id": 0,
+              "target_step": 0,
+              "transaction_id": 1,
+              "valid_for_ms": 1000
+            },
+            "message_id": 1,
+            "payload": {
+              "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+              "identity": {
+                "definition_version": "HIL-ICD-1.0",
+                "model_id": "quadrotor_hil",
+                "run_id": "item-01",
+                "scenario_id": "item-01",
+                "source_id": "item-01",
+                "vehicle_id": "vehicle-01"
+              },
+              "nonce_hex": "c396bbf8f4e5027ad14ed2ea9a99254e",
+              "requested_lease_ms": 1000,
+              "roles": [
+                "STIMULUS"
+              ]
+            }
+          },
+          "reply": {
+            "header": {
+              "sequence": 1,
+              "session_id": 1477996602,
+              "target_step": 0,
+              "transaction_id": 1,
+              "valid_for_ms": 1000
+            },
+            "message_id": 129,
+            "payload": {
+              "accepted_roles": [
+                "STIMULUS"
+              ],
+              "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+              "capabilities": {
+                "available_probes": [],
+                "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+                "baseline_version": "HIL-ICD-1.0",
+                "extended_environment_ready": false,
+                "hex_motor_faults_ready": false,
+                "implemented_message_ids": [
+                  1,
+                  10
+                ],
+                "initialization_port_ready": false,
+                "max_payload_bytes": 65536,
+                "max_target_ahead_steps": 1000,
+                "model_ids": [
+                  "quadrotor_hil"
+                ],
+                "phase_controller_ready": false,
+                "qualified_channels": [],
+                "queue_capacity": 4096,
+                "replacement_ready": false,
+                "supported_codecs": [],
+                "system_model_ready": false
+              },
+              "lease_ms": 1000,
+              "receiver_step": 0,
+              "session_id": 1477996602
+            }
+          },
+          "started_ns": "440850312000000",
+          "completed_ns": "440850328000000",
+          "error": null
+        }
+      ],
+      "observed_wind_n_mps": [
+        0,
+        0,
+        0
+      ],
+      "canonical_json_literal_equality_not_required": "CAN float32 values follow frozen packed layout; request values and decoded values are retained separately."
+    },
+    {
+      "source_kind": "SCENARIO",
+      "native_backend": "Scapy SuperSocket/socketpair with test NIC relay",
+      "tx": [
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "SCENARIO",
+          "event_id": "wave-01",
+          "link_id": "ETHGEN",
+          "planned_target_step": 0,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 2,
+              "target_step": 0,
+              "transaction_id": 2,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 2,
+                "target_step": 0,
+                "transaction_id": 2,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 2,
+                "request_message_id": 10,
+                "stage": "RECEIVED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            },
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 3,
+                "target_step": 0,
+                "transaction_id": 2,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 2,
+                "request_message_id": 10,
+                "stage": "VALIDATED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            }
+          ],
+          "started_ns": "440851406000000",
+          "completed_ns": "440851421000000",
+          "sent_fragments": 1,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "interface": "eth0",
+              "ethernet_data": {
+                "encoding": "HEX",
+                "data": "0200000000020200000000010800450000740001000040117c767f0000017f000001fffefffd00606d1e48494c31010000000df8c774020000000000000002000000000001003000f0000a0000005f7f2c9b00000000000000000000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "udp_data": {
+                "encoding": "HEX",
+                "data": "48494c31010000000df8c774020000000000000002000000000001003000f0000a0000005f7f2c9b00000000000000000000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "started_ns": "440851406000000",
+              "completed_ns": "440851421000000",
+              "sent_bytes": 130,
+              "error": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "SCENARIO",
+          "event_id": "wave-01",
+          "link_id": "ETHGEN",
+          "planned_target_step": 80,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 8,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 3,
+              "target_step": 80,
+              "transaction_id": 3,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 4,
+                "target_step": 0,
+                "transaction_id": 3,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 3,
+                "request_message_id": 10,
+                "stage": "RECEIVED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            },
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 5,
+                "target_step": 0,
+                "transaction_id": 3,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 3,
+                "request_message_id": 10,
+                "stage": "VALIDATED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            }
+          ],
+          "started_ns": "440851500000000",
+          "completed_ns": "440851515000000",
+          "sent_fragments": 1,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "interface": "eth0",
+              "ethernet_data": {
+                "encoding": "HEX",
+                "data": "0200000000020200000000010800450000740001000040117c767f0000017f000001fffefffd0060be3b48494c31010000000df8c774030000005000000003000000000001003000f0000a000000d0d1f7ea00000000000020400000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "udp_data": {
+                "encoding": "HEX",
+                "data": "48494c31010000000df8c774030000005000000003000000000001003000f0000a000000d0d1f7ea00000000000020400000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "started_ns": "440851500000000",
+              "completed_ns": "440851500000000",
+              "sent_bytes": 130,
+              "error": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_TX_1",
+          "source_kind": "SCENARIO",
+          "event_id": "wave-01",
+          "link_id": "ETHGEN",
+          "planned_target_step": 160,
+          "request": {
+            "message_id": 10,
+            "payload": {
+              "wind_n_mps": 16,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            },
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 4,
+              "target_step": 160,
+              "transaction_id": 4,
+              "valid_for_ms": 240
+            }
+          },
+          "feedback": [
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 6,
+                "target_step": 0,
+                "transaction_id": 4,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 4,
+                "request_message_id": 10,
+                "stage": "RECEIVED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            },
+            {
+              "message_id": 130,
+              "header": {
+                "session_id": 1959262221,
+                "sequence": 7,
+                "target_step": 0,
+                "transaction_id": 4,
+                "valid_for_ms": 1000
+              },
+              "payload": {
+                "request_sequence": 4,
+                "request_message_id": 10,
+                "stage": "VALIDATED",
+                "error": "OK",
+                "applied_step": 0,
+                "model_revision": 0,
+                "probe_id": 0
+              }
+            }
+          ],
+          "started_ns": "440851578000000",
+          "completed_ns": "440851593000000",
+          "sent_fragments": 1,
+          "sent_fragments_semantics": "COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS",
+          "native_observations": [
+            {
+              "interface": "eth0",
+              "ethernet_data": {
+                "encoding": "HEX",
+                "data": "0200000000020200000000010800450000740001000040117c767f0000017f000001fffefffd0060688048494c31010000000df8c77404000000a000000004000000000001003000f0000a0000006de84e8f00000000000030400000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "udp_data": {
+                "encoding": "HEX",
+                "data": "48494c31010000000df8c77404000000a000000004000000000001003000f0000a0000006de84e8f00000000000030400000000000000000000000000000000000000000d0bcf84066666666660272400000000000000000"
+              },
+              "started_ns": "440851578000000",
+              "completed_ns": "440851578000000",
+              "sent_bytes": 130,
+              "error": null,
+              "qualification_status": "NOT_EVALUATED"
+            }
+          ],
+          "error": null,
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_application_verified": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        }
+      ],
+      "rx": [
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 2,
+              "target_step": 0,
+              "transaction_id": 2,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 0,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "ETH_0",
+            "transport": "UDP",
+            "peer": "127.0.0.1:65534"
+          },
+          "received_ns": "440851421000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 3,
+              "target_step": 80,
+              "transaction_id": 3,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 8,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "ETH_0",
+            "transport": "UDP",
+            "peer": "127.0.0.1:65534"
+          },
+          "received_ns": "440851515000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        },
+        {
+          "format": "HIL_RECEPTION_RX_1",
+          "identity": {
+            "definition_version": "HIL-ICD-1.0",
+            "model_id": "quadrotor_hil",
+            "run_id": "item-01",
+            "scenario_id": "item-01",
+            "source_id": "item-01",
+            "vehicle_id": "vehicle-01"
+          },
+          "message": {
+            "message_id": 10,
+            "header": {
+              "session_id": 1959262221,
+              "sequence": 4,
+              "target_step": 160,
+              "transaction_id": 4,
+              "valid_for_ms": 240
+            },
+            "payload": {
+              "wind_n_mps": 16,
+              "wind_e_mps": 0,
+              "wind_d_mps": 0,
+              "pressure_pa": 101325,
+              "temperature_k": 288.15,
+              "ground_height_m": 0
+            }
+          },
+          "binding": {
+            "channel": "ETH_0",
+            "transport": "UDP",
+            "peer": "127.0.0.1:65534"
+          },
+          "received_ns": "440851593000000",
+          "validation_scope": "WIRE_SCHEMA_SESSION_ONLY",
+          "model_applied": false,
+          "physical_tool_qualification": "NOT_EVALUATED"
+        }
+      ],
+      "session_exchanges": [
+        {
+          "request": {
+            "header": {
+              "sequence": 1,
+              "session_id": 0,
+              "target_step": 0,
+              "transaction_id": 1,
+              "valid_for_ms": 1000
+            },
+            "message_id": 1,
+            "payload": {
+              "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+              "identity": {
+                "definition_version": "HIL-ICD-1.0",
+                "model_id": "quadrotor_hil",
+                "run_id": "item-01",
+                "scenario_id": "item-01",
+                "source_id": "item-01",
+                "vehicle_id": "vehicle-01"
+              },
+              "nonce_hex": "d30704b7297456b7f19066635b35cd52",
+              "requested_lease_ms": 1000,
+              "roles": [
+                "STIMULUS"
+              ]
+            }
+          },
+          "reply": {
+            "header": {
+              "sequence": 1,
+              "session_id": 1959262221,
+              "target_step": 0,
+              "transaction_id": 1,
+              "valid_for_ms": 1000
+            },
+            "message_id": 129,
+            "payload": {
+              "accepted_roles": [
+                "STIMULUS"
+              ],
+              "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+              "capabilities": {
+                "available_probes": [],
+                "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+                "baseline_version": "HIL-ICD-1.0",
+                "extended_environment_ready": false,
+                "hex_motor_faults_ready": false,
+                "implemented_message_ids": [
+                  1,
+                  10
+                ],
+                "initialization_port_ready": false,
+                "max_payload_bytes": 65536,
+                "max_target_ahead_steps": 1000,
+                "model_ids": [
+                  "quadrotor_hil"
+                ],
+                "phase_controller_ready": false,
+                "qualified_channels": [],
+                "queue_capacity": 4096,
+                "replacement_ready": false,
+                "supported_codecs": [],
+                "system_model_ready": false
+              },
+              "lease_ms": 1000,
+              "receiver_step": 0,
+              "session_id": 1959262221
+            }
+          },
+          "started_ns": "440851390000000",
+          "completed_ns": "440851406000000",
+          "error": null
+        }
+      ],
+      "observed_wind_n_mps": [
+        0,
+        8,
+        16
+      ],
+      "canonical_json_literal_equality_not_required": "CAN float32 values follow frozen packed layout; request values and decoded values are retained separately."
+    }
+  ]
+}

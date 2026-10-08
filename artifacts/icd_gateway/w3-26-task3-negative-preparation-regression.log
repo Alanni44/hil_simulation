@@ -1,0 +1,223 @@
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_negative.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_receiver_crc_decode_failure_is_not_fabricated_correlated_ack (test_negative.NegativeTests.test_actual_receiver_crc_decode_failure_is_not_fabricated_correlated_ack) ... ok
+test_actual_receiver_rejects_mutated_payload_before_admission (test_negative.NegativeTests.test_actual_receiver_rejects_mutated_payload_before_admission) ... ok
+test_all_header_mutations_reframe_every_fragment_and_keep_payload (test_negative.NegativeTests.test_all_header_mutations_reframe_every_fragment_and_keep_payload) ... ok
+test_capacity_and_immutable_bytes_preserve_original_input (test_negative.NegativeTests.test_capacity_and_immutable_bytes_preserve_original_input) ... ok
+test_crc_and_truncation_corrupt_only_one_original_fragment (test_negative.NegativeTests.test_crc_and_truncation_corrupt_only_one_original_fragment) ... ok
+test_disabled_unknown_and_duplicate_case_lists_refuse_before_mutation (test_negative.NegativeTests.test_disabled_unknown_and_duplicate_case_lists_refuse_before_mutation) ... ok
+test_discarded_original_input_cannot_be_reused_for_negative_preparation (test_negative.NegativeTests.test_discarded_original_input_cannot_be_reused_for_negative_preparation) ... ok
+test_event_original_stimulus_and_tool_medium_cannot_be_substituted (test_negative.NegativeTests.test_event_original_stimulus_and_tool_medium_cannot_be_substituted) ... ok
+test_exact_negative_evidence_byte_bound_and_preserved_counters (test_negative.NegativeTests.test_exact_negative_evidence_byte_bound_and_preserved_counters) ... ok
+test_f64_raw_nan_and_array_bits_never_pass_through_json (test_negative.NegativeTests.test_f64_raw_nan_and_array_bits_never_pass_through_json) ... ok
+test_forged_and_stale_original_inputs_refuse (test_negative.NegativeTests.test_forged_and_stale_original_inputs_refuse) ... ok
+test_json_structural_drop_add_and_nested_array_patch_are_exact (test_negative.NegativeTests.test_json_structural_drop_add_and_nested_array_patch_are_exact) ... ok
+test_json_whole_container_field_is_a_unique_structural_target (test_negative.NegativeTests.test_json_whole_container_field_is_a_unique_structural_target) ... ok
+test_no_op_and_unknown_field_overwrite_are_not_negative_evidence (test_negative.NegativeTests.test_no_op_and_unknown_field_overwrite_are_not_negative_evidence) ... ok
+test_packed_patch_and_bits_preserve_negative_zero_exactly (test_negative.NegativeTests.test_packed_patch_and_bits_preserve_negative_zero_exactly) ... ok
+test_packed_patch_retains_complete_fragments_but_receiver_rejects_range (test_negative.NegativeTests.test_packed_patch_retains_complete_fragments_but_receiver_rejects_range) ... ok
+test_strict_mutation_types_and_truncate_bounds (test_negative.NegativeTests.test_strict_mutation_types_and_truncate_bounds) ... ok
+test_structural_packed_and_raw_json_mutations_are_explicitly_unrepresentable (test_negative.NegativeTests.test_structural_packed_and_raw_json_mutations_are_explicitly_unrepresentable) ... ok
+test_wrong_missing_ambiguous_and_expression_paths_refuse (test_negative.NegativeTests.test_wrong_missing_ambiguous_and_expression_paths_refuse) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 11.397s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v
+test_real_grant_header_feeds_replay_and_actual_resource_exchange (test_source_session.ActualResourceSessionTests.test_real_grant_header_feeds_replay_and_actual_resource_exchange) ... WARNING: No libpcap provider available ! pcap won't be used
+ok
+test_claim_blocks_manual_tx_and_feedback_read_after_construction (test_source_session.ActualSourceSessionTests.test_claim_blocks_manual_tx_and_feedback_read_after_construction) ... ok
+test_opening_transaction_follows_prior_manual_transport_use (test_source_session.ActualSourceSessionTests.test_opening_transaction_follows_prior_manual_transport_use) ... ok
+test_real_receiver_grant_used_and_missing_capability_stops_before_tx (test_source_session.ActualSourceSessionTests.test_real_receiver_grant_used_and_missing_capability_stops_before_tx) ... ok
+test_real_receiver_rejects_wrong_identity_without_local_grant (test_source_session.ActualSourceSessionTests.test_real_receiver_rejects_wrong_identity_without_local_grant) ... ok
+test_real_transport_rejects_new_manager_and_delayed_old_grant (test_source_session.ActualSourceSessionTests.test_real_transport_rejects_new_manager_and_delayed_old_grant) ... ok
+test_clock_status_nonce_and_request_type_are_correlated (test_source_session.FeedbackCorrelationTests.test_clock_status_nonce_and_request_type_are_correlated) ... ok
+test_status_is_only_a_heartbeat_response (test_source_session.FeedbackCorrelationTests.test_status_is_only_a_heartbeat_response) ... ok
+test_unrelated_status_clock_feedback_is_not_an_ack (test_source_session.FeedbackCorrelationTests.test_unrelated_status_clock_feedback_is_not_an_ack) ... ok
+test_backward_or_bool_source_mono_is_rejected_without_send (test_source_session.SourceSessionTests.test_backward_or_bool_source_mono_is_rejected_without_send) ... ok
+test_bad_target_and_counter_wrap_reject (test_source_session.SourceSessionTests.test_bad_target_and_counter_wrap_reject) ... ok
+test_clock_failure_after_reply_keeps_untrusted_exchange_record (test_source_session.SourceSessionTests.test_clock_failure_after_reply_keeps_untrusted_exchange_record) ... ok
+test_conservative_lease_starts_before_exchange_not_on_late_reply (test_source_session.SourceSessionTests.test_conservative_lease_starts_before_exchange_not_on_late_reply) ... ok
+test_explicit_transaction_reservation_never_collides_with_auto_counter (test_source_session.SourceSessionTests.test_explicit_transaction_reservation_never_collides_with_auto_counter) ... ok
+test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease (test_source_session.SourceSessionTests.test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease) ... ok
+test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step (test_source_session.SourceSessionTests.test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step) ... ok
+test_invalid_constructor_limits_identity_and_roles_reject (test_source_session.SourceSessionTests.test_invalid_constructor_limits_identity_and_roles_reject) ... ok
+test_invalid_payload_does_not_consume_sequence_or_send (test_source_session.SourceSessionTests.test_invalid_payload_does_not_consume_sequence_or_send) ... ok
+test_local_abandon_is_not_a_remote_close_reset_or_clear_queues (test_source_session.SourceSessionTests.test_local_abandon_is_not_a_remote_close_reset_or_clear_queues) ... ok
+test_one_counter_owner_per_transport_even_after_local_close (test_source_session.SourceSessionTests.test_one_counter_owner_per_transport_even_after_local_close) ... ok
+test_open_after_the_entire_lease_cannot_create_a_live_local_session (test_source_session.SourceSessionTests.test_open_after_the_entire_lease_cannot_create_a_live_local_session) ... ok
+test_open_captures_actual_grant_and_allocates_global_fresh_headers (test_source_session.SourceSessionTests.test_open_captures_actual_grant_and_allocates_global_fresh_headers) ... ok
+test_open_validates_both_baselines_roles_sid_and_model (test_source_session.SourceSessionTests.test_open_validates_both_baselines_roles_sid_and_model) ... ok
+test_record_capacity_rejects_before_send_and_drain_does_not_clear_session (test_source_session.SourceSessionTests.test_record_capacity_rejects_before_send_and_drain_does_not_clear_session) ... ok
+test_records_and_capabilities_are_immutable_detached (test_source_session.SourceSessionTests.test_records_and_capabilities_are_immutable_detached) ... ok
+test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid (test_source_session.SourceSessionTests.test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid) ... ok
+test_request_keeps_real_failed_feedback_without_manufacturing_stage (test_source_session.SourceSessionTests.test_request_keeps_real_failed_feedback_without_manufacturing_stage) ... ok
+test_request_payload_detaches_from_callers_during_transport_exchange (test_source_session.SourceSessionTests.test_request_payload_detaches_from_callers_during_transport_exchange) ... ok
+test_roles_capability_and_model_are_checked_before_allocation (test_source_session.SourceSessionTests.test_roles_capability_and_model_are_checked_before_allocation) ... ok
+test_session_module_exists (test_source_session.SourceSessionTests.test_session_module_exists) ... ok
+test_transport_timeout_is_recorded_without_faking_response_or_session (test_source_session.SourceSessionTests.test_transport_timeout_is_recorded_without_faking_response_or_session) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 6.555s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_live_tool_input.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_standard_grant_prepares_published_resource_without_tool_tx_claim (test_live_tool_input.ActualInputTests.test_actual_standard_grant_prepares_published_resource_without_tool_tx_claim) ... ok
+test_all_11_can_inputs_and_44_grantable_udp_inputs_use_complete_original_groups (test_live_tool_input.InputTests.test_all_11_can_inputs_and_44_grantable_udp_inputs_use_complete_original_groups) ... ok
+test_builder_capacity_never_evicts_or_consumes_failed_sequence (test_live_tool_input.InputTests.test_builder_capacity_never_evicts_or_consumes_failed_sequence) ... ok
+test_byte_limits_preflight_before_counter_and_never_clear_existing (test_live_tool_input.InputTests.test_byte_limits_preflight_before_counter_and_never_clear_existing) ... ok
+test_cansend_literal_complete_group_has_no_frontend_options (test_live_tool_input.InputTests.test_cansend_literal_complete_group_has_no_frontend_options) ... ok
+test_cantools_python_can_complete_group_is_original_bytes_not_mutable_snapshot (test_live_tool_input.InputTests.test_cantools_python_can_complete_group_is_original_bytes_not_mutable_snapshot) ... ok
+test_current_grant_complete_input_group_global_allocation_and_no_tx (test_live_tool_input.InputTests.test_current_grant_complete_input_group_global_allocation_and_no_tx) ... ok
+test_expired_plan_cannot_validate_but_can_discard_without_releasing_channel (test_live_tool_input.InputTests.test_expired_plan_cannot_validate_but_can_discard_without_releasing_channel) ... ok
+test_failed_preparation_budget_identity_and_revoked_local_recovery (test_live_tool_input.InputTests.test_failed_preparation_budget_identity_and_revoked_local_recovery) ... ok
+test_forged_foreign_discarded_and_abandoned_inputs_are_not_live (test_live_tool_input.InputTests.test_forged_foreign_discarded_and_abandoned_inputs_are_not_live) ... ok
+test_lack_of_role_wrong_model_or_other_ethernet_channel_never_allocates (test_live_tool_input.InputTests.test_lack_of_role_wrong_model_or_other_ethernet_channel_never_allocates) ... ok
+test_lease_expiry_during_encoding_rejects_without_consuming_sequence (test_live_tool_input.InputTests.test_lease_expiry_during_encoding_rejects_without_consuming_sequence) ... ok
+test_malformed_objects_and_forged_bytes_fail_explicitly_before_allocation (test_live_tool_input.InputTests.test_malformed_objects_and_forged_bytes_fail_explicitly_before_allocation) ... ok
+test_missing_expired_role_capability_and_invalid_input_do_not_consume_sequence (test_live_tool_input.InputTests.test_missing_expired_role_capability_and_invalid_input_do_not_consume_sequence) ... ok
+test_observer_unknown_original_branch_and_invalid_limits_are_rejected (test_live_tool_input.InputTests.test_observer_unknown_original_branch_and_invalid_limits_are_rejected) ... ok
+test_packed_signed_zero_survives_source_snapshot_and_original_can_udp_builders (test_live_tool_input.InputTests.test_packed_signed_zero_survives_source_snapshot_and_original_can_udp_builders) ... ok
+test_plan_validation_links_actual_reservation_source_and_discard (test_live_tool_input.InputTests.test_plan_validation_links_actual_reservation_source_and_discard) ... ok
+test_post_allocation_tool_error_or_revoke_preserves_original_input_no_rollback (test_live_tool_input.InputTests.test_post_allocation_tool_error_or_revoke_preserves_original_input_no_rollback) ... ok
+test_preflight_bad_binding_protocol_and_mac_preserve_global_counter (test_live_tool_input.InputTests.test_preflight_bad_binding_protocol_and_mac_preserve_global_counter) ... ok
+test_scapy_complete_ethernet_uses_current_transport_endpoints_and_original_wire (test_live_tool_input.InputTests.test_scapy_complete_ethernet_uses_current_transport_endpoints_and_original_wire) ... ok
+test_shared_bounded_evidence_pool_drain_and_discard_never_roll_back (test_live_tool_input.InputTests.test_shared_bounded_evidence_pool_drain_and_discard_never_roll_back) ... ok
+test_source_prepare_respects_exclusive_owner_and_counter_exhaustion (test_live_tool_input.InputTests.test_source_prepare_respects_exclusive_owner_and_counter_exhaustion) ... ok
+test_typed_message_id_is_not_normalized_into_a_valid_integer (test_live_tool_input.InputTests.test_typed_message_id_is_not_normalized_into_a_valid_integer) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 5.176s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_all_97_frozen_bindings_and_105_elements_resolve_to_complete_actual_fields (test_scenario.ScenarioTests.test_all_97_frozen_bindings_and_105_elements_resolve_to_complete_actual_fields) ... ok
+test_all_snapshot_storage_counts_and_unverified_contract_rejects (test_scenario.ScenarioTests.test_all_snapshot_storage_counts_and_unverified_contract_rejects) ... ok
+test_all_ten_events_retained_sorted_and_controls_not_executed (test_scenario.ScenarioTests.test_all_ten_events_retained_sorted_and_controls_not_executed) ... ok
+test_arithmetic_intersection_matches_small_enumerated_progressions (test_scenario.ScenarioTests.test_arithmetic_intersection_matches_small_enumerated_progressions) ... ok
+test_arrays_all_elements_and_boolean_targets_count_for_complete_snapshot (test_scenario.ScenarioTests.test_arrays_all_elements_and_boolean_targets_count_for_complete_snapshot) ... ok
+test_collision_budget_does_not_silently_ignore_long_overlapping_streams (test_scenario.ScenarioTests.test_collision_budget_does_not_silently_ignore_long_overlapping_streams) ... ok
+test_complete_snapshot_collision_across_original_tools_and_alias_messages (test_scenario.ScenarioTests.test_complete_snapshot_collision_across_original_tools_and_alias_messages) ... ok
+test_duplicate_namespaces_prior_stop_link_and_fault_restrictions (test_scenario.ScenarioTests.test_duplicate_namespaces_prior_stop_link_and_fault_restrictions) ... ok
+test_end_cleanup_clips_future_streams_but_is_not_completed_cleanup (test_scenario.ScenarioTests.test_end_cleanup_clips_future_streams_but_is_not_completed_cleanup) ... ok
+test_large_finite_streams_are_not_expanded_and_output_limit_fails_before_yield (test_scenario.ScenarioTests.test_large_finite_streams_are_not_expanded_and_output_limit_fails_before_yield) ... ok
+test_negative_mutation_integer_fields_do_not_accept_float_or_bool (test_scenario.ScenarioTests.test_negative_mutation_integer_fields_do_not_accept_float_or_bool) ... ok
+test_periodic_collision_with_static_and_later_coprime_intersection (test_scenario.ScenarioTests.test_periodic_collision_with_static_and_later_coprime_intersection) ... ok
+test_periodic_first_count_and_same_step_stop_sort_boundary (test_scenario.ScenarioTests.test_periodic_first_count_and_same_step_stop_sort_boundary) ... ok
+test_replay_reference_negative_case_and_unresolved_consumers_are_explicit (test_scenario.ScenarioTests.test_replay_reference_negative_case_and_unresolved_consumers_are_explicit) ... ok
+test_snapshot_actions_detached_immutable_and_signed_zero_preserved (test_scenario.ScenarioTests.test_snapshot_actions_detached_immutable_and_signed_zero_preserved) ... ok
+test_sort_priority_then_event_id_without_changing_original_snapshot (test_scenario.ScenarioTests.test_sort_priority_then_event_id_without_changing_original_snapshot) ... ok
+test_source_audit_exposes_plan_and_rejects_real_complete_snapshot_collision (test_scenario.ScenarioTests.test_source_audit_exposes_plan_and_rejects_real_complete_snapshot_collision) ... ok
+test_strict_models_timing_counts_and_uint32_overflow (test_scenario.ScenarioTests.test_strict_models_timing_counts_and_uint32_overflow) ... ok
+test_terminal_waveform_sample_collision_and_stop_clipping_are_not_missed (test_scenario.ScenarioTests.test_terminal_waveform_sample_collision_and_stop_clipping_are_not_missed) ... ok
+test_two_waveforms_different_changed_fields_still_write_full_same_ports (test_scenario.ScenarioTests.test_two_waveforms_different_changed_fields_still_write_full_same_ports) ... ok
+test_waveform_exact_terminal_sample_even_when_period_not_divisible (test_scenario.ScenarioTests.test_waveform_exact_terminal_sample_even_when_period_not_divisible) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 12.220s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_receiver.py -v
+test_acl_role_and_expiry_checks_precede_reassembly (test_receiver.ReceiverTests.test_acl_role_and_expiry_checks_precede_reassembly) ... ok
+test_bad_open_identity_has_zero_session_failed_ack (test_receiver.ReceiverTests.test_bad_open_identity_has_zero_session_failed_ack) ... ok
+test_common_receiver_exists (test_receiver.ReceiverTests.test_common_receiver_exists) ... ok
+test_complete_retry_reemits_same_feedback_without_second_admission (test_receiver.ReceiverTests.test_complete_retry_reemits_same_feedback_without_second_admission) ... ok
+test_different_value_reusing_sequence_is_failed_duplicate (test_receiver.ReceiverTests.test_different_value_reusing_sequence_is_failed_duplicate) ... ok
+test_interleaved_fragmented_opens_are_isolated_by_authorized_grant (test_receiver.ReceiverTests.test_interleaved_fragmented_opens_are_isolated_by_authorized_grant) ... ok
+test_missing_consumer_has_received_then_failed_and_no_application (test_receiver.ReceiverTests.test_missing_consumer_has_received_then_failed_and_no_application) ... ok
+test_open_is_source_transparent_and_does_not_claim_model_readiness (test_receiver.ReceiverTests.test_open_is_source_transparent_and_does_not_claim_model_readiness) ... ok
+test_partial_groups_expire_even_without_traffic_and_session_shutdown_frees (test_receiver.ReceiverTests.test_partial_groups_expire_even_without_traffic_and_session_shutdown_frees) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 4.952s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_gateway -p test_protocol.py -v
+test_actual_dbc_has_all_frozen_frames_and_signals (test_protocol.ProtocolTests.test_actual_dbc_has_all_frozen_frames_and_signals) ... ok
+test_actual_equivalent_arxml_is_parsed_by_original_library (test_protocol.ProtocolTests.test_actual_equivalent_arxml_is_parsed_by_original_library) ... ok
+test_all_can_golden_vectors_and_wire_codec_are_byte_exact (test_protocol.ProtocolTests.test_all_can_golden_vectors_and_wire_codec_are_byte_exact) ... ok
+test_arxml_malformed_dtd_entities_and_bounds_fail_closed (test_protocol.ProtocolTests.test_arxml_malformed_dtd_entities_and_bounds_fail_closed) ... ok
+test_arxml_nonfinite_extreme_or_overlong_period_is_resource_failure (test_protocol.ProtocolTests.test_arxml_nonfinite_extreme_or_overlong_period_is_resource_failure) ... ok
+test_arxml_unprojected_pdu_mapping_length_and_update_bit_are_rejected (test_protocol.ProtocolTests.test_arxml_unprojected_pdu_mapping_length_and_update_bit_are_rejected) ... ok
+test_arxml_unrounded_conversion_range_and_coefficient_are_exact (test_protocol.ProtocolTests.test_arxml_unrounded_conversion_range_and_coefficient_are_exact) ... ok
+test_arxml_wire_drift_and_ignored_metadata_are_rejected (test_protocol.ProtocolTests.test_arxml_wire_drift_and_ignored_metadata_are_rejected) ... ok
+test_component_message_and_resource_declarations_cannot_drift (test_protocol.ProtocolTests.test_component_message_and_resource_declarations_cannot_drift) ... ok
+test_declared_message_scope_and_input_snapshot_cannot_change (test_protocol.ProtocolTests.test_declared_message_scope_and_input_snapshot_cannot_change) ... ok
+test_every_signal_layout_property_is_verified (test_protocol.ProtocolTests.test_every_signal_layout_property_is_verified) ... ok
+test_formal_crc_direction_and_transport_rules_are_not_bypassed (test_protocol.ProtocolTests.test_formal_crc_direction_and_transport_rules_are_not_bypassed) ... ok
+test_original_resource_pins_and_actual_bytes_are_required (test_protocol.ProtocolTests.test_original_resource_pins_and_actual_bytes_are_required) ... ok
+test_parser_is_available (test_protocol.ProtocolTests.test_parser_is_available) ... ok
+test_real_database_frame_drift_is_rejected (test_protocol.ProtocolTests.test_real_database_frame_drift_is_rejected) ... ok
+test_unimplemented_resource_format_is_explicitly_pending (test_protocol.ProtocolTests.test_unimplemented_resource_format_is_explicitly_pending) ... ok
+test_unparsed_or_failed_parser_cannot_encode_or_decode (test_protocol.ProtocolTests.test_unparsed_or_failed_parser_cannot_encode_or_decode) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 19.756s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_runtime -p test_wire.py -v
+test_wire_codec_exists (test_wire.WireAvailabilityTests.test_wire_codec_exists) ... ok
+test_all_business_golden_fragments_byte_exact (test_wire.WireTests.test_all_business_golden_fragments_byte_exact) ... ok
+test_can_transport_attributes_and_padding_rejected (test_wire.WireTests.test_can_transport_attributes_and_padding_rejected) ... ok
+test_crc_and_truncation_rejected (test_wire.WireTests.test_crc_and_truncation_rejected) ... ok
+test_crc_reference_check_values (test_wire.WireTests.test_crc_reference_check_values) ... ok
+test_decode_every_logical_message_fragment (test_wire.WireTests.test_decode_every_logical_message_fragment) ... ok
+test_integral_json_header_numbers_encode_without_struct_errors (test_wire.WireTests.test_integral_json_header_numbers_encode_without_struct_errors) ... ok
+test_json_cannot_be_sent_over_can_and_no_unknown_transport (test_wire.WireTests.test_json_cannot_be_sent_over_can_and_no_unknown_transport) ... ok
+test_udp_65536_byte_capacity_requires_a_576_byte_final_chunk (test_wire.WireTests.test_udp_65536_byte_capacity_requires_a_576_byte_final_chunk) ... ok
+test_udp_fragment_indexes_counts_and_payload_lengths (test_wire.WireTests.test_udp_fragment_indexes_counts_and_payload_lengths) ... ok
+test_udp_magic_version_flags_reserved_and_ids (test_wire.WireTests.test_udp_magic_version_flags_reserved_and_ids) ... ok
+test_wire_headers_checked_before_payload_reassembly (test_wire.WireTests.test_wire_headers_checked_before_payload_reassembly) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.788s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_runtime -p test_reassembly.py -v
+test_bounded_common_reassembly_exists (test_reassembly.ReassemblyAvailabilityTests.test_bounded_common_reassembly_exists) ... ok
+test_64_slots_per_channel_no_eviction (test_reassembly.ReassemblyTests.test_64_slots_per_channel_no_eviction) ... ok
+test_all_transports_reassemble_in_reverse_order (test_reassembly.ReassemblyTests.test_all_transports_reassemble_in_reverse_order) ... ok
+test_can_timeout_is_20ms (test_reassembly.ReassemblyTests.test_can_timeout_is_20ms) ... ok
+test_channel_half_groups_cannot_be_spliced (test_reassembly.ReassemblyTests.test_channel_half_groups_cannot_be_spliced) ... ok
+test_clock_cannot_go_backwards_and_terminal_entries_expire (test_reassembly.ReassemblyTests.test_clock_cannot_go_backwards_and_terminal_entries_expire) ... ok
+test_completed_retransmission_cannot_emit_second_completion (test_reassembly.ReassemblyTests.test_completed_retransmission_cannot_emit_second_completion) ... ok
+test_conflict_invalidates_whole_group_and_blocks_restart (test_reassembly.ReassemblyTests.test_conflict_invalidates_whole_group_and_blocks_restart) ... ok
+test_decoded_fragment_metadata_cannot_bypass_reservation_limits (test_reassembly.ReassemblyTests.test_decoded_fragment_metadata_cannot_bypass_reservation_limits) ... ok
+test_explicit_session_dedup_owner_can_reassemble_complete_retries (test_reassembly.ReassemblyTests.test_explicit_session_dedup_owner_can_reassemble_complete_retries) ... ok
+test_global_8mib_reservation_is_enforced (test_reassembly.ReassemblyTests.test_global_8mib_reservation_is_enforced) ... ok
+test_header_inconsistency_invalidates_group (test_reassembly.ReassemblyTests.test_header_inconsistency_invalidates_group) ... ok
+test_identical_duplicate_never_extends_fixed_deadline (test_reassembly.ReassemblyTests.test_identical_duplicate_never_extends_fixed_deadline) ... ok
+test_pre_session_namespace_cannot_partition_established_business (test_reassembly.ReassemblyTests.test_pre_session_namespace_cannot_partition_established_business) ... ok
+test_pre_session_namespaces_share_channel_capacity (test_reassembly.ReassemblyTests.test_pre_session_namespaces_share_channel_capacity) ... ok
+test_reassembled_invalid_payload_is_rejected_not_returned (test_reassembly.ReassemblyTests.test_reassembled_invalid_payload_is_rejected_not_returned) ... ok
+test_session_discard_frees_only_its_groups_and_terminal_entries (test_reassembly.ReassemblyTests.test_session_discard_frees_only_its_groups_and_terminal_entries) ... ok
+test_terminal_cache_overflow_evicts_oldest_at_8192_entries (test_reassembly.ReassemblyTests.test_terminal_cache_overflow_evicts_oldest_at_8192_entries) ... ok
+test_unauthorized_direction_or_channel_never_allocates (test_reassembly.ReassemblyTests.test_unauthorized_direction_or_channel_never_allocates) ... ok
+test_unknown_channel_and_wrong_medium_never_allocate (test_reassembly.ReassemblyTests.test_unknown_channel_and_wrong_medium_never_allocate) ... ok
+test_video_complete_frame_hash_and_four_frame_capacity (test_reassembly.ReassemblyTests.test_video_complete_frame_hash_and_four_frame_capacity) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 20.447s
+
+OK
+python -X utf8 -m unittest discover -s tests/icd_runtime -p test_contract_payload.py -v
+test_runtime_is_a_real_separate_package (test_contract_payload.AvailabilityTest.test_runtime_is_a_real_separate_package) ... ok
+test_baseline_and_all_59_fixtures_without_mutation (test_contract_payload.ContractPayloadTests.test_baseline_and_all_59_fixtures_without_mutation) ... ok
+test_date_time_fields_reject_invalid_calendar_values (test_contract_payload.ContractPayloadTests.test_date_time_fields_reject_invalid_calendar_values) ... ok
+test_each_frozen_component_tamper_is_rejected (test_contract_payload.ContractPayloadTests.test_each_frozen_component_tamper_is_rejected) ... ok
+test_external_expected_hash_is_mandatory_and_not_trusted_from_file (test_contract_payload.ContractPayloadTests.test_external_expected_hash_is_mandatory_and_not_trusted_from_file) ... ok
+test_ieee754_exact_large_numbers_are_not_uint64_fields (test_contract_payload.ContractPayloadTests.test_ieee754_exact_large_numbers_are_not_uint64_fields) ... ok
+test_missing_unknown_types_arrays_and_nonfinite_rejected (test_contract_payload.ContractPayloadTests.test_missing_unknown_types_arrays_and_nonfinite_rejected) ... ok
+test_packed_layout_offsets_boolean_and_enum_codes (test_contract_payload.ContractPayloadTests.test_packed_layout_offsets_boolean_and_enum_codes) ... ok
+test_session_open_and_nonzero_session_header_rules (test_contract_payload.ContractPayloadTests.test_session_open_and_nonzero_session_header_rules) ... ok
+test_strict_json_rejects_ambiguous_and_noncanonical_input (test_contract_payload.ContractPayloadTests.test_strict_json_rejects_ambiguous_and_noncanonical_input) ... ok
+test_uint64_string_overflow_is_rejected (test_contract_payload.ContractPayloadTests.test_uint64_string_overflow_is_rejected) ... ok
+test_unknown_id_direction_and_wrong_model_rejected (test_contract_payload.ContractPayloadTests.test_unknown_id_direction_and_wrong_model_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.915s
+
+OK

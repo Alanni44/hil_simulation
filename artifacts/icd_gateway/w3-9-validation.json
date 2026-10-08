@@ -1,0 +1,118 @@
+{
+  "phase": "W3.9_COMMON_COOPERATIVE_UDP_DISPATCH",
+  "date": "2026-10-04",
+  "status": "COMMON_DISPATCH_VERIFIED_NOT_FULL_EXECUTOR_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 474,
+      "suites": {"icd_runtime": 67, "icd_gateway_including_source_capture_history_replay_dispatch": 400, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "runtime_suite_duration_seconds": 27.864,
+      "gateway_suite_duration_seconds": 606.039,
+      "new_phase_tests": 21,
+      "scope": "COMMON_SOFTWARE_NOT_FULL_EXECUTORS_OR_LINUX_RT_QUALIFICATION"
+    },
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_dispatch.py -v", "exit_code": 0, "tests": 21, "duration_seconds": 14.051},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v", "exit_code": 0, "tests": 31, "duration_seconds": 6.539},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_udp.py -v", "exit_code": 0, "tests": 14, "duration_seconds": 11.462},
+    {"command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_resource_udp.py -v", "exit_code": 0, "tests": 9, "duration_seconds": 6.194},
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "exit_code": 0, "status": "OFFLINE_CODEC_PASS", "business_messages": 59, "business_transport_completions": 72, "golden_fragments": 85, "video_raw_fragments": 800},
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v", "exit_code": 0, "tests": 3, "responsibility_rows": 41, "linux_unchecked": 17, "linux_checked": 0},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"},
+    {"command": "rg -n '[ \\t]+$' input_simulator/dispatch.py input_simulator/session.py input_simulator/udp_source.py tests/icd_gateway/test_dispatch.py", "exit_code": 1, "result": "NO_TRAILING_WHITESPACE_MATCHES"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/dispatch.py": "113ea5dd52b47af13f55a1b4be40ce092fe1c9ed9a37a0ec675d57a2b649ac4c",
+    "input_simulator/udp_source.py": "91e623113adf16a11fc3037508406a35ee3f7e81c1800b161cc4c7e153aa69b4",
+    "input_simulator/session.py": "d4297c49319219fd8ce56eee8e95416a532cd94e15082dd2a3236991183cb755",
+    "tests/icd_gateway/test_dispatch.py": "e121119b19176f681bc59c98197bef77ca6d57121f1aad60ebc244a83a926a87"
+  },
+  "implemented_scope": {
+    "owner": "ONE_COOPERATIVE_DISPATCHER_BOUND_TO_ACTUAL_LIVE_SOURCE_SESSION",
+    "serial_api_retained": true,
+    "serial_contention_while_bound": "STATE_REJECTED",
+    "maximum_inflight": 64,
+    "default_max_records": 4096,
+    "default_max_record_bytes": 16777216,
+    "maximum_reply_records_per_request": 8,
+    "capacity": "RESERVE_BEFORE_SEQUENCE_ALLOCATION_AND_TX_NO_SILENT_EVICTION",
+    "transmission": "OPAQUE_VALIDATED_TOKEN_FROZEN_ORIGINAL_ENCODING_ONCE",
+    "first_logical_groups": "COMPLETE_INITIAL_GROUPS_IN_GLOBAL_SEQUENCE_ORDER",
+    "feedback": "BOUNDED_MATCHING_ALL_ORIGINAL_PENDING_REQUESTS_STANDARD_ACK_STATUS_CLOCKSTATUS_RESOURCESTATUS",
+    "reliable_attempts": 4,
+    "periodic_attempts": 1,
+    "ack_timeout_ms": 200,
+    "final_resource_commit_timeout_ms": 10000,
+    "resource_budget_bps": 20000000,
+    "resource_actual_pacing": "RESERVATION_AND_ACTUAL_PREVIOUS_TX_TIME_NO_MATURED_RESERVATION_BURST",
+    "lease": "CHECK_BEFORE_AND_AFTER_ACTUAL_TX_AND_AFTER_ACTUAL_RX_NO_LATE_RENEWAL",
+    "heartbeat": "EXPLICIT_STEP_PROVIDER_PUBLISHED_ID_2_20MS_ACTUAL_TX_1MS_JITTER_FAIL_NO_CATCHUP",
+    "heartbeat_protocol_peer_is_actual_model_service": false,
+    "records": "SUBMITTED_CANONICAL_REQUEST_TX_ACTUAL_ORIGINAL_FRAGMENT_RX_MATCHED_CANONICAL_REPLY_TERMINAL_ERROR",
+    "post_tx_clock_failure": "RETAIN_ACTUAL_TX_PROGRESS_NULL_LOCAL_TIME_SCHEMA_FAILURE",
+    "late_feedback": "RETAIN_RX_BUT_TIMEOUT_NO_FALSE_COMPLETION",
+    "local_close": "CANCEL_RETAIN_RECORDS_DETACH_NOT_REMOTE_38_RESET_OR_CLEAR_QUEUES",
+    "actual_worker_tests": "STANDARD_34_141_VIDEO_BYTES_STORED_NOT_DECODE_OR_MODEL_APPLICATION",
+    "loss_negative": "LOWER_UNADMITTED_SEQUENCE_ORIGINAL_RETRY_FAILED_OUT_OF_ORDER_NOT_RENUMBERED",
+    "arbitrary_multiple_inflight_loss_recovery_guaranteed": false,
+    "persistent_e1_or_model_e2_e3": false,
+    "default_receiver_capabilities": [1],
+    "receiver_with_actual_resource_worker_capabilities": [1, 34],
+    "actual_receiver_heartbeat_clock_service": false,
+    "prepared_replay_execution_ready": false,
+    "new_dependencies": [],
+    "frozen_sources_wire_format_original_c_or_six_tool_changes": false
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_dispatcher_tests": 21,
+    "independent_duration_seconds": 13.840,
+    "red_green_fixed": [
+      "MATURED_RESOURCE_RESERVATIONS_BURST_IN_ACTUAL_TX",
+      "LATE_FINAL_RESOURCE_FEEDBACK_BYPASSED_10S_DEADLINE",
+      "POST_TX_CLOCK_FAILURE_LOST_ACTUAL_WIRE_EVIDENCE",
+      "RX_DURING_PACED_RETRY_NONE_DEADLINE_TYPEERROR",
+      "LEASE_EXPIRED_WITHIN_POLL_BEFORE_OR_AFTER_ACTUAL_TX"
+    ],
+    "loss_negative_preserves_original_sequence_and_failure": true
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-04 W3.9",
+    "associated_linux_items": ["L-001", "L-002", "L-004", "L-005", "L-006", "L-007", "L-008", "L-009", "L-010", "L-011", "L-012", "L-013", "L-014", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_UDP_DISPATCH"
+  },
+  "not_verified_or_implemented": [
+    "ACTUAL_RECEIVER_STATUS_CLOCK_MODEL_STEP_PROVIDER_AND_ALL_HEARTBEAT_RESOURCE_CONCURRENT_LOAD_RT_QUALIFICATION",
+    "BOUNDED_ACTUAL_FEEDBACK_SID_RETIREMENT_BEYOND_64_SIDS_FOR_10000_REPEAT",
+    "FULL_THREE_MODE_REPLAY_EXECUTOR_ACTUAL_TARGET_FRESHNESS_RESET_INITIAL_INPUTS_QUEUES_AND_STEP_GAPS",
+    "ENGINEERING_JSONL_TCP_VIDEO_HISTORY_COMPLETE_REBUILT_FILES_SIX_TOOL_LIFECYCLES",
+    "FULL_SCENARIO_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_NEGATIVES_AND_25API_CONSOLE_ROBOT",
+    "ACTUAL_MODEL_CONSUMERS_PROBES_NINE_PART_CLEANUP_PERSISTENT_ORIGINAL_TX_RX_FORMAL_RELEASE",
+    "LINUX_C_RT_DRIVER_PHYSICAL_REAL_33_REPLACEMENT"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

@@ -1,0 +1,21 @@
+{
+  "mode": "DEVELOPMENT",
+  "channel": "ETH_0",
+  "receiver_bind": {"ip": "127.0.0.1", "port": 36100},
+  "grants": [
+    {
+      "identity": {
+        "run_id": "item-01",
+        "source_id": "item-01",
+        "vehicle_id": "vehicle-01",
+        "scenario_id": "item-01",
+        "model_id": "quadrotor_hil",
+        "definition_version": "HIL-ICD-1.0"
+      },
+      "roles": ["STIMULUS"],
+      "source_endpoint": {"ip": "127.0.0.1", "port": 36102},
+      "feedback_endpoint": {"ip": "127.0.0.1", "port": 36101},
+      "can_bindings": [{"channel": "CANFD_0", "interface": "can0"}]
+    }
+  ]
+}

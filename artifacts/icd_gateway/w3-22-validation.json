@@ -1,0 +1,353 @@
+{
+  "phase": "W3.22_ORIGINAL_CANT_COMMON_CAN_SEND_AND_STANDARD_FEEDBACK",
+  "date": "2026-10-05",
+  "status": "SOFTWARE_CAN_LIBRARY_VERIFIED_PHYSICAL_BACKEND_NOT_QUALIFIED_ORIGINAL_W3_NOT_COMPLETE",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "python_executable": "runtime/icd-venv/Scripts/python.exe",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 783,
+      "suites": {
+        "icd_runtime": 67,
+        "icd_gateway": 709,
+        "plan_coverage_ledger": 3,
+        "single_file_contract": 4
+      },
+      "gateway_duration_seconds": 422.425,
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_can_signal.py -v",
+      "exit_code": 0,
+      "tests": 41,
+      "duration_seconds": 29.416
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 7.795
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_live_tool_input.py -v",
+      "exit_code": 0,
+      "tests": 22,
+      "duration_seconds": 5.184
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tools.py -v",
+      "exit_code": 0,
+      "tests": 10,
+      "duration_seconds": 5.787
+    },
+    {
+      "commands": [
+        "test_static_contract.py",
+        "test_generic_contract_templates.py",
+        "test_parameter_registry_static.py",
+        "test_quadrotor_model_contract.py"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tests_by_suite": [
+        20,
+        5,
+        2,
+        7
+      ],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"
+    }
+  ],
+  "preliminary_full_regression": {
+    "status": "STOPPED_FOR_REVIEW_FIX_NOT_A_PASS",
+    "exit_code": 1,
+    "reason": "New builder resets CAN sequence and Heartbeat transaction history; final fixed run restarted after session-level fix."
+  },
+  "verified_source_sha256": {
+    "input_simulator/can_signal.py": "0100bcb91c531bf0aefd41bf34ccd665730503d8d4b5413e09cb8e45d72fbf6e",
+    "input_simulator/live_tool_input.py": "647dc27faf027a3e1b51edbd67857bb8f740c0c17a158ed7b3671d083f7bacae",
+    "input_simulator/tools.py": "05afdd082ce4cd8a48a68375c38f7b17f183d959f86548842dfaa4b0dda77473",
+    "tests/icd_gateway/test_can_signal.py": "51f3e7dd6f17b3891513c6b9d1951b745136ca5a5c634c11b33c129763821436",
+    "input_simulator/session.py": "057e8930c3f6fc3db219896ec2e513068dd282f465d7ecd2a4dd5cde6c7d9500",
+    "input_simulator/scapy_source.py": "8f479548fd8d5ce6827194ce21c54032b344204bd46e097df991f09919e0cf6a",
+    "input_simulator/udp_source.py": "a02243fb50375b9a8cb3f593a62f755a2976f80f18f63fb611c45eb522a312d9",
+    "input_simulator/dispatch.py": "62dd16d4aa204406e759730e5c78afd8262395bf1d2b33609bd90edab4dc5f25",
+    "input_simulator/scenario_execution.py": "ecd0e3c4855321a6b4ee63c7a5bde3854c60d91903a44c248e6de6c2c9fad0a3",
+    "input_simulator/tool_process.py": "c5d9cbb8ec016d4fdcc9a9aac5c28967650b92cae15ee0bf9176c8a960fda181",
+    "input_simulator/tool_commands.py": "b1125a4c6273e9d7a08f5a295ed8579b05758a5a29b768227369d175b583e9f9",
+    "tests/icd_gateway/test_live_tool_input.py": "e90ada26feaf46b38385105927bfe24e4f83841df0a9d690bed7bb67ae249784"
+  },
+  "final_run_source_hashes_unchanged": true,
+  "implemented_scope": {
+    "original_branch": "CANT",
+    "default_factory": "can.Bus(interface='socketcan', channel=binding.interface, fd=True, receive_own_messages=False, ignore_config=True)",
+    "fallback_backend": false,
+    "original_six_tool_catalogue_unchanged": true,
+    "formal_can_channels_tested": [
+      "CANFD_0",
+      "CANFD_1",
+      "CANFD_2",
+      "CANFD_3"
+    ],
+    "can_input_message_ids": [
+      2,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "can_feedback_message_ids": [
+      130,
+      131
+    ],
+    "model_ids_tested": [
+      "quadrotor_hil",
+      "multirotor_6_hil",
+      "fixed_wing_hil"
+    ],
+    "original_cantools_wire_bytes_fd64_brs_standard_ids": true,
+    "same_owned_builder_plan_source_input_and_reservation": true,
+    "reservation_is_wire_authorization": false,
+    "current_actual_grant_roles_model_capabilities_sid_lease_checked_before_after_tx": true,
+    "session_lifetime_can_sequence_and_heartbeat_transaction_floors": true,
+    "builder_replacement_preserves_floors": true,
+    "same_book_exclusive_can_token_interface_and_bus_feedback_owner": true,
+    "released_reservation_does_not_release_still_open_native_backend": true,
+    "send_group_timeout_ms": 20,
+    "automatic_tx_retry": false,
+    "native_send_none_means_only_library_call_completed": true,
+    "immutable_bounded_tx_rx_and_failed_observations": true,
+    "original_request_association_on_group_receive_and_timeout_failure": true,
+    "bad_native_timestamp_ieee_bits_retained_original_wire_not_lost": true,
+    "default_max_records": 4096,
+    "default_max_bytes": 16777216,
+    "default_max_pending": 64,
+    "max_records_limit": 65536,
+    "max_bytes_limit": 134217728,
+    "max_pending_limit": 64,
+    "complete_group_and_failure_capacity_reserved_before_tx": true,
+    "observations_not_evicted": true,
+    "standard_unique_reply_correlation_and_source_global_feedback_dedup": true,
+    "current_grant_checked_after_blocking_rx_before_reassembly": true,
+    "other_pending_feedback_retained": true,
+    "fresh_131_renews_on_acceptance_from_original_tx": true,
+    "cached_feedback_delivery_does_not_renew_again": true,
+    "original_source_builder_and_sender_operation_locks": true,
+    "attached_dispatcher_or_recorder_cannot_be_bypassed": true,
+    "drain_retains_context_sequence_lease_and_reservation": true,
+    "discarded_pending_plan_retired_by_exact_retained_identity": true,
+    "same_actual_bus_periodic_bcm_and_raw_close_failure_retry": true,
+    "close_retains_observations_context_and_reservation": true,
+    "remote_nine_step_cleanup_or_reservation_release_on_local_close": false,
+    "can_observations_integrated_into_persistent_run_report": false,
+    "physical_can_backend_qualified": false,
+    "execution_ready": false,
+    "safety_verified": false,
+    "qualification_status": "NOT_EVALUATED",
+    "new_dependencies": []
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_final_regressions": {
+      "tests": 11,
+      "exit_code": 0,
+      "scope": "TARGETED_FINAL_FIXED_SOURCE_NOT_ENTIRE_SUITE"
+    },
+    "red_green_fixed": [
+      "MISSING_ORIGINAL_CANT_SENDER",
+      "PRE_NEXT_FRAME_FAILURE_NOT_RECORDED",
+      "SECOND_SENDER_REPLAY",
+      "QUEUED_HEARTBEAT_RENEWAL_DELAYED",
+      "NATIVE_RX_FAILURE_NOT_RECORDED",
+      "POST_RX_EXPIRED_GRANT_REASSEMBLED",
+      "BAD_NATIVE_TIMESTAMP_LOSES_WIRE",
+      "PERIODIC_AND_BCM_CLOSE_RETRY_SKIPPED",
+      "OVERLAPPING_NATIVE_FEEDBACK_OWNERS",
+      "DISCARDED_PLAN_CANNOT_RETIRE",
+      "RELEASED_RESERVATION_FREES_OPEN_BACKEND",
+      "FACTORY_REVOCATION_LOSES_OPENED_BUS",
+      "REUSED_HEARTBEAT_TRANSACTION",
+      "BUILDER_REPLACEMENT_RESETS_CAN_SEQUENCE_AND_HEARTBEAT_FLOORS"
+    ]
+  },
+  "test_environment_boundaries": [
+    "Explicit original python-can VirtualBus pairs are library-level test peers, not a Windows device backend or qualified Linux SocketCAN.",
+    "Standard UDP grants and native CAN ACK/Status originate at protocol test peers, not qualified 3.6 model consumers.",
+    "Actual SocketcanBus shutdown code is tested with injected real local socket handles and failure wrappers, not physical CAN hardware.",
+    "Explicit local test clocks and API group deadlines do not qualify physical bitrate, jitter, RT or cross-host clock synchronization."
+  ],
+  "tool_installation_facts": {
+    "CANT": {
+      "status": "UNVERIFIED",
+      "evidence": [
+        {
+          "kind": "LIBRARY",
+          "name": "cantools",
+          "present": true,
+          "version": "40.7.1"
+        },
+        {
+          "kind": "LIBRARY",
+          "name": "python-can",
+          "present": true,
+          "version": "4.6.1"
+        }
+      ]
+    },
+    "CUTIL": {
+      "status": "UNAVAILABLE",
+      "evidence": [
+        {
+          "kind": "EXECUTABLE",
+          "name": "candump",
+          "present": false,
+          "version": null
+        },
+        {
+          "kind": "EXECUTABLE",
+          "name": "cansend",
+          "present": false,
+          "version": null
+        },
+        {
+          "kind": "EXECUTABLE",
+          "name": "cangen",
+          "present": false,
+          "version": null
+        }
+      ]
+    },
+    "SAVVY": {
+      "status": "UNAVAILABLE",
+      "evidence": [
+        {
+          "kind": "EXECUTABLE",
+          "name": "SavvyCAN",
+          "present": false,
+          "version": null
+        }
+      ]
+    },
+    "CANREPLAY": {
+      "status": "UNAVAILABLE",
+      "evidence": [
+        {
+          "kind": "EXECUTABLE",
+          "name": "canplayer",
+          "present": false,
+          "version": null
+        }
+      ]
+    },
+    "ETHGEN": {
+      "status": "UNVERIFIED",
+      "evidence": [
+        {
+          "kind": "LIBRARY",
+          "name": "scapy",
+          "present": true,
+          "version": "2.7.0"
+        },
+        {
+          "kind": "LIBRARY",
+          "name": "ostinato",
+          "present": false,
+          "version": null
+        }
+      ]
+    },
+    "ETHREPLAY": {
+      "status": "UNAVAILABLE",
+      "evidence": [
+        {
+          "kind": "EXECUTABLE",
+          "name": "tcpreplay",
+          "present": false,
+          "version": null
+        }
+      ]
+    }
+  },
+  "deferred_generated_data": {
+    "status": "DEFERRED_USER_ORDER_ORIGINAL_W3_FIRST_NOT_SHIPPED",
+    "path": "docs/superpowers/drafts/2026-10-05-generated-data"
+  },
+  "remaining_original_w3": [
+    "Production ScenarioDriver and every original event handler integration.",
+    "All six original tools, SavvyCAN/Ostinato backend and full tool lifecycle/process-tree/feedback/safety integration.",
+    "Three replay modes, engineering history, full repeats with actual SID retirement, RESET, initial inputs and inter-round queues.",
+    "Pause/resume, applicable step/reset, authorized negative inputs and must_not_apply proof.",
+    "Actual model step, ClockSync, qualified probes and E1/E2/E3 consumers.",
+    "Original CAN and Scapy L2 records in bounded persistent run evidence and complete trusted Report endpoints."
+  ],
+  "linux_requirements": "docs/superpowers/plans/linux-development-backlog.md",
+  "ledger_history_prefix_expected": {
+    "normalized_utf16_length": 64072,
+    "normalized_utf8_sha256": "763b0566c29a58a361dc8204ea332f8c3996b6a0f192b37708225c83920305ba"
+  },
+  "plan_coverage": {
+    "responsibility_rows": 41,
+    "linux_items": 17,
+    "linux_checked": 0
+  },
+  "frozen_sources_original_c_or_tool_catalogue_changes": false,
+  "post_save_verification": {
+    "status": "VERIFIED",
+    "source_hashes_verified": 12,
+    "ledger_history_prefix_preserved": true,
+    "responsibility_rows": 41,
+    "linux_unchecked": 17,
+    "linux_checked": 0,
+    "plan_coverage_tests": 3,
+    "single_file_contract_tests": 4,
+    "embedded_sources_byte_exact": 14,
+    "resolved_schema_references": 663,
+    "git_diff_check_exit_code": 0
+  }
+}

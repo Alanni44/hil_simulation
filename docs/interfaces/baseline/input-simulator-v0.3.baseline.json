@@ -1,0 +1,12 @@
+{
+  "baseline_version": "HIL-ICD-1.0",
+  "components": {
+    "business_schema_sha256": "b1535a0793dfd6e04fb02e8ba13b51b88fcb1e5710da423dece66c3e92bffdd8",
+    "wire_catalog_sha256": "8ddeeac31fad309043ed8d60f8f1aa585c749f65f34a1bc972a05b3f16bf38b2",
+    "canfd_dbc_sha256": "652fc170b6e45576561e61a83958c5fcc11aed6698d5286ff950f460e96a5c97",
+    "contract_doc_sha256": "80d6412a9934442f0b526a25d4d72680777f0d370a3c9cf919994e308ad06998"
+  },
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "algorithm": "SHA256_RFC8785_CANONICAL_COMPONENT_OBJECT",
+  "status": "AUTHOR_DEFINED_DESIGN"
+}

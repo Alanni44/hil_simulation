@@ -1,0 +1,120 @@
+{
+  "phase": "W3.5_ACTUAL_CAPTURE_CONTAINERS_AND_TRANSPORT_ANALYSIS",
+  "date": "2026-10-03",
+  "status": "CAPTURE_ANALYSIS_VERIFIED_NOT_HISTORY_DECODED_NOT_EXECUTABLE_NOT_RELEASED",
+  "execution_host": "Windows AMD64",
+  "python_version": "3.12.14",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "exit_code": 0,
+      "tests": 368,
+      "suites": {"icd_runtime": 64, "icd_gateway_including_source_and_capture": 297, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "new_phase_tests": {"capture_parser": 24, "source_audit_and_cli_additions": 5},
+      "focused_tests_including_existing_source": {"capture_parser": 24, "source_audit_and_cli": 37},
+      "gateway_suite_duration_seconds": 1800.099,
+      "scope": "COMMON_OFFLINE_ANALYSIS_AND_EXISTING_GATEWAY_NOT_TARGET_PERFORMANCE_OR_FULL_HISTORY_EXECUTION"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0, "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59, "business_transport_completions": 72,
+      "golden_fragments": 85, "video_raw_fragments": 800
+    },
+    {
+      "commands": [
+        "python -X utf8 -m unittest discover -s tests -p test_static_contract.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_generic_contract_templates.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_parameter_registry_static.py -v",
+        "python -X utf8 -m unittest discover -s tests -p test_quadrotor_model_contract.py -v"
+      ],
+      "exit_codes": [0, 0, 0, 0], "tests_by_suite": [20, 5, 2, 7], "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {"command": "python -X utf8 -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -X utf8 -m compileall -q icd_gateway icd_runtime input_simulator tests/icd_gateway tests/icd_runtime scripts/test_icd_runtime.py", "exit_code": 0},
+    {"command": "python -X utf8 scripts/build_contract_single_file.py --check", "exit_code": 0, "embedded_sources_byte_exact": 14, "resolved_schema_references": 663},
+    {"command": "git diff --check", "exit_code": 0, "scope": "TRACKED_DIFF_ONLY_PHASE_FILES_UNTRACKED"},
+    {"command": "rg -n '[ \\t]+$' input_simulator/capture.py input_simulator/_capture_envelopes.py input_simulator/source_inputs.py tests/icd_gateway/test_capture.py tests/icd_gateway/test_source_inputs.py requirements-icd.txt", "exit_code": 1, "result": "NO_TRAILING_WHITESPACE_MATCHES"}
+  ],
+  "verified_source_sha256": {
+    "input_simulator/capture.py": "ef685142e95ca0f1816875fc67c16ceaa1ef530a155b2e7cebe7f4b62d36f7c5",
+    "input_simulator/_capture_envelopes.py": "1b68ccf808696cfe2aba8cb105e33f7de321925743f0422dddcfde515d8ab335",
+    "input_simulator/source_inputs.py": "dd11226cac122a7709379c150a4ee373685a1d46a1b851bb09765f99fe54b355",
+    "tests/icd_gateway/test_capture.py": "107a307be359ee103c1a563347eaab17d5c02c5209703d464647fd57ac99148e",
+    "tests/icd_gateway/test_source_inputs.py": "9877fe03e61284f85c42f523c785d1388ee4dc277b08659448a36680d5412735",
+    "requirements-icd.txt": "88efe632fc3309006308d2fa8e09c1b69e9ead70260bdb373d1df700c9a7aece"
+  },
+  "implemented_scope": {
+    "actual_original_readers": ["PYTHON_CAN_CANUTILS_LOG_READER", "SCAPY_RAW_PCAP_READER", "SCAPY_RAW_PCAPNG_READER"],
+    "capture_formats": ["CAN_LOG_CANDUMP_L_CLASSIC_AND_FD", "PCAP_LE_BE_MICRO_NANO", "PCAPNG_SHB_IDB_EPB_ISB_MULTI_SECTION_MULTI_INTERFACE"],
+    "packet_layers": ["SCAPY_SOCKETCAN_CAN_CANFD", "SCAPY_ETHERNET_SINGLE_VLAN_IPV4_UDP", "SCAPY_IPV4_TCP_ANALYSIS_ONLY"],
+    "preserved_evidence": ["ORIGINAL_BYTES_AND_FILE_SHA256", "CAN_ID_FLAGS_DLC_DATA", "CAPTURE_INTERFACE_DIRECTION_NOT_BUSINESS_DIRECTION", "EXACT_INTEGER_TICKS_NS_FRACTION_RESOLUTION_SIGNED_OFFSET", "SEPARATE_SECTION_INTERFACE_CLOCK_DOMAINS", "IP_ENDPOINTS_PORTS_VLAN_TTL", "ACTUAL_CAPTURE_TRUNCATION_AND_REPORTED_LOSS_LOWER_BOUND"],
+    "malformed_containers": "FAIL_CLOSED_NOT_SILENT_EOF",
+    "unknown_block_linktype_option_and_unqualified_len8_dlc": "EXPLICIT_UNSUPPORTED",
+    "metadata_not_silently_ignored": true,
+    "online_incomplete_gate": "HISTORY_POLICY_AND_ALL_SCENARIO_REPLAY_POLICIES",
+    "offline_incomplete": "ANALYSIS_ONLY_COMPLETE_CAPTURE_FALSE",
+    "capture_complete_without_business_qualification": null,
+    "source_audit_status": "SOURCE_INPUTS_AUDITED_NOT_EXECUTABLE",
+    "capture_history_decoded": false,
+    "execution_ready": false,
+    "formal_wire_or_business_decoder_qualification": false,
+    "capture_rx_tx_inferred_as_to36_from36": false,
+    "tcp_impersonates_udp_replay": false,
+    "immutable_public_results": true,
+    "starts_session_tool_model_can_bus_or_live_capture": false,
+    "produces_applied_consumed_e2_e3": false,
+    "source_contract_wire_original_c_or_six_tool_changes": false,
+    "qa_vendor_imports": false,
+    "deployment_limits": {"capture_bytes": 67108864, "packets": 100000, "can_line_bytes": 512, "pcapng_sections": 100, "interfaces_per_section": 100, "blocks": 200000, "options_per_block": 1024, "option_bytes_per_block": 65536},
+    "deployment_limits_are_target_rt_or_total_rss_proof": false
+  },
+  "dependencies": {
+    "requirements": "requirements-icd.txt", "installed_only_in": "runtime/icd-venv",
+    "new_pins": {"scapy": "2.7.0"},
+    "reused_original_libraries": {"python-can": "4.6.1", "cantools": "40.7.1"},
+    "live_libpcap_provider": "UNAVAILABLE_ON_THIS_HOST_OFFLINE_READERS_VERIFIED_ONLY",
+    "old_hil_environment_modified": false,
+    "linux_installation_and_actual_tools_bus_nic_qualification": "NOT_EXECUTED"
+  },
+  "review": {
+    "independent_read_only_review": "COMPLETED_NO_REMAINING_IMPORTANT_SCOPED_FINDINGS",
+    "independent_latest_tests": {"capture_parser": 24, "source_audit_and_cli": 37},
+    "review_discovered_issues": ["UNBOUNDED_OPTION_STORM_SCAPY_QUADRATIC_COPY", "SCENARIO_ONLINE_INCOMPLETE_CAPTURE_BYPASS", "CAN_RAW_RTR_ERROR_FD_FLAG_LENGTH_CONTRADICTIONS", "METADATA_ONLY_SECTION_CAPACITY_BYPASS"],
+    "red_green_fixes_verified": true,
+    "additional_profile_correction": "VALID_CLASSIC_LEN8_DLC_EXPLICITLY_UNSUPPORTED_NOT_INVALID_RESERVED_BYTE",
+    "independent_attack_retests": ["20000_SECTIONS_CAPACITY", "200000_COMMENTS_CAPACITY", "200000_STATISTICS_BLOCKS_CAPACITY", "CAN_FLAG_ATTACKS_RESOURCE", "SCENARIO_ONLINE_ACTUAL_LOSS_RESOURCE"],
+    "legal_block_eof_without_endofopt_preserved": true
+  },
+  "plan_coverage": {
+    "ledger": "docs/superpowers/plans/linux-development-backlog.md",
+    "owned_M0_M7_tasks": 41, "linux_items": 17, "linux_items_executed": 0,
+    "appended_phase_record": "2026-10-03 W3.5",
+    "associated_linux_items": ["L-001", "L-002", "L-005", "L-006", "L-007", "L-008", "L-009", "L-011", "L-013", "L-014", "L-017"],
+    "full_W3_M3_M4": "NOT_COMPLETED",
+    "full_development_objective": "ACTIVE_NOT_REDEFINED_AS_CONTAINER_PARSING"
+  },
+  "not_verified_or_implemented": [
+    "CAPTURE_TO_HISTORY_STREAM_EXPLICIT_MAPPING_BUSINESS_DIRECTION_CLOCK_QUALIFICATION_AND_FORMAL_WIRE_LOGICAL_REASSEMBLY",
+    "FULL_45_INPUT_14_FEEDBACK_HISTORY_DECODING_RAW_REPLAY_AND_TCP_BUSINESS_EXTRACTION",
+    "THREE_REPLAY_MODES_ACTUAL_SESSIONS_RESET_CLOCK_QUEUES_REWRITES_AND_ORIGINAL_REBUILT_HASHES",
+    "FULL_SCENARIO_WAVEFORM_PERIODIC_WAIT_ASSERTIONS_AUTHORIZED_NEGATIVE_MUTATIONS_COLLISION_AND_CLEANUP",
+    "SIX_ORIGINAL_TOOL_WRAPPERS_MUTEX_FEEDBACK_STOP_AND_REAL_LINUX_TARGET_QUALIFICATION",
+    "25_COMMAND_API_CONSOLE_ROBOT_PERSISTENT_TX_RX_EVIDENCE_AND_RELEASE_GATES",
+    "ACTUAL_MODEL_CONSUMERS_ABI_RESOURCE_ACTIVATION_VIDEO_PHYSICAL_IO_RT_PERFORMANCE_AND_REAL_33_REPLACEMENT"
+  ],
+  "format_references": [
+    "https://scapy.readthedocs.io/en/stable/api/scapy.utils.html",
+    "https://python-can.readthedocs.io/en/stable/file_io.html",
+    "https://raw.githubusercontent.com/torvalds/linux/master/include/uapi/linux/can.h",
+    "https://raw.githubusercontent.com/torvalds/linux/master/include/uapi/linux/can/error.h"
+  ],
+  "frozen_source_policy": "READ_ONLY_14_BYTE_EXACT_SOURCE_CHECK_NO_REGENERATING_QA_OUTPUTS",
+  "historical_qa_regeneration_rerun": false,
+  "previous_phase_reports_overwritten": false,
+  "formal_release": "NOT_RELEASED"
+}

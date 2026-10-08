@@ -1,0 +1,221 @@
+{
+  "phase": "W3.26_TASK_4_ORIGINAL_SCENARIO_OBSERVATION_WIRING_PROGRESS",
+  "date": "2026-10-06",
+  "status": "ORIGINAL_SCENARIO_RECORDING_SOFTWARE_VERIFIED_ORIGINAL_W3_INCOMPLETE",
+  "execution_host": "Windows AMD64",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "new_wire_fields": false,
+  "implemented_scope": [
+    "Explicit original same-plan NativeScenarioActions/ScenarioExecution/OriginalScenarioDriver recorder owners and original lock order",
+    "Closed lossless PLAN/NATIVE_ACTION/SCENARIO codecs and explicit SEGMENT/CHAIN_LINK/CLOSE_3; formats 1/2 unchanged",
+    "One original plan/source identity/model/SID record; retained finite action/controller histories with immutable prefix cursors",
+    "Saved unconsumed ETH terminal feedback blocks same-job commit/close until its actual original action consumes it",
+    "Verified raw prefix reclamation updates original action anchors; later original actions remain on original timetable",
+    "Up-front nine-increment cleanup capacity reservation; new PENDING receipts retained once and failure keeps observed completed fields",
+    "Equal plan replacement rejected before action allocation/TX; required event/model identifiers reject null"
+  ],
+  "focused_regression_tests": 322,
+  "full_runtime_regression_rerun": false,
+  "verified_source_sha256": {
+    "input_simulator/native_scenario_actions.py": "1ca4c8ac76d068eed927163e66e38fa46ca527e04284f994e50236313bee9ef3",
+    "input_simulator/scenario_execution.py": "f9ea72adfd5b21baffa27376ce7a73966be279ba4bf97ebb43af4f1ef8f76f2b",
+    "input_simulator/evidence_archive.py": "7805b0e5fb0f593784d65cabd69fa9fd6dd4f7ecc3738a2acb637b45f1bb3269",
+    "tests/icd_gateway/test_scenario_evidence_recorder.py": "5391f43a125215b58fb487edcc2f526c56c2efbfc6c0ec69bf8301838b9f983f",
+    "tests/icd_gateway/test_scenario_execution.py": "db67db71db264074d8577825d16f76f879ff7246a45eadc0b716248a1d4b3b7b",
+    "input_simulator/evidence_recorder.py": "0eaf3d361fa1aea8ca73ca5c3f6cda6a53059f47822d6859310483e9797e50fa",
+    "input_simulator/_scenario_evidence.py": "9d86759534d60be97d5c53919366cbab76a60901833d92813e258e98f7435824"
+  },
+  "source_hashes_fixed_during_final_focused_regression": true,
+  "verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_evidence_recorder.py -v",
+      "exit_code": 0,
+      "tests": 13,
+      "duration_seconds": 24.784
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_execution.py -v",
+      "exit_code": 0,
+      "tests": 34,
+      "duration_seconds": 18.161
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scenario_driver.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 54.744
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_scenario_actions.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 36.325
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_evidence_archive.py -v",
+      "exit_code": 0,
+      "tests": 11,
+      "duration_seconds": 17.044
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_evidence_recorder.py -v",
+      "exit_code": 0,
+      "tests": 12,
+      "duration_seconds": 25.335
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_evidence_archive.py -v",
+      "exit_code": 0,
+      "tests": 20,
+      "duration_seconds": 12.861
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_evidence_recorder.py -v",
+      "exit_code": 0,
+      "tests": 25,
+      "duration_seconds": 18.952
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_tools.py -v",
+      "exit_code": 0,
+      "tests": 27,
+      "duration_seconds": 32.894
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_can_signal.py -v",
+      "exit_code": 0,
+      "tests": 41,
+      "duration_seconds": 29.27
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_scapy_source.py -v",
+      "exit_code": 0,
+      "tests": 28,
+      "duration_seconds": 16.163
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v",
+      "exit_code": 0,
+      "tests": 31,
+      "duration_seconds": 6.364
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_dispatch.py -v",
+      "exit_code": 0,
+      "tests": 21,
+      "duration_seconds": 13.78
+    }
+  ],
+  "additional_verification": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_development_backlog.py -v",
+      "exit_code": 0,
+      "tests": 3,
+      "duration_seconds": 0.011
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_contract_single_file.py -v",
+      "exit_code": 0,
+      "tests": 4,
+      "duration_seconds": 0.150
+    },
+    {
+      "command": "python -X utf8 scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources": 14,
+      "resolved_schema_references": 663
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {
+      "command": "python -X utf8 -m pip check",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 -m compileall -q icd_gateway input_simulator icd_runtime tests/icd_gateway",
+      "exit_code": 0
+    }
+  ],
+  "log": "artifacts/icd_gateway/w3-26-task4-scenario-recording-regression.log",
+  "final_verification_log_start_line": 398,
+  "prior_log_scope": {
+    "tests": 321,
+    "scope": "Pre-null-identifier-correction source, excluded from final evidence"
+  },
+  "red_green_evidence": [
+    {
+      "selection": "required_original_scenario_recording_entry",
+      "before_exit_code": 1,
+      "reason": "Original scenario/action recording API missing",
+      "after_verified_in_final_suite": true
+    },
+    {
+      "selection": "pending_receipts",
+      "before_exit_code": 1,
+      "reason": "PENDING incremental cleanup receipts not retained",
+      "after_verified_in_final_suite": true
+    },
+    {
+      "selection": "replaced_plan",
+      "before_exit_code": 1,
+      "reason": "Equal cloned plan could be adopted before actual TX",
+      "after_exit_code": 0,
+      "after_verified_in_final_suite": true
+    },
+    {
+      "selection": "cannot_be_null",
+      "before_exit_code": 1,
+      "failed_subtests": 2,
+      "reason": "Required PLAN model_id and SCENARIO event_id accepted null",
+      "after_exit_code": 0,
+      "after_verified_in_final_suite": true
+    }
+  ],
+  "review": {
+    "method": "One bounded read-only review, no reviewer tests/edits/delegation or new review cycle",
+    "confirmed_important_findings": 1,
+    "required_identifiers_null": "REPRODUCED_RED_CORRECTED_GREEN_BY_IMPLEMENTATION_TESTS",
+    "whole_w3_acceptance": false
+  },
+  "ledger_prior_prefix": {
+    "normalized_utf16_length": 82846,
+    "normalized_utf8_sha256": "f332816f4daaa6f49133187466176bf9b41748f10082d58c1250aa52380dc9b0"
+  },
+  "ledger_check": {
+    "PrefixMatches": true,
+    "Responsibilities": 41,
+    "UncheckedLinux": 17,
+    "CheckedLinux": 0
+  },
+  "qualification_status": "NOT_EVALUATED",
+  "execution_ready": false,
+  "evidence_complete": false,
+  "safety_verified": false,
+  "complete_runtime_services_installed": false,
+  "complete_run_report_implemented": false,
+  "three_source_end_to_end_acceptances_completed": 0,
+  "remaining_original_scope": [
+    "Task 2 actual production services/model getters/control application/lifecycle/target authorization/nine cleanup receipts",
+    "Task 3 complete replay modes/repeats/RESET/initial_inputs, authorized negative/no-apply and six-tool lifecycle services",
+    "Additional original service/assertion records and complete Run/Report terminal anchor",
+    "Unchanged-plan PROTOCOL/SCENARIO/HISTORY end-to-end acceptances",
+    "Actual Linux backends/physical channels/model/RT/real 3.3 replacement qualification"
+  ],
+  "limitations": [
+    "Protocol peers, VirtualBus, Scapy frame-sink and driver test services are software-only, not installed production consumers or physical/model/safety/RT qualification.",
+    "Action/controller rows stay finite and retained; record reclamation does not reclaim handles, counters, inputs, queues or leases.",
+    "Local close is not remote cleanup, does not automatically flush the tail and stays evidence_complete=false.",
+    "No complete scripts/test_icd_runtime.py or historical 34 static regression rerun is claimed.",
+    "Windows libpcap/CMSG_SPACE warnings remain; no Windows backend/SDK/WSL/branch/worktree/commit was added.",
+    "Generated-data configuration and W4/W5 remain deferred, not removed."
+  ]
+}

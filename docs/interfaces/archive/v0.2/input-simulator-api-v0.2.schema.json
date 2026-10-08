@@ -1,0 +1,3144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hil:input-simulator:management-contract:0.2",
+  "title": "Input Simulator Management Contract 0.2 Review Draft",
+  "$comment": "Full management DTOs referencing the local 0.2 package schema. Not implemented. No mock/real business switches.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Request"
+    },
+    {
+      "$ref": "#/$defs/Response"
+    }
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "UInt64": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "description": "Decimal integer string. Server also enforces unsigned 64-bit maximum 18446744073709551615."
+    },
+    "UtcTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "Action": {
+      "enum": [
+        "START",
+        "PAUSE",
+        "RESUME",
+        "STOP",
+        "RESET",
+        "STEP"
+      ]
+    },
+    "Mode": {
+      "enum": [
+        "EXPLORE",
+        "FORMAL"
+      ]
+    },
+    "ResourceKind": {
+      "enum": [
+        "PROTOCOL",
+        "SCENARIO",
+        "HISTORY",
+        "SUPPORT"
+      ]
+    },
+    "Command": {
+      "enum": [
+        "simulator_capabilities_get",
+        "simulator_profiles_list",
+        "simulator_profile_get",
+        "simulator_resources_list",
+        "simulator_scenarios_list",
+        "simulator_scenario_get",
+        "simulator_scenario_save",
+        "simulator_run_create",
+        "simulator_run_control",
+        "simulator_run_update_inputs",
+        "simulator_run_get",
+        "simulator_runs_list",
+        "simulator_records_list",
+        "simulator_report_get",
+        "simulator_resource_get",
+        "simulator_resource_import_begin",
+        "simulator_resource_import_chunk",
+        "simulator_resource_import_get",
+        "simulator_resource_import_commit",
+        "simulator_resource_import_abort",
+        "simulator_resource_read_chunk",
+        "simulator_packages_list",
+        "simulator_package_get",
+        "simulator_package_save",
+        "simulator_package_validate"
+      ]
+    },
+    "ErrorCode": {
+      "enum": [
+        "INVALID_REQUEST",
+        "UNSUPPORTED_VERSION",
+        "UNAUTHORIZED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "IDEMPOTENCY_CONFLICT",
+        "ICD_NOT_FROZEN",
+        "PROFILE_MISMATCH",
+        "MODEL_MAPPING_MISSING",
+        "RESOURCE_INVALID",
+        "TOOL_UNAVAILABLE",
+        "STATE_CONFLICT",
+        "CONTROL_CONFLICT",
+        "VALUE_OUT_OF_RANGE",
+        "OPERATION_NOT_ALLOWED",
+        "TIMEOUT",
+        "EVIDENCE_INCOMPLETE",
+        "INTERNAL_ERROR",
+        "REFERENCE_INVALID",
+        "ICD_PENDING",
+        "COVERAGE_INCOMPLETE",
+        "DIRECTION_UNKNOWN",
+        "REPLAY_UNSUPPORTED",
+        "CHUNK_CONFLICT",
+        "UPLOAD_EXPIRED",
+        "QUOTA_EXCEEDED",
+        "HASH_MISMATCH",
+        "RESOURCE_IN_USE"
+      ]
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(|/.*)$"
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "retryable",
+        "details"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/ErrorDetail"
+          }
+        }
+      }
+    },
+    "ProfileRef": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ProfileRef"
+    },
+    "ScenarioRef": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ScenarioRef"
+    },
+    "Values": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Values"
+    },
+    "Signal": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Signal"
+    },
+    "Profile": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Profile"
+    },
+    "ProfileSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "name",
+        "approval",
+        "transports",
+        "message_count"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "approval": {
+          "enum": [
+            "DRAFT",
+            "FROZEN"
+          ]
+        },
+        "transports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "CAN",
+              "CANFD",
+              "ETHERNET",
+              "SERIAL",
+              "AD",
+              "DA",
+              "IO",
+              "VIDEO"
+            ]
+          }
+        },
+        "message_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "Resource": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Resource"
+    },
+    "ScenarioDraft": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ScenarioDefinition"
+    },
+    "Scenario": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Scenario"
+    },
+    "ScenarioSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "name",
+        "profile_ref",
+        "validation_status",
+        "event_count"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "validation_status": {
+          "enum": [
+            "PENDING",
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "Stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tx_frames",
+        "rx_frames",
+        "received_inputs",
+        "applied_inputs",
+        "rejected_inputs"
+      ],
+      "properties": {
+        "tx_frames": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "rx_frames": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "received_inputs": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "applied_inputs": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "rejected_inputs": {
+          "$ref": "#/$defs/UInt64"
+        }
+      }
+    },
+    "Run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "revision",
+        "mode",
+        "profile_ref",
+        "scenario_ref",
+        "source_binding_ref",
+        "state",
+        "result",
+        "available_actions",
+        "stats",
+        "evidence_complete",
+        "last_error",
+        "created_at",
+        "updated_at",
+        "package_ref",
+        "link_ids",
+        "clock_domain_id",
+        "sim_time_us",
+        "step_index",
+        "active_event_id",
+        "link_stats"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "revision": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "mode": {
+          "$ref": "#/$defs/Mode"
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "scenario_ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        },
+        "source_binding_ref": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "enum": [
+            "VALIDATING",
+            "BLOCKED",
+            "READY",
+            "RUNNING",
+            "WAITING",
+            "PAUSED",
+            "STOPPING",
+            "COMPLETED",
+            "FAILED"
+          ]
+        },
+        "result": {
+          "enum": [
+            "NOT_RUN",
+            "RUNNING",
+            "PASS",
+            "FAIL",
+            "INCOMPLETE"
+          ]
+        },
+        "available_actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Action"
+          }
+        },
+        "stats": {
+          "$ref": "#/$defs/Stats"
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "last_error": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "package_ref": {
+          "$ref": "#/$defs/PackageRef"
+        },
+        "link_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sim_time_us": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "step_index": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "active_event_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "link_stats": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "link_id",
+              "tx_frames",
+              "rx_frames",
+              "rejected_inputs",
+              "tool_state"
+            ],
+            "properties": {
+              "link_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "tx_frames": {
+                "$ref": "#/$defs/UInt64"
+              },
+              "rx_frames": {
+                "$ref": "#/$defs/UInt64"
+              },
+              "rejected_inputs": {
+                "$ref": "#/$defs/UInt64"
+              },
+              "tool_state": {
+                "enum": [
+                  "IDLE",
+                  "STARTING",
+                  "ACTIVE",
+                  "STOPPED",
+                  "FAILED"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "VALIDATING",
+                  "BLOCKED",
+                  "READY"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "const": "NOT_RUN"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "RUNNING",
+                  "WAITING",
+                  "PAUSED",
+                  "STOPPING"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "const": "RUNNING"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "COMPLETED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "INCOMPLETE"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "FAILED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "const": "FAIL"
+              },
+              "last_error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "PASS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "state": {
+                "const": "COMPLETED"
+              },
+              "evidence_complete": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "FORMAL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "package_ref": {
+                "$ref": "#/$defs/PackageRef"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "BLOCKED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "last_error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "cursor",
+        "run_id",
+        "input_event_id",
+        "operation_id",
+        "kind",
+        "timestamp",
+        "clock_domain",
+        "monotonic_us",
+        "message_id",
+        "reason_code",
+        "evidence_refs",
+        "event_id",
+        "link_id"
+      ],
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "input_event_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "enum": [
+            "TX",
+            "RX",
+            "RECEIVED",
+            "APPLIED",
+            "REJECTED",
+            "RESPONSE",
+            "SAFETY",
+            "TOOL_ERROR",
+            "OPERATION_RESULT"
+          ]
+        },
+        "timestamp": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "clock_domain": {
+          "$ref": "#/$defs/Id"
+        },
+        "monotonic_us": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "message_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "step_index": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "sim_time_us": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "applied_values": {
+          "$ref": "#/$defs/Values"
+        },
+        "operation_result": {
+          "enum": [
+            "SUCCEEDED",
+            "FAILED"
+          ]
+        },
+        "new_run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "link_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "applied_mapping_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "APPLIED"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "step_index",
+              "sim_time_us",
+              "applied_values",
+              "applied_mapping_ids"
+            ],
+            "properties": {
+              "input_event_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OPERATION_RESULT"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "operation_result"
+            ],
+            "properties": {
+              "operation_id": {
+                "$ref": "#/$defs/Id"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "TX",
+                  "RX"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "message_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "link_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CaseResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "required",
+        "result",
+        "reason_code",
+        "evidence_refs"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "result": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN",
+            "NOT_APPLICABLE",
+            "INCOMPLETE"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "required": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN",
+                  "INCOMPLETE"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "PASS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "mode",
+        "profile_ref",
+        "scenario_ref",
+        "overall_result",
+        "evidence_complete",
+        "cases",
+        "artifact_refs",
+        "package_ref",
+        "qualification_level",
+        "environment_ref"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "$ref": "#/$defs/Mode"
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "scenario_ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        },
+        "overall_result": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCOMPLETE"
+          ]
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/CaseResult"
+          }
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "package_ref": {
+          "$ref": "#/$defs/PackageRef"
+        },
+        "qualification_level": {
+          "enum": [
+            "SOFTWARE_VERIFIED",
+            "FORMAL_VERIFIED",
+            "REAL_SOURCE_REPLACED"
+          ]
+        },
+        "environment_ref": {
+          "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "overall_result": {
+                "const": "PASS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_complete": {
+                "const": true
+              },
+              "cases": {
+                "items": {
+                  "properties": {
+                    "result": {
+                      "not": {
+                        "const": "FAIL"
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "required": {
+                            "const": true
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "result": {
+                            "const": "PASS"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "EXPLORE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "qualification_level": {
+                "const": "SOFTWARE_VERIFIED"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cases": {
+                "contains": {
+                  "properties": {
+                    "result": {
+                      "const": "FAIL"
+                    }
+                  },
+                  "required": [
+                    "result"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "overall_result": {
+                "const": "FAIL"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "branch_id": {
+          "enum": [
+            "SIGNAL_CAN",
+            "CAN_UTILS",
+            "SAVVYCAN",
+            "CAN_REPLAY",
+            "ETHERNET_GENERATOR",
+            "PCAP_REPLAY"
+          ]
+        },
+        "status": {
+          "enum": [
+            "AVAILABLE",
+            "UNAVAILABLE",
+            "UNVERIFIED",
+            "OUT_OF_SCOPE"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "Binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_id",
+        "kind",
+        "name",
+        "profile_ref",
+        "available"
+      ],
+      "properties": {
+        "binding_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "enum": [
+            "SOURCE",
+            "MODEL",
+            "REPLAY_POLICY",
+            "FAULT_CASE",
+            "CODEC",
+            "DRIVER",
+            "CHANNEL",
+            "LINK",
+            "ENDPOINT",
+            "CONVERSION",
+            "EVIDENCE",
+            "OBSERVABLE",
+            "CLEANUP",
+            "TOOL",
+            "RULE_IMPLEMENTATION",
+            "CREDENTIAL_SCOPE",
+            "SYNCHRONIZATION"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api_version",
+        "supported_commands",
+        "supported_actions",
+        "modes",
+        "toolchains",
+        "bindings",
+        "idempotency_retention_ms",
+        "subscriptions_supported",
+        "limits",
+        "resource_formats",
+        "schema_resources"
+      ],
+      "properties": {
+        "api_version": {
+          "const": "0.2"
+        },
+        "supported_commands": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Command"
+          }
+        },
+        "supported_actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Action"
+          }
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Mode"
+          }
+        },
+        "toolchains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Toolchain"
+          }
+        },
+        "bindings": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Binding"
+          }
+        },
+        "idempotency_retention_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "subscriptions_supported": {
+          "const": false
+        },
+        "resource_formats": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "enum": [
+              "DBC",
+              "ARXML",
+              "ICD_JSON",
+              "SCENARIO_JSON",
+              "SCENARIO_YAML",
+              "CAN_LOG",
+              "PCAP",
+              "PCAPNG",
+              "ENGINEERING_JSONL",
+              "JSON",
+              "CSV",
+              "BINARY"
+            ]
+          }
+        },
+        "schema_resources": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "schema_version",
+              "sha256"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "schema_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sha256": {
+                "$ref": "#/$defs/Hash"
+              }
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_message_bytes",
+            "max_resource_bytes",
+            "max_chunk_bytes",
+            "max_package_bytes",
+            "upload_retention_ms"
+          ],
+          "properties": {
+            "max_message_bytes": {
+              "type": "integer",
+              "minimum": 1024
+            },
+            "max_resource_bytes": {
+              "$ref": "#/$defs/UInt64"
+            },
+            "max_chunk_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "max_package_bytes": {
+              "type": "integer",
+              "minimum": 1024
+            },
+            "upload_retention_ms": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "ProfilePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/ProfileSummary"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ResourcePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/Resource"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ScenarioPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/ScenarioSummary"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RunPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/Run"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RecordPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "items",
+        "next_cursor",
+        "complete",
+        "retention_gap"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/Record"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "retention_gap": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Meta": {
+      "type": "object",
+      "required": [
+        "api_version",
+        "request_id"
+      ],
+      "properties": {
+        "api_version": {
+          "const": "0.2"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Id"
+        }
+      }
+    },
+    "ListParams": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        }
+      }
+    },
+    "ProfileParams": {
+      "type": "object",
+      "required": [
+        "profile_ref"
+      ],
+      "properties": {
+        "profile_ref": {
+          "$ref": "#/$defs/ProfileRef"
+        }
+      }
+    },
+    "ResourceListParams": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ListParams"
+        }
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ResourceKind"
+        }
+      }
+    },
+    "ScenarioParams": {
+      "type": "object",
+      "required": [
+        "scenario_ref"
+      ],
+      "properties": {
+        "scenario_ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        }
+      }
+    },
+    "SaveParams": {
+      "type": "object",
+      "required": [
+        "definition"
+      ],
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/ScenarioDraft"
+        },
+        "base_ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        }
+      }
+    },
+    "CreateParams": {
+      "type": "object",
+      "required": [
+        "package_ref",
+        "scenario_ref",
+        "mode",
+        "source_binding_ref",
+        "link_ids"
+      ],
+      "properties": {
+        "package_ref": {
+          "$ref": "#/$defs/PackageRef"
+        },
+        "scenario_ref": {
+          "$ref": "#/$defs/ScenarioRef"
+        },
+        "mode": {
+          "$ref": "#/$defs/Mode"
+        },
+        "source_binding_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "link_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "ControlParams": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "expected_revision",
+        "action"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "action": {
+          "$ref": "#/$defs/Action"
+        }
+      }
+    },
+    "UpdateParams": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "expected_revision",
+        "message_id",
+        "values",
+        "link_id"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "values": {
+          "$ref": "#/$defs/Values"
+        },
+        "link_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "RunParams": {
+      "type": "object",
+      "required": [
+        "run_id"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        }
+      }
+    },
+    "RecordParams": {
+      "type": "object",
+      "required": [
+        "run_id"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "after_cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        }
+      }
+    },
+    "Request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cmd",
+        "params"
+      ],
+      "properties": {
+        "cmd": {
+          "$ref": "#/$defs/Command"
+        },
+        "params": {
+          "$ref": "#/$defs/Meta"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_capabilities_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Meta",
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "enum": [
+                  "simulator_profiles_list",
+                  "simulator_scenarios_list",
+                  "simulator_runs_list"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ListParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_profile_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ProfileParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resources_list"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ResourceListParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_scenario_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ScenarioParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_scenario_save"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/SaveParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_run_create"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/CreateParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_run_control"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ControlParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_run_update_inputs"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/UpdateParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "enum": [
+                  "simulator_run_get",
+                  "simulator_report_get"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/RunParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_records_list"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/RecordParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ResourceParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_import_begin"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ImportBeginParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_import_chunk"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ChunkParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_import_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ImportParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_import_commit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ImportParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_import_abort"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ImportParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_resource_read_chunk"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadChunkParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_packages_list"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/ListParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_package_get"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/PackageParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_package_save"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/PackageSaveParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cmd": {
+                "const": "simulator_package_validate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/Meta"
+                  },
+                  {
+                    "$ref": "#/$defs/PackageParams"
+                  }
+                ],
+                "unevaluatedProperties": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "api_version",
+        "request_id",
+        "cmd",
+        "status",
+        "code",
+        "message",
+        "timestamp",
+        "operation_id",
+        "data",
+        "error"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RESPONSE"
+        },
+        "api_version": {
+          "const": "0.2"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "cmd": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "enum": [
+            "SUCCESS",
+            "ACCEPTED",
+            "REJECTED",
+            "FAILED"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "timestamp": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "operation_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {},
+        "error": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "REJECTED",
+                  "FAILED"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "code": {
+                "$ref": "#/$defs/ErrorCode"
+              },
+              "operation_id": {
+                "const": null
+              },
+              "data": {
+                "const": null
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "ACCEPTED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "cmd": {
+                "enum": [
+                  "simulator_run_control",
+                  "simulator_run_update_inputs"
+                ]
+              },
+              "code": {
+                "const": "QUEUED"
+              },
+              "operation_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "data": {
+                "$ref": "#/$defs/Run"
+              },
+              "error": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "SUCCESS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "cmd": {
+                "not": {
+                  "enum": [
+                    "simulator_run_control",
+                    "simulator_run_update_inputs"
+                  ]
+                },
+                "$ref": "#/$defs/Command"
+              },
+              "code": {
+                "const": "OK"
+              },
+              "operation_id": {
+                "const": null
+              },
+              "error": {
+                "const": null
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_capabilities_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Capabilities"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_profiles_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/ProfilePage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_profile_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Profile"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resources_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/ResourcePage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_scenarios_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/ScenarioPage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "enum": [
+                        "simulator_scenario_get",
+                        "simulator_scenario_save"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Scenario"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "enum": [
+                        "simulator_run_create",
+                        "simulator_run_get"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Run"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_runs_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/RunPage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_records_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/RecordPage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_report_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Report"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Resource"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_import_begin"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Upload"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_import_chunk"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Upload"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_import_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Upload"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_import_commit"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Resource"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_import_abort"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Upload"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_resource_read_chunk"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/ResourceChunk"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_packages_list"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/PackagePage"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_package_get"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Package"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_package_save"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Package"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_package_validate"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/$defs/Package"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "cmd": {
+                      "const": "simulator_run_create"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "state": {
+                          "const": "VALIDATING"
+                        },
+                        "result": {
+                          "const": "NOT_RUN"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "PackageRef": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/PackageRef"
+    },
+    "Package": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/Package"
+    },
+    "PackageDefinition": {
+      "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/PackageDefinition"
+    },
+    "PackageSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "name",
+        "qualification",
+        "validation_status",
+        "scenario_count"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/PackageRef"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "qualification": {
+          "enum": [
+            "DRAFT",
+            "FROZEN"
+          ]
+        },
+        "validation_status": {
+          "enum": [
+            "PENDING",
+            "VALID",
+            "INVALID"
+          ]
+        },
+        "scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "PackagePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/PackageSummary"
+          }
+        },
+        "next_cursor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PackageParams": {
+      "type": "object",
+      "required": [
+        "package_ref"
+      ],
+      "properties": {
+        "package_ref": {
+          "$ref": "#/$defs/PackageRef"
+        }
+      }
+    },
+    "PackageSaveParams": {
+      "type": "object",
+      "required": [
+        "definition"
+      ],
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/PackageDefinition"
+        },
+        "base_ref": {
+          "$ref": "#/$defs/PackageRef"
+        }
+      }
+    },
+    "ResourceParams": {
+      "type": "object",
+      "required": [
+        "resource_ref"
+      ],
+      "properties": {
+        "resource_ref": {
+          "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+        }
+      }
+    },
+    "ImportDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "format",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "$ref": "#/$defs/ResourceKind"
+        },
+        "format": {
+          "enum": [
+            "DBC",
+            "ARXML",
+            "ICD_JSON",
+            "SCENARIO_JSON",
+            "SCENARIO_YAML",
+            "CAN_LOG",
+            "PCAP",
+            "PCAPNG",
+            "ENGINEERING_JSONL",
+            "JSON",
+            "CSV",
+            "BINARY"
+          ]
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PROTOCOL"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "DBC",
+                  "ARXML",
+                  "ICD_JSON"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SCENARIO"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "SCENARIO_JSON",
+                  "SCENARIO_YAML"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "HISTORY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "CAN_LOG",
+                  "PCAP",
+                  "PCAPNG",
+                  "ENGINEERING_JSONL"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SUPPORT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "JSON",
+                  "CSV",
+                  "BINARY"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ImportBeginParams": {
+      "type": "object",
+      "required": [
+        "declaration"
+      ],
+      "properties": {
+        "declaration": {
+          "$ref": "#/$defs/ImportDeclaration"
+        }
+      }
+    },
+    "ImportParams": {
+      "type": "object",
+      "required": [
+        "upload_id"
+      ],
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "ChunkParams": {
+      "type": "object",
+      "required": [
+        "upload_id",
+        "offset_bytes",
+        "data_base64",
+        "chunk_sha256"
+      ],
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "offset_bytes": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "data_base64": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 87384,
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        },
+        "chunk_sha256": {
+          "$ref": "#/$defs/Hash"
+        }
+      }
+    },
+    "ReadChunkParams": {
+      "type": "object",
+      "required": [
+        "resource_ref",
+        "offset_bytes",
+        "length_bytes"
+      ],
+      "properties": {
+        "resource_ref": {
+          "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+        },
+        "offset_bytes": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "length_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      }
+    },
+    "Upload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upload_id",
+        "state",
+        "next_offset_bytes",
+        "declaration",
+        "max_chunk_bytes",
+        "expires_at",
+        "resource_ref"
+      ],
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "state": {
+          "enum": [
+            "OPEN",
+            "COMMITTED",
+            "ABORTED",
+            "EXPIRED"
+          ]
+        },
+        "next_offset_bytes": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "declaration": {
+          "$ref": "#/$defs/ImportDeclaration"
+        },
+        "max_chunk_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "expires_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "resource_ref": {
+          "oneOf": [
+            {
+              "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "COMMITTED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "resource_ref": {
+                "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "resource_ref": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ResourceChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_ref",
+        "offset_bytes",
+        "length_bytes",
+        "data_base64",
+        "chunk_sha256",
+        "eof"
+      ],
+      "properties": {
+        "resource_ref": {
+          "$ref": "urn:hil:input-simulator:package-contract:0.2#/$defs/ResourceRef"
+        },
+        "offset_bytes": {
+          "$ref": "#/$defs/UInt64"
+        },
+        "length_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "data_base64": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 87384,
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        },
+        "chunk_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "eof": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

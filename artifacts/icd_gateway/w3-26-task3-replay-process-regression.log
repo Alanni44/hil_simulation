@@ -1,0 +1,278 @@
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay_process.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_supervisor_timeout_returned_by_stop_is_not_local_success (test_replay_process.ReplayProcessTests.test_actual_supervisor_timeout_returned_by_stop_is_not_local_success) ... ok
+test_boolean_authority_result_cannot_substitute_for_validation (test_replay_process.ReplayProcessTests.test_boolean_authority_result_cannot_substitute_for_validation) ... ok
+test_channel_offset_is_not_model_step_and_missed_start_does_not_launch (test_replay_process.ReplayProcessTests.test_channel_offset_is_not_model_step_and_missed_start_does_not_launch) ... ok
+test_expired_grant_stops_owned_child_without_resetting_source_floor (test_replay_process.ReplayProcessTests.test_expired_grant_stops_owned_child_without_resetting_source_floor) ... ok
+test_failed_popen_retains_error_without_nonexistent_child_cleanup (test_replay_process.ReplayProcessTests.test_failed_popen_retains_error_without_nonexistent_child_cleanup) ... ok
+test_malformed_original_commands_return_explicit_resource_error (test_replay_process.ReplayProcessTests.test_malformed_original_commands_return_explicit_resource_error) ... ok
+test_missing_authority_fails_before_export_or_child_allocation (test_replay_process.ReplayProcessTests.test_missing_authority_fails_before_export_or_child_allocation) ... ok
+test_one_stop_failure_does_not_skip_other_original_child (test_replay_process.ReplayProcessTests.test_one_stop_failure_does_not_skip_other_original_child) ... ok
+test_original_canplayer_modes_launch_only_exact_flags_and_local_exit (test_replay_process.ReplayProcessTests.test_original_canplayer_modes_launch_only_exact_flags_and_local_exit) ... ok
+test_persisted_file_tamper_before_delayed_launch_fails_without_process (test_replay_process.ReplayProcessTests.test_persisted_file_tamper_before_delayed_launch_fails_without_process) ... ok
+test_real_supervisor_failure_keeps_original_argv_and_never_native_fallback (test_replay_process.ReplayProcessTests.test_real_supervisor_failure_keeps_original_argv_and_never_native_fallback) ... ok
+test_rejection_before_start_preserves_reservation_and_counters (test_replay_process.ReplayProcessTests.test_rejection_before_start_preserves_reservation_and_counters) ... ok
+test_replaced_authority_source_and_modified_command_are_rejected (test_replay_process.ReplayProcessTests.test_replaced_authority_source_and_modified_command_are_rejected) ... ok
+test_required_original_replay_process_entry (test_replay_process.ReplayProcessTests.test_required_original_replay_process_entry) ... ok
+test_runtime_revocation_stops_actual_owned_handles_without_releasing_book (test_replay_process.ReplayProcessTests.test_runtime_revocation_stops_actual_owned_handles_without_releasing_book) ... ok
+test_stopped_before_start_cannot_reopen (test_replay_process.ReplayProcessTests.test_stopped_before_start_cannot_reopen) ... ok
+test_tcpreplay_modes_keep_exact_flags_and_do_not_repeat_locally (test_replay_process.ReplayProcessTests.test_tcpreplay_modes_keep_exact_flags_and_do_not_repeat_locally) ... ok
+test_unknown_authority_exception_has_typed_failure_and_no_files (test_replay_process.ReplayProcessTests.test_unknown_authority_exception_has_typed_failure_and_no_files) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 15.314s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_process.py -v
+test_actual_binary_stdout_stderr_exit_and_immutable_snapshot (test_tool_process.ProcessTests.test_actual_binary_stdout_stderr_exit_and_immutable_snapshot) ... ok
+test_actual_creation_failure_is_retained_not_running (test_tool_process.ProcessTests.test_actual_creation_failure_is_retained_not_running) ... ok
+test_actual_large_both_streams_are_drained_without_deadlock (test_tool_process.ProcessTests.test_actual_large_both_streams_are_drained_without_deadlock) ... ok
+test_actual_timeout_kills_and_waits_for_direct_process (test_tool_process.ProcessTests.test_actual_timeout_kills_and_waits_for_direct_process) ... ok
+test_descendant_held_pipe_is_failure_not_complete_cleanup (test_tool_process.ProcessTests.test_descendant_held_pipe_is_failure_not_complete_cleanup) ... ok
+test_exit_observed_only_after_deadline_is_not_timely_success (test_tool_process.ProcessTests.test_exit_observed_only_after_deadline_is_not_timely_success) ... ok
+test_failed_stop_retains_actual_live_handle_for_later_retry (test_tool_process.ProcessTests.test_failed_stop_retains_actual_live_handle_for_later_retry) ... ok
+test_manual_stop_and_close_are_terminal_but_not_remote_cleanup (test_tool_process.ProcessTests.test_manual_stop_and_close_are_terminal_but_not_remote_cleanup) ... ok
+test_natural_exit_with_late_pipe_eof_is_not_reported_as_stop (test_tool_process.ProcessTests.test_natural_exit_with_late_pipe_eof_is_not_reported_as_stop) ... ok
+test_nonzero_exit_retains_actual_returncode_and_outputs (test_tool_process.ProcessTests.test_nonzero_exit_retains_actual_returncode_and_outputs) ... ok
+test_original_deadline_still_applies_during_natural_exit_pipe_wait (test_tool_process.ProcessTests.test_original_deadline_still_applies_during_natural_exit_pipe_wait) ... ok
+test_os_wait_failure_is_retained_and_can_be_retried (test_tool_process.ProcessTests.test_os_wait_failure_is_retained_and_can_be_retried) ... ok
+test_output_limit_is_explicit_failure_not_silent_success (test_tool_process.ProcessTests.test_output_limit_is_explicit_failure_not_silent_success) ... ok
+test_reader_start_failure_kills_actual_child_and_closes_unstarted_pipes (test_tool_process.ProcessTests.test_reader_start_failure_kills_actual_child_and_closes_unstarted_pipes) ... ok
+test_shell_metacharacters_are_literal_arguments (test_tool_process.ProcessTests.test_shell_metacharacters_are_literal_arguments) ... ok
+test_start_is_once_and_close_before_start_is_permanent (test_tool_process.ProcessTests.test_start_is_once_and_close_before_start_is_permanent) ... ok
+test_stdout_and_stderr_share_one_limit (test_tool_process.ProcessTests.test_stdout_and_stderr_share_one_limit) ... ok
+test_stop_after_already_completed_child_records_exit_not_invented_stop (test_tool_process.ProcessTests.test_stop_after_already_completed_child_records_exit_not_invented_stop) ... ok
+test_strict_argv_paths_and_finite_integral_capacities (test_tool_process.ProcessTests.test_strict_argv_paths_and_finite_integral_capacities) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.823s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tool_commands.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_actual_persistence_matches_literal_command_resource_without_launch (test_tool_commands.CommandTests.test_actual_persistence_matches_literal_command_resource_without_launch) ... ok
+test_can_microsecond_inexpressibility_is_rejected_without_rounding (test_tool_commands.CommandTests.test_can_microsecond_inexpressibility_is_rejected_without_rounding) ... ok
+test_canplayer_stdout_pseudo_interface_cannot_replace_actual_send_channel (test_tool_commands.CommandTests.test_canplayer_stdout_pseudo_interface_cannot_replace_actual_send_channel) ... ok
+test_canplayer_three_modes_exact_resource_explicit_mapping_one_round (test_tool_commands.CommandTests.test_canplayer_three_modes_exact_resource_explicit_mapping_one_round) ... ok
+test_directory_is_absolute_new_literal_and_no_write_occurs (test_tool_commands.CommandTests.test_directory_is_absolute_new_literal_and_no_write_occurs) ... ok
+test_first_channel_offset_is_retained_not_hidden_by_tool_start (test_tool_commands.CommandTests.test_first_channel_offset_is_retained_not_hidden_by_tool_start) ... ok
+test_foreign_forged_released_or_extra_interfaces_never_prepare (test_tool_commands.CommandTests.test_foreign_forged_released_or_extra_interfaces_never_prepare) ... ok
+test_four_can_channels_each_keep_mapping_file_hash_and_start_offset (test_tool_commands.CommandTests.test_four_can_channels_each_keep_mapping_file_hash_and_start_offset) ... ok
+test_four_pcapng_channels_export_independent_full_pcap_commands (test_tool_commands.CommandTests.test_four_pcapng_channels_export_independent_full_pcap_commands) ... ok
+test_local_reservation_validation_never_grants_or_releases (test_tool_commands.CommandTests.test_local_reservation_validation_never_grants_or_releases) ... ok
+test_observation_uses_exact_formal_bidirectional_ids_without_send (test_tool_commands.CommandTests.test_observation_uses_exact_formal_bidirectional_ids_without_send) ... ok
+test_observe_binding_is_bijective_formal_and_never_any (test_tool_commands.CommandTests.test_observe_binding_is_bijective_formal_and_never_any) ... ok
+test_observe_rejects_wrong_branch_send_mode_and_released_token (test_tool_commands.CommandTests.test_observe_rejects_wrong_branch_send_mode_and_released_token) ... ok
+test_preprocessed_rate_and_repeat_stay_upstream_not_tool_options (test_tool_commands.CommandTests.test_preprocessed_rate_and_repeat_stay_upstream_not_tool_options) ... ok
+test_replay_rechecks_resource_instead_of_trusting_manifest_claims (test_tool_commands.CommandTests.test_replay_rechecks_resource_instead_of_trusting_manifest_claims) ... ok
+test_replay_rejects_observer_other_branch_or_transport (test_tool_commands.CommandTests.test_replay_rejects_observer_other_branch_or_transport) ... ok
+test_tcpreplay_three_modes_never_double_scales_or_loops (test_tool_commands.CommandTests.test_tcpreplay_three_modes_never_double_scales_or_loops) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 1.686s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_all_13_canfd_inputs_each_mode_and_payload_hash (test_replay.ReplayTests.test_all_13_canfd_inputs_each_mode_and_payload_hash) ... ok
+test_allocations_strict_complete_and_standard_header_immutable (test_replay.ReplayTests.test_allocations_strict_complete_and_standard_header_immutable) ... ok
+test_auxiliary_output_hash_describes_formal_payload_not_raw_bus_bytes (test_replay.ReplayTests.test_auxiliary_output_hash_describes_formal_payload_not_raw_bus_bytes) ... ok
+test_auxiliary_rawbus_requires_explicit_udp_destination (test_replay.ReplayTests.test_auxiliary_rawbus_requires_explicit_udp_destination) ... ok
+test_cross_domain_interleaving_keeps_file_order_not_time_sort (test_replay.ReplayTests.test_cross_domain_interleaving_keeps_file_order_not_time_sort) ... ok
+test_deployment_route_rejects_unspecified_and_broadcast_addresses (test_replay.ReplayTests.test_deployment_route_rejects_unspecified_and_broadcast_addresses) ... ok
+test_destinations_are_closed_unique_and_unicast (test_replay.ReplayTests.test_destinations_are_closed_unique_and_unicast) ... ok
+test_endpoint_only_rebuild_requires_outer_crc_permission (test_replay.ReplayTests.test_endpoint_only_rebuild_requires_outer_crc_permission) ... ok
+test_every_replayable_formal_input_all_modes_payload_unchanged (test_replay.ReplayTests.test_every_replayable_formal_input_all_modes_payload_unchanged) ... ok
+test_exact_rates_and_repeat_metadata_no_timing_claim (test_replay.ReplayTests.test_exact_rates_and_repeat_metadata_no_timing_claim) ... ok
+test_explicit_endpoint_and_channel_changes_require_permission (test_replay.ReplayTests.test_explicit_endpoint_and_channel_changes_require_permission) ... ok
+test_feedback_is_collected_not_injected_and_no_header_for_feedback (test_replay.ReplayTests.test_feedback_is_collected_not_injected_and_no_header_for_feedback) ... ok
+test_original_retry_preserves_new_identity_and_transaction_mapping (test_replay.ReplayTests.test_original_retry_preserves_new_identity_and_transaction_mapping) ... ok
+test_preserved_signed_zero_payload_hash_is_actual_wire_hash (test_replay.ReplayTests.test_preserved_signed_zero_payload_hash_is_actual_wire_hash) ... ok
+test_raw_keeps_full_capture_and_application_bytes_without_authorizing (test_replay.ReplayTests.test_raw_keeps_full_capture_and_application_bytes_without_authorizing) ... ok
+test_raw_rejects_allocations_and_destinations_and_session_zero (test_replay.ReplayTests.test_raw_rejects_allocations_and_destinations_and_session_zero) ... ok
+test_reencode_generates_current_icd_and_payload_hash (test_replay.ReplayTests.test_reencode_generates_current_icd_and_payload_hash) ... ok
+test_repeat_headers_must_not_reuse_any_captured_session (test_replay.ReplayTests.test_repeat_headers_must_not_reuse_any_captured_session) ... ok
+test_replay_module_exists (test_replay.ReplayTests.test_replay_module_exists) ... ok
+test_reversed_can_fragments_and_duplicates_keep_original_packet_order (test_replay.ReplayTests.test_reversed_can_fragments_and_duplicates_keep_original_packet_order) ... ok
+test_rewrite_permissions_exactly_cover_real_changes (test_replay.ReplayTests.test_rewrite_permissions_exactly_cover_real_changes) ... ok
+test_session_rebuild_retains_payload_and_recomputes_outer_checksums (test_replay.ReplayTests.test_session_rebuild_retains_payload_and_recomputes_outer_checksums) ... ok
+test_signed_zero_conflict_is_not_an_identical_original_retry (test_replay.ReplayTests.test_signed_zero_conflict_is_not_an_identical_original_retry) ... ok
+test_small_output_budget_is_enforced (test_replay.ReplayTests.test_small_output_budget_is_enforced) ... ok
+test_three_auxiliary_media_use_original_rawbus_payload (test_replay.ReplayTests.test_three_auxiliary_media_use_original_rawbus_payload) ... ok
+test_window_cannot_cut_a_logical_group (test_replay.ReplayTests.test_window_cannot_cut_a_logical_group) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 9.707s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_replay_export.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_all_11_can_input_frames_reassemble_after_full_log_export (test_replay_export.ExportTests.test_all_11_can_input_frames_reassemble_after_full_log_export) ... ok
+test_all_44_granted_udp_inputs_export_in_all_three_modes (test_replay_export.ExportTests.test_all_44_granted_udp_inputs_export_in_all_three_modes) ... ok
+test_auxiliary_can_to_udp_requires_explicit_real_l2_identity (test_replay_export.ExportTests.test_auxiliary_can_to_udp_requires_explicit_real_l2_identity) ... ok
+test_backward_merged_can_timeline_preserved_but_not_tool_compatible (test_replay_export.ExportTests.test_backward_merged_can_timeline_preserved_but_not_tool_compatible) ... ok
+test_can_duplicate_fragment_order_and_ns_timing_are_not_rounded (test_replay_export.ExportTests.test_can_duplicate_fragment_order_and_ns_timing_are_not_rounded) ... ok
+test_complete_pcap_three_modes_original_frame_payload_and_exact_time (test_replay_export.ExportTests.test_complete_pcap_three_modes_original_frame_payload_and_exact_time) ... ok
+test_corrupted_wire_frame_hash_or_feedback_identity_rejected (test_replay_export.ExportTests.test_corrupted_wire_frame_hash_or_feedback_identity_rejected) ... ok
+test_exact_integer_time_cannot_be_rewritten_without_original_policy (test_replay_export.ExportTests.test_exact_integer_time_cannot_be_rewritten_without_original_policy) ... ok
+test_failed_actual_persistence_has_no_complete_manifest_or_silent_cleanup (test_replay_export.ExportTests.test_failed_actual_persistence_has_no_complete_manifest_or_silent_cleanup) ... ok
+test_feedback_not_exported_and_exact_packet_manifest_indices (test_replay_export.ExportTests.test_feedback_not_exported_and_exact_packet_manifest_indices) ... ok
+test_modified_complete_group_cannot_export_mixed_headers_or_partial_payload (test_replay_export.ExportTests.test_modified_complete_group_cannot_export_mixed_headers_or_partial_payload) ... ok
+test_multichannel_pcapng_export_keeps_each_interface_and_file_order (test_replay_export.ExportTests.test_multichannel_pcapng_export_keeps_each_interface_and_file_order) ... ok
+test_raw_channel_cannot_be_relabelled (test_replay_export.ExportTests.test_raw_channel_cannot_be_relabelled) ... ok
+test_raw_ethernet_l2_or_ttl_cannot_change_by_rehashing (test_replay_export.ExportTests.test_raw_ethernet_l2_or_ttl_cannot_change_by_rehashing) ... ok
+test_real_new_directory_package_and_existing_path_never_overwritten (test_replay_export.ExportTests.test_real_new_directory_package_and_existing_path_never_overwritten) ... ok
+test_rehashed_reencode_cannot_target_invalid_udp_endpoint (test_replay_export.ExportTests.test_rehashed_reencode_cannot_target_invalid_udp_endpoint) ... ok
+test_selected_whole_record_cannot_be_omitted (test_replay_export.ExportTests.test_selected_whole_record_cannot_be_omitted) ... ok
+test_session_rebuild_cannot_revert_to_captured_session_or_false_changes (test_replay_export.ExportTests.test_session_rebuild_cannot_revert_to_captured_session_or_false_changes) ... ok
+test_strict_bindings_epoch_capacity_and_noninteger_time (test_replay_export.ExportTests.test_strict_bindings_epoch_capacity_and_noninteger_time) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 9.464s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_capture.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_bad_ip_transport_checksum_fragment_or_lengths_are_rejected (test_capture.CaptureTests.test_bad_ip_transport_checksum_fragment_or_lengths_are_rejected) ... ok
+test_can_log_malformed_precision_flags_and_lengths_rejected (test_capture.CaptureTests.test_can_log_malformed_precision_flags_and_lengths_rejected) ... ok
+test_can_log_original_tool_parses_can_and_fd_with_exact_unix_ns (test_capture.CaptureTests.test_can_log_original_tool_parses_can_and_fd_with_exact_unix_ns) ... ok
+test_can_log_preserves_remote_extended_error_and_esi_for_later_qualification (test_capture.CaptureTests.test_can_log_preserves_remote_extended_error_and_esi_for_later_qualification) ... ok
+test_can_log_rejects_raw_rtr_flags_with_fd_or_data (test_capture.CaptureTests.test_can_log_rejects_raw_rtr_flags_with_fd_or_data) ... ok
+test_capture_bytes_packet_limits_and_invalid_limit_types (test_capture.CaptureTests.test_capture_bytes_packet_limits_and_invalid_limit_types) ... ok
+test_classic_len8_dlc_is_explicitly_unsupported_not_invalid_reserved_data (test_capture.CaptureTests.test_classic_len8_dlc_is_explicitly_unsupported_not_invalid_reserved_data) ... ok
+test_container_results_are_immutable_keep_original_order_and_never_executable (test_capture.CaptureTests.test_container_results_are_immutable_keep_original_order_and_never_executable) ... ok
+test_error_frames_require_classic_can_eight_bytes_and_no_rtr (test_capture.CaptureTests.test_error_frames_require_classic_can_eight_bytes_and_no_rtr) ... ok
+test_malformed_container_or_trailing_bytes_never_become_eof_success (test_capture.CaptureTests.test_malformed_container_or_trailing_bytes_never_become_eof_success) ... ok
+test_metadata_only_sections_have_an_independent_capacity_bound (test_capture.CaptureTests.test_metadata_only_sections_have_an_independent_capacity_bound) ... ok
+test_metadata_options_and_interfaces_have_independent_capacity_bounds (test_capture.CaptureTests.test_metadata_options_and_interfaces_have_independent_capacity_bounds) ... ok
+test_parser_exists (test_capture.CaptureTests.test_parser_exists) ... ok
+test_pcap_all_endian_and_micro_nano_timestamp_combinations (test_capture.CaptureTests.test_pcap_all_endian_and_micro_nano_timestamp_combinations) ... ok
+test_pcap_and_ng_wire_truncation_is_preserved_not_fabricated (test_capture.CaptureTests.test_pcap_and_ng_wire_truncation_is_preserved_not_fabricated) ... ok
+test_pcap_ng_actual_drop_metadata_is_preserved (test_capture.CaptureTests.test_pcap_ng_actual_drop_metadata_is_preserved) ... ok
+test_pcap_ng_exact_offset_binary_resolution_and_direction (test_capture.CaptureTests.test_pcap_ng_exact_offset_binary_resolution_and_direction) ... ok
+test_pcap_ng_multi_interface_and_multiple_sections_do_not_share_clock_domain (test_capture.CaptureTests.test_pcap_ng_multi_interface_and_multiple_sections_do_not_share_clock_domain) ... ok
+test_pcap_ng_sub_ns_timestamp_and_overflow_rejected_without_rounding (test_capture.CaptureTests.test_pcap_ng_sub_ns_timestamp_and_overflow_rejected_without_rounding) ... ok
+test_pcap_ng_unknown_interface_duplicate_option_and_no_timestamp_block_fail_closed (test_capture.CaptureTests.test_pcap_ng_unknown_interface_duplicate_option_and_no_timestamp_block_fail_closed) ... ok
+test_pcap_timestamp_caplen_snaplen_and_version_are_validated (test_capture.CaptureTests.test_pcap_timestamp_caplen_snaplen_and_version_are_validated) ... ok
+test_socketcan_metadata_and_length_are_preserved_for_later_formal_gate (test_capture.CaptureTests.test_socketcan_metadata_and_length_are_preserved_for_later_formal_gate) ... ok
+test_unknown_linktype_and_format_mismatch_are_not_inferred_from_filename (test_capture.CaptureTests.test_unknown_linktype_and_format_mismatch_are_not_inferred_from_filename) ... ok
+test_vlan_tcp_and_zero_udp_checksum_are_explicit_analysis_metadata (test_capture.CaptureTests.test_vlan_tcp_and_zero_udp_checksum_are_explicit_analysis_metadata) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.107s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_history.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_all_13_canfd_messages_use_original_formal_codec_and_order (test_history.HistoryTests.test_all_13_canfd_messages_use_original_formal_codec_and_order) ... ok
+test_all_59_messages_decode_from_actual_udp_capture (test_history.HistoryTests.test_all_59_messages_decode_from_actual_udp_capture) ... ok
+test_binding_document_is_closed_and_clock_identity_is_explicit (test_history.HistoryTests.test_binding_document_is_closed_and_clock_identity_is_explicit) ... ok
+test_binding_required_not_guessed_from_name_or_rxtx (test_history.HistoryTests.test_binding_required_not_guessed_from_name_or_rxtx) ... ok
+test_capacity_baseline_and_unknown_or_truncated_transport (test_history.HistoryTests.test_capacity_baseline_and_unknown_or_truncated_transport) ... ok
+test_capture_and_record_are_immutable_and_repeated_full_transmissions_preserved (test_history.HistoryTests.test_capture_and_record_are_immutable_and_repeated_full_transmissions_preserved) ... ok
+test_counts_ids_epoch_window_and_clock_reversal (test_history.HistoryTests.test_counts_ids_epoch_window_and_clock_reversal) ... ok
+test_crc_direction_endpoint_medium_and_model_gates (test_history.HistoryTests.test_crc_direction_endpoint_medium_and_model_gates) ... ok
+test_cross_domain_file_order_is_not_mistaken_for_domain_clock_reversal (test_history.HistoryTests.test_cross_domain_file_order_is_not_mistaken_for_domain_clock_reversal) ... ok
+test_decoder_exists (test_history.HistoryTests.test_decoder_exists) ... ok
+test_different_domains_never_splice_fragments (test_history.HistoryTests.test_different_domains_never_splice_fragments) ... ok
+test_duplicate_rewrite_fields_are_rejected_at_public_decoder_boundary (test_history.HistoryTests.test_duplicate_rewrite_fields_are_rejected_at_public_decoder_boundary) ... ok
+test_formal_raw_and_rebuild_modes_decode_but_never_authorize_existing_session (test_history.HistoryTests.test_formal_raw_and_rebuild_modes_decode_but_never_authorize_existing_session) ... ok
+test_loss_never_grants_complete_capture_and_extra_policy_is_checked (test_history.HistoryTests.test_loss_never_grants_complete_capture_and_extra_policy_is_checked) ... ok
+test_missing_fragment_or_timeout_cannot_be_a_complete_record (test_history.HistoryTests.test_missing_fragment_or_timeout_cannot_be_a_complete_record) ... ok
+test_missing_model_cannot_bypass_original_model_gate (test_history.HistoryTests.test_missing_model_cannot_bypass_original_model_gate) ... ok
+test_model_step_clock_requires_exact_header_provenance (test_history.HistoryTests.test_model_step_clock_requires_exact_header_provenance) ... ok
+test_multidomain_shared_clock_and_bidirectional_streams (test_history.HistoryTests.test_multidomain_shared_clock_and_bidirectional_streams) ... ok
+test_no_mutation_or_fake_headers_in_auxiliary_raw_modes (test_history.HistoryTests.test_no_mutation_or_fake_headers_in_auxiliary_raw_modes) ... ok
+test_original_64_slot_capacity_not_bypassed_by_history_group_tracking (test_history.HistoryTests.test_original_64_slot_capacity_not_bypassed_by_history_group_tracking) ... ok
+test_raw_bus_can_fd_and_ethernet_are_stimuli_without_fake_headers (test_history.HistoryTests.test_raw_bus_can_fd_and_ethernet_are_stimuli_without_fake_headers) ... ok
+test_raw_bus_without_direction_or_with_unsafe_frames_is_rejected (test_history.HistoryTests.test_raw_bus_without_direction_or_with_unsafe_frames_is_rejected) ... ok
+test_unknown_tcp_and_video_do_not_become_udp_business_inputs (test_history.HistoryTests.test_unknown_tcp_and_video_do_not_become_udp_business_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 3.328s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_tools.py -v
+test_actual_executable_bytes_are_hashed_without_launch (test_tools.ToolTests.test_actual_executable_bytes_are_hashed_without_launch) ... ok
+test_all_six_original_branches_map_only_to_frozen_api_rows (test_tools.ToolTests.test_all_six_original_branches_map_only_to_frozen_api_rows) ... ok
+test_capacity_and_duplicate_run_cannot_evict_active_owner (test_tools.ToolTests.test_capacity_and_duplicate_run_cannot_evict_active_owner) ... ok
+test_catalogue_changes_or_missing_duplicate_unknown_branches_are_rejected (test_tools.ToolTests.test_catalogue_changes_or_missing_duplicate_unknown_branches_are_rejected) ... ok
+test_multichannel_conflict_is_atomic_across_branches (test_tools.ToolTests.test_multichannel_conflict_is_atomic_across_branches) ... ok
+test_observer_never_holds_sender_reservation (test_tools.ToolTests.test_observer_never_holds_sender_reservation) ... ok
+test_real_library_versions_and_executable_hashes_are_inspection_not_qualification (test_tools.ToolTests.test_real_library_versions_and_executable_hashes_are_inspection_not_qualification) ... ok
+test_shadow_module_cannot_inherit_installed_distribution_version_or_execute (test_tools.ToolTests.test_shadow_module_cannot_inherit_installed_distribution_version_or_execute) ... ok
+test_strict_ids_interfaces_modes_and_limits (test_tools.ToolTests.test_strict_ids_interfaces_modes_and_limits) ... ok
+test_tokens_are_opaque_and_release_is_not_by_equal_fields (test_tools.ToolTests.test_tokens_are_opaque_and_release_is_not_by_equal_fields) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 5.879s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_source_session.py -v
+test_real_grant_header_feeds_replay_and_actual_resource_exchange (test_source_session.ActualResourceSessionTests.test_real_grant_header_feeds_replay_and_actual_resource_exchange) ... WARNING: No libpcap provider available ! pcap won't be used
+ok
+test_claim_blocks_manual_tx_and_feedback_read_after_construction (test_source_session.ActualSourceSessionTests.test_claim_blocks_manual_tx_and_feedback_read_after_construction) ... ok
+test_opening_transaction_follows_prior_manual_transport_use (test_source_session.ActualSourceSessionTests.test_opening_transaction_follows_prior_manual_transport_use) ... ok
+test_real_receiver_grant_used_and_missing_capability_stops_before_tx (test_source_session.ActualSourceSessionTests.test_real_receiver_grant_used_and_missing_capability_stops_before_tx) ... ok
+test_real_receiver_rejects_wrong_identity_without_local_grant (test_source_session.ActualSourceSessionTests.test_real_receiver_rejects_wrong_identity_without_local_grant) ... ok
+test_real_transport_rejects_new_manager_and_delayed_old_grant (test_source_session.ActualSourceSessionTests.test_real_transport_rejects_new_manager_and_delayed_old_grant) ... ok
+test_clock_status_nonce_and_request_type_are_correlated (test_source_session.FeedbackCorrelationTests.test_clock_status_nonce_and_request_type_are_correlated) ... ok
+test_status_is_only_a_heartbeat_response (test_source_session.FeedbackCorrelationTests.test_status_is_only_a_heartbeat_response) ... ok
+test_unrelated_status_clock_feedback_is_not_an_ack (test_source_session.FeedbackCorrelationTests.test_unrelated_status_clock_feedback_is_not_an_ack) ... ok
+test_backward_or_bool_source_mono_is_rejected_without_send (test_source_session.SourceSessionTests.test_backward_or_bool_source_mono_is_rejected_without_send) ... ok
+test_bad_target_and_counter_wrap_reject (test_source_session.SourceSessionTests.test_bad_target_and_counter_wrap_reject) ... ok
+test_clock_failure_after_reply_keeps_untrusted_exchange_record (test_source_session.SourceSessionTests.test_clock_failure_after_reply_keeps_untrusted_exchange_record) ... ok
+test_conservative_lease_starts_before_exchange_not_on_late_reply (test_source_session.SourceSessionTests.test_conservative_lease_starts_before_exchange_not_on_late_reply) ... ok
+test_explicit_transaction_reservation_never_collides_with_auto_counter (test_source_session.SourceSessionTests.test_explicit_transaction_reservation_never_collides_with_auto_counter) ... ok
+test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease (test_source_session.SourceSessionTests.test_failed_heartbeat_and_ordinary_feedback_do_not_renew_lease) ... ok
+test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step (test_source_session.SourceSessionTests.test_heartbeat_uses_actual_last_feedback_and_explicit_sender_step) ... ok
+test_invalid_constructor_limits_identity_and_roles_reject (test_source_session.SourceSessionTests.test_invalid_constructor_limits_identity_and_roles_reject) ... ok
+test_invalid_payload_does_not_consume_sequence_or_send (test_source_session.SourceSessionTests.test_invalid_payload_does_not_consume_sequence_or_send) ... ok
+test_local_abandon_is_not_a_remote_close_reset_or_clear_queues (test_source_session.SourceSessionTests.test_local_abandon_is_not_a_remote_close_reset_or_clear_queues) ... ok
+test_one_counter_owner_per_transport_even_after_local_close (test_source_session.SourceSessionTests.test_one_counter_owner_per_transport_even_after_local_close) ... ok
+test_open_after_the_entire_lease_cannot_create_a_live_local_session (test_source_session.SourceSessionTests.test_open_after_the_entire_lease_cannot_create_a_live_local_session) ... ok
+test_open_captures_actual_grant_and_allocates_global_fresh_headers (test_source_session.SourceSessionTests.test_open_captures_actual_grant_and_allocates_global_fresh_headers) ... ok
+test_open_validates_both_baselines_roles_sid_and_model (test_source_session.SourceSessionTests.test_open_validates_both_baselines_roles_sid_and_model) ... ok
+test_record_capacity_rejects_before_send_and_drain_does_not_clear_session (test_source_session.SourceSessionTests.test_record_capacity_rejects_before_send_and_drain_does_not_clear_session) ... ok
+test_records_and_capabilities_are_immutable_detached (test_source_session.SourceSessionTests.test_records_and_capabilities_are_immutable_detached) ... ok
+test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid (test_source_session.SourceSessionTests.test_reopen_requires_explicit_local_abandon_and_never_reuses_nonce_or_sid) ... ok
+test_request_keeps_real_failed_feedback_without_manufacturing_stage (test_source_session.SourceSessionTests.test_request_keeps_real_failed_feedback_without_manufacturing_stage) ... ok
+test_request_payload_detaches_from_callers_during_transport_exchange (test_source_session.SourceSessionTests.test_request_payload_detaches_from_callers_during_transport_exchange) ... ok
+test_roles_capability_and_model_are_checked_before_allocation (test_source_session.SourceSessionTests.test_roles_capability_and_model_are_checked_before_allocation) ... ok
+test_session_module_exists (test_source_session.SourceSessionTests.test_session_module_exists) ... ok
+test_transport_timeout_is_recorded_without_faking_response_or_session (test_source_session.SourceSessionTests.test_transport_timeout_is_recorded_without_faking_response_or_session) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 6.436s
+
+OK
+COMMAND: python -X utf8 -m unittest discover -s tests/icd_gateway -p test_model_clock.py -v
+WARNING: No libpcap provider available ! pcap won't be used
+test_applied_reset_and_resume_invalidate_old_sid_until_new_grant (test_model_clock.ModelClockTests.test_applied_reset_and_resume_invalidate_old_sid_until_new_grant) ... ok
+test_can_heartbeat_attempt_blocks_reuse_by_serial_udp (test_model_clock.ModelClockTests.test_can_heartbeat_attempt_blocks_reuse_by_serial_udp) ... ok
+test_current_lease_is_required_even_with_cached_status (test_model_clock.ModelClockTests.test_current_lease_is_required_even_with_cached_status) ... ok
+test_dispatcher_feedback_reader_never_sends_or_drains (test_model_clock.ModelClockTests.test_dispatcher_feedback_reader_never_sends_or_drains) ... ok
+test_duplicate_feedback_cannot_refresh_original_deadline (test_model_clock.ModelClockTests.test_duplicate_feedback_cannot_refresh_original_deadline) ... ok
+test_failed_received_or_unpublished_lifecycle_does_not_claim_reset (test_model_clock.ModelClockTests.test_failed_received_or_unpublished_lifecycle_does_not_claim_reset) ... ok
+test_failed_serial_heartbeat_attempt_cannot_reuse_transaction (test_model_clock.ModelClockTests.test_failed_serial_heartbeat_attempt_cannot_reuse_transaction) ... ok
+test_frozen_240ms_validity_exact_boundary_and_delayed_arrival (test_model_clock.ModelClockTests.test_frozen_240ms_validity_exact_boundary_and_delayed_arrival) ... ok
+test_immutable_detached_snapshot_retains_original_exchange_and_identity (test_model_clock.ModelClockTests.test_immutable_detached_snapshot_retains_original_exchange_and_identity) ... ok
+test_interleaved_older_heartbeat_still_contributes_model_step_floor (test_model_clock.ModelClockTests.test_interleaved_older_heartbeat_still_contributes_model_step_floor) ... ok
+test_local_elapsed_time_never_advances_reported_model_step (test_model_clock.ModelClockTests.test_local_elapsed_time_never_advances_reported_model_step) ... ok
+test_local_monotonic_clock_reversal_is_not_a_model_reset (test_model_clock.ModelClockTests.test_local_monotonic_clock_reversal_is_not_a_model_reset) ... ok
+test_new_sid_requires_new_status_and_allows_reset_step (test_model_clock.ModelClockTests.test_new_sid_requires_new_status_and_allows_reset_step) ... ok
+test_original_can_feedback_uses_source_clock_domain (test_model_clock.ModelClockTests.test_original_can_feedback_uses_source_clock_domain) ... ok
+test_private_feedback_capture_cannot_bypass_actual_operation_owner (test_model_clock.ModelClockTests.test_private_feedback_capture_cannot_bypass_actual_operation_owner) ... ok
+test_requires_actual_status_not_grant_or_an_arbitrary_object (test_model_clock.ModelClockTests.test_requires_actual_status_not_grant_or_an_arbitrary_object) ... ok
+test_reused_heartbeat_transaction_cannot_retime_or_replace_sample (test_model_clock.ModelClockTests.test_reused_heartbeat_transaction_cannot_retime_or_replace_sample) ... ok
+test_serial_udp_status_is_bound_to_actual_socket_request (test_model_clock.ModelClockTests.test_serial_udp_status_is_bound_to_actual_socket_request) ... ok
+test_source_owner_lock_and_closed_session_are_respected (test_model_clock.ModelClockTests.test_source_owner_lock_and_closed_session_are_respected) ... ok
+test_strict_exact_step_and_required_state (test_model_clock.ModelClockTests.test_strict_exact_step_and_required_state) ... ok
+test_temporarily_deferred_original_heartbeat_claims_transaction_once (test_model_clock.ModelClockTests.test_temporarily_deferred_original_heartbeat_claims_transaction_once) ... ok
+test_timed_out_heartbeat_transaction_cannot_be_reused_after_dispatch_replacement (test_model_clock.ModelClockTests.test_timed_out_heartbeat_transaction_cannot_be_reused_after_dispatch_replacement) ... ok
+test_unread_regression_survives_drain_and_reader_replacement (test_model_clock.ModelClockTests.test_unread_regression_survives_drain_and_reader_replacement) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 16.394s
+
+OK

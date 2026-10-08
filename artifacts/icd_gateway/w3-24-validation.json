@@ -1,0 +1,120 @@
+{
+  "phase": "W3.24_ORIGINAL_CAN_ETHERNET_SHARED_STANDARD_SESSION",
+  "date": "2026-10-05",
+  "status": "SOFTWARE_SHARED_NATIVE_SESSION_VERIFIED_ORIGINAL_W3_NOT_COMPLETE",
+  "execution_host": "Windows AMD64",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "single_common_source": true,
+  "windows_specific_implementation": false,
+  "verification": [
+    {
+      "command": "python -X utf8 scripts/test_icd_runtime.py",
+      "log": "artifacts/icd_gateway/w3-24-full-regression.log",
+      "exit_code": 0,
+      "tests": 829,
+      "suites": {"icd_runtime": 67, "icd_gateway": 755, "plan_coverage_ledger": 3, "single_file_contract": 4},
+      "runtime_duration_seconds": 27.398,
+      "gateway_duration_seconds": 468.652,
+      "source_fixed_for_entire_final_run": true
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests/icd_gateway -p test_native_tools.py -v",
+      "exit_code": 0,
+      "tests": 23,
+      "duration_seconds": 28.155
+    },
+    {
+      "commands": ["test_static_contract.py", "test_generic_contract_templates.py", "test_parameter_registry_static.py", "test_quadrotor_model_contract.py"],
+      "exit_codes": [0, 0, 0, 0],
+      "tests_by_suite": [20, 5, 2, 7],
+      "tests": 34,
+      "scope": "SELECTED_EXISTING_STATIC_REGRESSIONS_NOT_ENTIRE_TARGET_SUITE"
+    },
+    {
+      "command": "python -X utf8 -m icd_runtime --contract-dir docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "exit_code": 0,
+      "status": "OFFLINE_CODEC_PASS",
+      "business_messages": 59,
+      "business_transport_completions": 72,
+      "golden_fragments": 85,
+      "video_raw_fragments": 800
+    },
+    {"command": "python -m pip check", "exit_code": 0, "result": "No broken requirements found"},
+    {"command": "python -m compileall -q input_simulator tests/icd_gateway", "exit_code": 0},
+    {
+      "command": "python scripts/build_contract_single_file.py --check",
+      "exit_code": 0,
+      "embedded_sources_byte_exact": 14,
+      "resolved_schema_references": 663,
+      "performed_by_full_entry": true
+    }
+  ],
+  "source_and_test_sha256": {
+    "input_simulator/_native_scope.py": "bbc6a8f07bbdd286ad87cf44ad1c846fce21d2a84342701907d7283475d1b84c",
+    "input_simulator/native_tools.py": "3ce914505ad97618394344b1b0dc0efe76871b758d9a2fd6da8523b2d62b8611",
+    "input_simulator/session.py": "92fa0aad757d438579cd7841ae7837e2cc4c3b53118b6fffd26d7471a17714be",
+    "input_simulator/dispatch.py": "20ee584ef0044ddeaa6c2d3290703f3311f2f9e3a7b2e31d46c8303d54caa23c",
+    "input_simulator/can_signal.py": "ef9c7cc55e21521d5070e057e4a50bed19ebf541dcde087607cb0fdc5841d0ff",
+    "input_simulator/live_tool_input.py": "3c4a7a0b19510701262678d425bbffd83d5ff67351549d1060d37c32ebac5aad",
+    "tests/icd_gateway/test_native_tools.py": "64d169dbdab4c031873b4722eb5760ef1c5d125f4d087006840b4df88eb28241",
+    "tests/icd_gateway/test_can_signal.py": "54ecfc4b44575b3f35e99f2258ca871132f0dd4f0d454d2d0ba4e31b68487812"
+  },
+  "source_and_test_hashes_unchanged_after_final_run": true,
+  "independent_review": {
+    "scope": "READ_ONLY_CHANGED_NATIVE_COORDINATION_NOT_FULL_W3",
+    "remaining_important_findings": 0,
+    "final_targeted_tests": 3,
+    "duration_seconds": 3.655,
+    "cross_sender_copied_context_actual_reproduction": "STATE_REJECTED",
+    "files_edited_by_reviewer": false,
+    "intermediate_concurrent_run": {"tests": 22, "passing": 21, "feedback_wait_timeout_seconds": 0.01},
+    "exact_default_timeout_rerun": {"tests": 1, "exit_code": 0, "duration_seconds": 1.313},
+    "final_test_feedback_wait_seconds": 0.2,
+    "runtime_default_and_frozen_assembly_deadlines_changed": false
+  },
+  "tdd": {
+    "initial_missing_module_tests": 11,
+    "review_reproductions_before_fix": [
+      "old_copied_scope_reused_in_new_native_operation",
+      "selected_public_sender_builder_reentry",
+      "failed_close_allows_direct_udp_poll",
+      "dispatcher_replacement_strands_native_cleanup",
+      "discard_retained_can_attempt",
+      "closed_dispatcher_premature_source_owner_release",
+      "other_sender_discards_shared_builder_plan"
+    ],
+    "final_new_tests": 23
+  },
+  "ledger": {
+    "path": "docs/superpowers/plans/linux-development-backlog.md",
+    "existing_normalized_utf16_prefix_characters": 68879,
+    "existing_prefix_sha256_utf8": "8307037a7b6b6812a004d736e4dda293505e163e3216fa121a3956a789759891",
+    "existing_prefix_preserved_after_append": true,
+    "plan_responsibilities": 41,
+    "linux_gates": 17,
+    "linux_completed": 0
+  },
+  "post_handoff_verification": {
+    "source_hashes_matched": 8,
+    "ledger_tests": 3,
+    "single_file_tests": 4,
+    "exit_codes": [0, 0, 0],
+    "single_file_check_embedded_sources": 14,
+    "single_file_check_resolved_schema_references": 663
+  },
+  "remaining_original_work": [
+    "production ScenarioDriver with every original event handler",
+    "all six original tool and GUI lifecycle integration",
+    "complete replay modes, repeat, new SID, RESET and initial_inputs",
+    "pause/resume and conditional STEP/RESET execution",
+    "qualified assertion/probe readers and negative must_not_apply evidence",
+    "model-step source and real ClockSync qualification",
+    "native CAN and Scapy continuous persistence plus complete Run/Report",
+    "multiple Ethernet dispatcher coordination",
+    "Linux original tool/backend, physical channels and formal 3.6 consumers"
+  ],
+  "deferred_generated_data_entry": true,
+  "execution_ready": false,
+  "safety_verified": false,
+  "qualification_status": "NOT_EVALUATED"
+}

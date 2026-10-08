@@ -1,0 +1,67 @@
+{
+  "baseline": "HIL-ICD-1.0",
+  "hash_basis": "RAW_FILE_BYTES_SHA256",
+  "runtime_release_status": "NOT_RELEASED",
+  "files": [
+    {
+      "file": "input-simulator-api-v0.3.schema.json",
+      "sha256": "001c6d12c0077a95530b6e3af7cf96c4e6a1d57ddfaf23dc84809162bb6a2a34",
+      "size_bytes": 72053
+    },
+    {
+      "file": "input-simulator-business-v0.3.schema.json",
+      "sha256": "b1535a0793dfd6e04fb02e8ba13b51b88fcb1e5710da423dece66c3e92bffdd8",
+      "size_bytes": 308757
+    },
+    {
+      "file": "input-simulator-canfd-v0.3.dbc",
+      "sha256": "652fc170b6e45576561e61a83958c5fcc11aed6698d5286ff950f460e96a5c97",
+      "size_bytes": 36901
+    },
+    {
+      "file": "input-simulator-coverage-v0.3.json",
+      "sha256": "8d8ddb7fc4705801d269fa244e269e2995c8bd515f35400e516577a15a003d5c",
+      "size_bytes": 11392
+    },
+    {
+      "file": "input-simulator-coverage-v0.3.md",
+      "sha256": "41cfd447cc6c767bf95f4b955745f339b20a6ae731453803aa945ccda1548d05",
+      "size_bytes": 7081
+    },
+    {
+      "file": "input-simulator-data-contract-v0.3.md",
+      "sha256": "80d6412a9934442f0b526a25d4d72680777f0d370a3c9cf919994e308ad06998",
+      "size_bytes": 43835
+    },
+    {
+      "file": "input-simulator-fields-v0.3.md",
+      "sha256": "79d6e11c8043b95a8743ac2d24ff9a1fd77f109734e454a284831bef579b8bf7",
+      "size_bytes": 147324
+    },
+    {
+      "file": "input-simulator-icd-v0.3.json",
+      "sha256": "8ddeeac31fad309043ed8d60f8f1aa585c749f65f34a1bc972a05b3f16bf38b2",
+      "size_bytes": 161852
+    },
+    {
+      "file": "input-simulator-v0.3.baseline.json",
+      "sha256": "21e54ecb3356866276d1be05b23538c9c41bdcdc0f84afeca0ec536e34fac38a",
+      "size_bytes": 640
+    },
+    {
+      "file": "input-simulator-v0.3.examples.json",
+      "sha256": "939dfc1fd12ff6bcf246b5b39ada1a8e13b8875ddad87520e49a87cd2808659f",
+      "size_bytes": 68584
+    },
+    {
+      "file": "input-simulator-v0.3.golden.json",
+      "sha256": "dfd43d6bfde6cb614b226760548e3d884d058135b2665c9313ee8d85de51d796",
+      "size_bytes": 68674
+    },
+    {
+      "file": "input-simulator-v0.3.qa.json",
+      "sha256": "53cfb7fab5cb9cb805c0d05ef977226c021d84b52f6bb5ce78f7ca6ffcec4448",
+      "size_bytes": 1113
+    }
+  ]
+}

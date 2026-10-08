@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hil:input-simulator:management-contract:0.1",
+  "title": "Input Simulator Management Contract 0.1 Review Draft",
+  "$comment": "Proposed management DTOs only. Not implemented and not the 3.3-to-3.6 wire ICD. Runtime authorization, state, hashes and profile-specific rules require server validation.",
+  "oneOf": [
+    {"$ref": "#/$defs/Request"},
+    {"$ref": "#/$defs/Response"}
+  ],
+  "$defs": {
+    "Id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "Hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "UInt64": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,19})$", "description": "Decimal integer string. Server also enforces unsigned 64-bit maximum 18446744073709551615."},
+    "UtcTime": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "Cursor": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "Action": {"enum": ["START", "PAUSE", "RESUME", "STOP", "RESET", "STEP"]},
+    "Mode": {"enum": ["EXPLORE", "FORMAL"]},
+    "ResourceKind": {"enum": ["PROTOCOL", "SCENARIO", "HISTORY"]},
+    "Command": {"enum": ["simulator_capabilities_get", "simulator_profiles_list", "simulator_profile_get", "simulator_resources_list", "simulator_scenarios_list", "simulator_scenario_get", "simulator_scenario_save", "simulator_run_create", "simulator_run_control", "simulator_run_update_inputs", "simulator_run_get", "simulator_runs_list", "simulator_records_list", "simulator_report_get"]},
+    "ErrorCode": {"enum": ["INVALID_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "VERSION_CONFLICT", "IDEMPOTENCY_CONFLICT", "ICD_NOT_FROZEN", "PROFILE_MISMATCH", "MODEL_MAPPING_MISSING", "RESOURCE_INVALID", "TOOL_UNAVAILABLE", "STATE_CONFLICT", "CONTROL_CONFLICT", "VALUE_OUT_OF_RANGE", "OPERATION_NOT_ALLOWED", "TIMEOUT", "EVIDENCE_INCOMPLETE", "INTERNAL_ERROR"]},
+    "ErrorDetail": {
+      "type": "object", "additionalProperties": false, "required": ["path", "code", "message"],
+      "properties": {"path": {"type": "string", "pattern": "^(|/.*)$"}, "code": {"$ref": "#/$defs/ErrorCode"}, "message": {"type": "string", "maxLength": 1024}}
+    },
+    "Error": {
+      "type": "object", "additionalProperties": false, "required": ["code", "retryable", "details"],
+      "properties": {"code": {"$ref": "#/$defs/ErrorCode"}, "retryable": {"type": "boolean"}, "details": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/ErrorDetail"}}}
+    },
+    "ProfileRef": {
+      "type": "object", "additionalProperties": false, "required": ["profile_id", "version", "profile_hash"],
+      "properties": {"profile_id": {"$ref": "#/$defs/Id"}, "version": {"$ref": "#/$defs/Id"}, "profile_hash": {"$ref": "#/$defs/Hash"}}
+    },
+    "ScenarioRef": {
+      "type": "object", "additionalProperties": false, "required": ["scenario_id", "revision", "scenario_hash"],
+      "properties": {"scenario_id": {"$ref": "#/$defs/Id"}, "revision": {"$ref": "#/$defs/UInt64"}, "scenario_hash": {"$ref": "#/$defs/Hash"}}
+    },
+    "Values": {
+      "type": "object", "minProperties": 1, "maxProperties": 1024,
+      "propertyNames": {"$ref": "#/$defs/Id"},
+      "additionalProperties": {"oneOf": [{"type": "number"}, {"type": "boolean"}, {"type": "string", "maxLength": 4096}, {"type": "array", "minItems": 1, "maxItems": 1024, "items": {"type": "number"}}]},
+      "description": "Keys, value types, units, dimensions and writable permission must match the bound profile signal catalog. JSON numbers must be finite."
+    },
+    "Signal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["signal_id", "name", "value_type", "unit", "minimum", "maximum", "dimension", "writable"],
+      "properties": {
+        "signal_id": {"$ref": "#/$defs/Id"}, "name": {"type": "string", "minLength": 1, "maxLength": 256},
+        "value_type": {"enum": ["NUMBER", "INTEGER", "BOOLEAN", "STRING", "NUMBER_VECTOR"]},
+        "unit": {"type": ["string", "null"], "maxLength": 64}, "minimum": {"type": ["number", "null"]}, "maximum": {"type": ["number", "null"]},
+        "dimension": {"type": ["integer", "null"], "minimum": 1, "maximum": 1024}, "writable": {"type": "boolean"}
+      },
+      "allOf": [{"if": {"properties": {"value_type": {"const": "NUMBER_VECTOR"}}}, "then": {"properties": {"dimension": {"type": "integer"}}}, "else": {"properties": {"dimension": {"const": null}}}}]
+    },
+    "MessageDefinition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["message_id", "name", "direction", "category", "transport", "wire_definition_ref", "mapping_ref", "signals"],
+      "properties": {
+        "message_id": {"$ref": "#/$defs/Id"}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "direction": {"enum": ["TO_36", "FROM_36"]},
+        "category": {"enum": ["MISSION", "CONTROL", "PARAMETER", "ENVIRONMENT", "FAULT", "SENSOR", "ACTUATOR", "STATE", "FEEDBACK"]},
+        "transport": {"enum": ["CAN", "CANFD", "ETHERNET", "SERIAL", "AD", "DA", "IO", "VIDEO"]},
+        "wire_definition_ref": {"$ref": "#/$defs/Id"}, "mapping_ref": {"oneOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]},
+        "signals": {"type": "array", "minItems": 1, "maxItems": 1024, "items": {"$ref": "#/$defs/Signal"}}
+      }
+    },
+    "Profile": {
+      "type": "object", "additionalProperties": false, "required": ["ref", "name", "approval", "transports", "messages"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/ProfileRef"}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "approval": {"enum": ["DRAFT", "FROZEN"]},
+        "transports": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["CAN", "CANFD", "ETHERNET", "SERIAL", "AD", "DA", "IO", "VIDEO"]}},
+        "messages": {"type": "array", "minItems": 1, "maxItems": 10000, "items": {"$ref": "#/$defs/MessageDefinition"}}
+      }
+    },
+    "ProfileSummary": {
+      "type": "object", "additionalProperties": false, "required": ["ref", "name", "approval", "transports", "message_count"],
+      "properties": {"ref": {"$ref": "#/$defs/ProfileRef"}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "approval": {"enum": ["DRAFT", "FROZEN"]}, "transports": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["CAN", "CANFD", "ETHERNET", "SERIAL", "AD", "DA", "IO", "VIDEO"]}}, "message_count": {"type": "integer", "minimum": 1, "maximum": 10000}}
+    },
+    "Resource": {
+      "type": "object", "additionalProperties": false, "required": ["resource_id", "name", "kind", "format", "size_bytes", "sha256", "validation_status", "validation_errors"],
+      "properties": {
+        "resource_id": {"$ref": "#/$defs/Id"}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "kind": {"$ref": "#/$defs/ResourceKind"},
+        "format": {"enum": ["DBC", "ARXML", "ICD_JSON", "SCENARIO_JSON", "SCENARIO_YAML", "CAN_LOG", "PCAP", "ENGINEERING_JSONL"]},
+        "size_bytes": {"$ref": "#/$defs/UInt64"}, "sha256": {"$ref": "#/$defs/Hash"}, "validation_status": {"enum": ["PENDING", "VALID", "INVALID"]},
+        "validation_errors": {"type": "array", "items": {"$ref": "#/$defs/ErrorDetail"}}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "PROTOCOL"}}}, "then": {"properties": {"format": {"enum": ["DBC", "ARXML", "ICD_JSON"]}}}},
+        {"if": {"properties": {"kind": {"const": "SCENARIO"}}}, "then": {"properties": {"format": {"enum": ["SCENARIO_JSON", "SCENARIO_YAML"]}}}},
+        {"if": {"properties": {"kind": {"const": "HISTORY"}}}, "then": {"properties": {"format": {"enum": ["CAN_LOG", "PCAP", "ENGINEERING_JSONL"]}}}}
+      ]
+    },
+    "Step": {
+      "type": "object", "additionalProperties": false, "required": ["step_id", "kind", "at_sim_time_us"],
+      "properties": {
+        "step_id": {"$ref": "#/$defs/Id"}, "kind": {"enum": ["INPUT", "WAIT", "REPLAY", "FAULT"]}, "at_sim_time_us": {"$ref": "#/$defs/UInt64"},
+        "message_id": {"$ref": "#/$defs/Id"}, "values": {"$ref": "#/$defs/Values"}, "input_step_id": {"$ref": "#/$defs/Id"},
+        "stage": {"enum": ["RECEIVED", "APPLIED", "RESPONSE"]}, "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 600000},
+        "resource_id": {"$ref": "#/$defs/Id"}, "replay_policy_ref": {"$ref": "#/$defs/Id"}, "fault_case_ref": {"$ref": "#/$defs/Id"}
+      },
+      "oneOf": [
+        {"properties": {"kind": {"const": "INPUT"}}, "required": ["message_id", "values"], "not": {"anyOf": [{"required": ["input_step_id"]}, {"required": ["stage"]}, {"required": ["timeout_ms"]}, {"required": ["resource_id"]}, {"required": ["replay_policy_ref"]}, {"required": ["fault_case_ref"]}]}},
+        {"properties": {"kind": {"const": "WAIT"}}, "required": ["input_step_id", "stage", "timeout_ms"], "not": {"anyOf": [{"required": ["message_id"]}, {"required": ["values"]}, {"required": ["resource_id"]}, {"required": ["replay_policy_ref"]}, {"required": ["fault_case_ref"]}]}},
+        {"properties": {"kind": {"const": "REPLAY"}}, "required": ["resource_id", "replay_policy_ref"], "not": {"anyOf": [{"required": ["message_id"]}, {"required": ["values"]}, {"required": ["input_step_id"]}, {"required": ["stage"]}, {"required": ["timeout_ms"]}, {"required": ["fault_case_ref"]}]}},
+        {"properties": {"kind": {"const": "FAULT"}}, "required": ["fault_case_ref"], "not": {"anyOf": [{"required": ["message_id"]}, {"required": ["values"]}, {"required": ["input_step_id"]}, {"required": ["stage"]}, {"required": ["timeout_ms"]}, {"required": ["resource_id"]}, {"required": ["replay_policy_ref"]}]}}
+      ]
+    },
+    "ScenarioDraft": {
+      "type": "object", "additionalProperties": false, "required": ["name", "profile_ref", "model_binding_ref", "resource_ids", "steps"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 256}, "profile_ref": {"$ref": "#/$defs/ProfileRef"}, "model_binding_ref": {"$ref": "#/$defs/Id"},
+        "resource_ids": {"type": "array", "maxItems": 1000, "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "steps": {"type": "array", "minItems": 1, "maxItems": 10000, "items": {"$ref": "#/$defs/Step"}}
+      }
+    },
+    "Scenario": {
+      "type": "object", "additionalProperties": false, "required": ["ref", "definition", "validation_status", "validation_errors"],
+      "properties": {"ref": {"$ref": "#/$defs/ScenarioRef"}, "definition": {"$ref": "#/$defs/ScenarioDraft"}, "validation_status": {"enum": ["PENDING", "VALID", "INVALID"]}, "validation_errors": {"type": "array", "items": {"$ref": "#/$defs/ErrorDetail"}}}
+    },
+    "ScenarioSummary": {
+      "type": "object", "additionalProperties": false, "required": ["ref", "name", "profile_ref", "validation_status", "step_count"],
+      "properties": {"ref": {"$ref": "#/$defs/ScenarioRef"}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "profile_ref": {"$ref": "#/$defs/ProfileRef"}, "validation_status": {"enum": ["PENDING", "VALID", "INVALID"]}, "step_count": {"type": "integer", "minimum": 1, "maximum": 10000}}
+    },
+    "Stats": {
+      "type": "object", "additionalProperties": false, "required": ["tx_frames", "rx_frames", "received_inputs", "applied_inputs", "rejected_inputs"],
+      "properties": {"tx_frames": {"$ref": "#/$defs/UInt64"}, "rx_frames": {"$ref": "#/$defs/UInt64"}, "received_inputs": {"$ref": "#/$defs/UInt64"}, "applied_inputs": {"$ref": "#/$defs/UInt64"}, "rejected_inputs": {"$ref": "#/$defs/UInt64"}}
+    },
+    "Run": {
+      "type": "object", "additionalProperties": false,
+      "required": ["run_id", "revision", "mode", "profile_ref", "scenario_ref", "source_binding_ref", "toolchain_ids", "state", "result", "available_actions", "stats", "evidence_complete", "last_error", "created_at", "updated_at"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/Id"}, "revision": {"$ref": "#/$defs/UInt64"}, "mode": {"$ref": "#/$defs/Mode"}, "profile_ref": {"$ref": "#/$defs/ProfileRef"}, "scenario_ref": {"$ref": "#/$defs/ScenarioRef"},
+        "source_binding_ref": {"$ref": "#/$defs/Id"}, "toolchain_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "state": {"enum": ["VALIDATING", "BLOCKED", "READY", "RUNNING", "WAITING", "PAUSED", "STOPPING", "COMPLETED", "FAILED"]}, "result": {"enum": ["NOT_RUN", "RUNNING", "PASS", "FAIL", "INCOMPLETE"]},
+        "available_actions": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Action"}}, "stats": {"$ref": "#/$defs/Stats"}, "evidence_complete": {"type": "boolean"},
+        "last_error": {"oneOf": [{"$ref": "#/$defs/Error"}, {"type": "null"}]}, "created_at": {"$ref": "#/$defs/UtcTime"}, "updated_at": {"$ref": "#/$defs/UtcTime"}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"enum": ["VALIDATING", "BLOCKED", "READY"]}}}, "then": {"properties": {"result": {"const": "NOT_RUN"}}}},
+        {"if": {"properties": {"state": {"enum": ["RUNNING", "WAITING", "PAUSED", "STOPPING"]}}}, "then": {"properties": {"result": {"const": "RUNNING"}}}},
+        {"if": {"properties": {"state": {"const": "COMPLETED"}}}, "then": {"properties": {"result": {"enum": ["PASS", "FAIL", "INCOMPLETE"]}}}},
+        {"if": {"properties": {"state": {"const": "FAILED"}}}, "then": {"properties": {"result": {"const": "FAIL"}, "last_error": {"$ref": "#/$defs/Error"}}}},
+        {"if": {"properties": {"result": {"const": "PASS"}}}, "then": {"properties": {"state": {"const": "COMPLETED"}, "evidence_complete": {"const": true}}}}
+      ]
+    },
+    "Record": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_id", "cursor", "run_id", "input_event_id", "operation_id", "kind", "timestamp", "clock_domain", "monotonic_us", "message_id", "reason_code", "evidence_refs"],
+      "properties": {
+        "record_id": {"$ref": "#/$defs/Id"}, "cursor": {"$ref": "#/$defs/Cursor"}, "run_id": {"$ref": "#/$defs/Id"},
+        "input_event_id": {"oneOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]}, "operation_id": {"oneOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]},
+        "kind": {"enum": ["TX", "RX", "RECEIVED", "APPLIED", "REJECTED", "RESPONSE", "SAFETY", "TOOL_ERROR", "OPERATION_RESULT"]}, "timestamp": {"$ref": "#/$defs/UtcTime"},
+        "clock_domain": {"$ref": "#/$defs/Id"}, "monotonic_us": {"$ref": "#/$defs/UInt64"}, "message_id": {"oneOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]},
+        "reason_code": {"type": "string", "minLength": 1, "maxLength": 128}, "evidence_refs": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/Id"}},
+        "step_index": {"$ref": "#/$defs/UInt64"}, "sim_time_us": {"$ref": "#/$defs/UInt64"}, "applied_values": {"$ref": "#/$defs/Values"},
+        "operation_result": {"enum": ["SUCCEEDED", "FAILED"]}, "new_run_id": {"$ref": "#/$defs/Id"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "APPLIED"}}}, "then": {"required": ["step_index", "sim_time_us", "applied_values"], "properties": {"input_event_id": {"$ref": "#/$defs/Id"}, "evidence_refs": {"minItems": 1}}}},
+        {"if": {"properties": {"kind": {"const": "OPERATION_RESULT"}}}, "then": {"required": ["operation_result"], "properties": {"operation_id": {"$ref": "#/$defs/Id"}}}}
+      ]
+    },
+    "CaseResult": {
+      "type": "object", "additionalProperties": false, "required": ["case_id", "required", "result", "reason_code", "evidence_refs"],
+      "properties": {"case_id": {"$ref": "#/$defs/Id"}, "required": {"type": "boolean"}, "result": {"enum": ["PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE", "INCOMPLETE"]}, "reason_code": {"type": "string", "minLength": 1, "maxLength": 128}, "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/Id"}}},
+      "allOf": [
+        {"if": {"properties": {"required": {"const": true}}}, "then": {"properties": {"result": {"enum": ["PASS", "FAIL", "NOT_RUN", "INCOMPLETE"]}}}},
+        {"if": {"properties": {"result": {"const": "PASS"}}}, "then": {"properties": {"evidence_refs": {"minItems": 1}}}}
+      ]
+    },
+    "Report": {
+      "type": "object", "additionalProperties": false, "required": ["run_id", "mode", "profile_ref", "scenario_ref", "overall_result", "evidence_complete", "cases", "artifact_refs"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/Id"}, "mode": {"$ref": "#/$defs/Mode"}, "profile_ref": {"$ref": "#/$defs/ProfileRef"}, "scenario_ref": {"$ref": "#/$defs/ScenarioRef"},
+        "overall_result": {"enum": ["PASS", "FAIL", "INCOMPLETE"]}, "evidence_complete": {"type": "boolean"},
+        "cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/CaseResult"}}, "artifact_refs": {"type": "array", "items": {"$ref": "#/$defs/Id"}}
+      },
+      "allOf": [{"if": {"properties": {"overall_result": {"const": "PASS"}}}, "then": {"properties": {"evidence_complete": {"const": true}, "cases": {"items": {"properties": {"result": {"not": {"const": "FAIL"}}}, "allOf": [{"if": {"properties": {"required": {"const": true}}}, "then": {"properties": {"result": {"const": "PASS"}}}}]}}}}}]
+    },
+    "Toolchain": {
+      "type": "object", "additionalProperties": false, "required": ["branch_id", "status", "reason"],
+      "properties": {"branch_id": {"$ref": "#/$defs/Id"}, "status": {"enum": ["AVAILABLE", "UNAVAILABLE", "UNVERIFIED", "OUT_OF_SCOPE"]}, "reason": {"type": "string", "maxLength": 1024}}
+    },
+    "Binding": {
+      "type": "object", "additionalProperties": false, "required": ["binding_id", "kind", "name", "profile_ref", "available"],
+      "properties": {"binding_id": {"$ref": "#/$defs/Id"}, "kind": {"enum": ["SOURCE", "MODEL", "REPLAY_POLICY", "FAULT_CASE"]}, "name": {"type": "string", "minLength": 1, "maxLength": 256}, "profile_ref": {"$ref": "#/$defs/ProfileRef"}, "available": {"type": "boolean"}}
+    },
+    "Capabilities": {
+      "type": "object", "additionalProperties": false, "required": ["api_version", "supported_commands", "supported_actions", "modes", "toolchains", "bindings", "idempotency_retention_ms", "subscriptions_supported"],
+      "properties": {
+        "api_version": {"const": "0.1"}, "supported_commands": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Command"}}, "supported_actions": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Action"}},
+        "modes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Mode"}}, "toolchains": {"type": "array", "items": {"$ref": "#/$defs/Toolchain"}}, "bindings": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/Binding"}},
+        "idempotency_retention_ms": {"type": "integer", "minimum": 1}, "subscriptions_supported": {"const": false}
+      }
+    },
+    "ProfilePage": {"type": "object", "additionalProperties": false, "required": ["items", "next_cursor"], "properties": {"items": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/ProfileSummary"}}, "next_cursor": {"oneOf": [{"$ref": "#/$defs/Cursor"}, {"type": "null"}]}}},
+    "ResourcePage": {"type": "object", "additionalProperties": false, "required": ["items", "next_cursor"], "properties": {"items": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/Resource"}}, "next_cursor": {"oneOf": [{"$ref": "#/$defs/Cursor"}, {"type": "null"}]}}},
+    "ScenarioPage": {"type": "object", "additionalProperties": false, "required": ["items", "next_cursor"], "properties": {"items": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/ScenarioSummary"}}, "next_cursor": {"oneOf": [{"$ref": "#/$defs/Cursor"}, {"type": "null"}]}}},
+    "RunPage": {"type": "object", "additionalProperties": false, "required": ["items", "next_cursor"], "properties": {"items": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/Run"}}, "next_cursor": {"oneOf": [{"$ref": "#/$defs/Cursor"}, {"type": "null"}]}}},
+    "RecordPage": {
+      "type": "object", "additionalProperties": false, "required": ["run_id", "items", "next_cursor", "complete", "retention_gap"],
+      "properties": {"run_id": {"$ref": "#/$defs/Id"}, "items": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/Record"}}, "next_cursor": {"oneOf": [{"$ref": "#/$defs/Cursor"}, {"type": "null"}]}, "complete": {"type": "boolean"}, "retention_gap": {"type": "boolean"}}
+    },
+    "Meta": {"type": "object", "required": ["api_version", "request_id"], "properties": {"api_version": {"const": "0.1"}, "request_id": {"$ref": "#/$defs/Id"}}},
+    "ListParams": {"type": "object", "properties": {"cursor": {"$ref": "#/$defs/Cursor"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 100}}},
+    "ProfileParams": {"type": "object", "required": ["profile_ref"], "properties": {"profile_ref": {"$ref": "#/$defs/ProfileRef"}}},
+    "ResourceListParams": {"allOf": [{"$ref": "#/$defs/ListParams"}], "properties": {"kind": {"$ref": "#/$defs/ResourceKind"}}},
+    "ScenarioParams": {"type": "object", "required": ["scenario_ref"], "properties": {"scenario_ref": {"$ref": "#/$defs/ScenarioRef"}}},
+    "SaveParams": {"type": "object", "required": ["definition"], "properties": {"definition": {"$ref": "#/$defs/ScenarioDraft"}, "base_ref": {"$ref": "#/$defs/ScenarioRef"}}},
+    "CreateParams": {"type": "object", "required": ["scenario_ref", "mode", "source_binding_ref", "toolchain_ids"], "properties": {"scenario_ref": {"$ref": "#/$defs/ScenarioRef"}, "mode": {"$ref": "#/$defs/Mode"}, "source_binding_ref": {"$ref": "#/$defs/Id"}, "toolchain_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}}}},
+    "ControlParams": {"type": "object", "required": ["run_id", "expected_revision", "action"], "properties": {"run_id": {"$ref": "#/$defs/Id"}, "expected_revision": {"$ref": "#/$defs/UInt64"}, "action": {"$ref": "#/$defs/Action"}}},
+    "UpdateParams": {"type": "object", "required": ["run_id", "expected_revision", "message_id", "values"], "properties": {"run_id": {"$ref": "#/$defs/Id"}, "expected_revision": {"$ref": "#/$defs/UInt64"}, "message_id": {"$ref": "#/$defs/Id"}, "values": {"$ref": "#/$defs/Values"}}},
+    "RunParams": {"type": "object", "required": ["run_id"], "properties": {"run_id": {"$ref": "#/$defs/Id"}}},
+    "RecordParams": {"type": "object", "required": ["run_id"], "properties": {"run_id": {"$ref": "#/$defs/Id"}, "after_cursor": {"$ref": "#/$defs/Cursor"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 100}}},
+    "Request": {
+      "type": "object", "additionalProperties": false, "required": ["cmd", "params"], "properties": {"cmd": {"$ref": "#/$defs/Command"}, "params": {"$ref": "#/$defs/Meta"}},
+      "allOf": [
+        {"if": {"properties": {"cmd": {"const": "simulator_capabilities_get"}}}, "then": {"properties": {"params": {"$ref": "#/$defs/Meta", "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"enum": ["simulator_profiles_list", "simulator_scenarios_list", "simulator_runs_list"]}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/ListParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_profile_get"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/ProfileParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_resources_list"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/ResourceListParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_scenario_get"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/ScenarioParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_scenario_save"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/SaveParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_run_create"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/CreateParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_run_control"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/ControlParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_run_update_inputs"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/UpdateParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"enum": ["simulator_run_get", "simulator_report_get"]}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/RunParams"}], "unevaluatedProperties": false}}}},
+        {"if": {"properties": {"cmd": {"const": "simulator_records_list"}}}, "then": {"properties": {"params": {"allOf": [{"$ref": "#/$defs/Meta"}, {"$ref": "#/$defs/RecordParams"}], "unevaluatedProperties": false}}}}
+      ]
+    },
+    "Response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "api_version", "request_id", "cmd", "status", "code", "message", "timestamp", "operation_id", "data", "error"],
+      "properties": {
+        "kind": {"const": "RESPONSE"}, "api_version": {"const": "0.1"}, "request_id": {"$ref": "#/$defs/Id"}, "cmd": {"$ref": "#/$defs/Command"},
+        "status": {"enum": ["SUCCESS", "ACCEPTED", "REJECTED", "FAILED"]}, "code": {"type": "string"}, "message": {"type": "string", "maxLength": 1024}, "timestamp": {"$ref": "#/$defs/UtcTime"},
+        "operation_id": {"oneOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]}, "data": {}, "error": {"oneOf": [{"$ref": "#/$defs/Error"}, {"type": "null"}]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"enum": ["REJECTED", "FAILED"]}}}, "then": {"properties": {"code": {"$ref": "#/$defs/ErrorCode"}, "operation_id": {"const": null}, "data": {"const": null}, "error": {"$ref": "#/$defs/Error"}}}},
+        {"if": {"properties": {"status": {"const": "ACCEPTED"}}}, "then": {"properties": {"cmd": {"enum": ["simulator_run_control", "simulator_run_update_inputs"]}, "code": {"const": "QUEUED"}, "operation_id": {"$ref": "#/$defs/Id"}, "data": {"$ref": "#/$defs/Run"}, "error": {"const": null}}}},
+        {"if": {"properties": {"status": {"const": "SUCCESS"}}}, "then": {"properties": {"cmd": {"not": {"enum": ["simulator_run_control", "simulator_run_update_inputs"]}}, "code": {"const": "OK"}, "operation_id": {"const": null}, "error": {"const": null}}, "allOf": [
+          {"if": {"properties": {"cmd": {"const": "simulator_capabilities_get"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/Capabilities"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_profiles_list"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/ProfilePage"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_profile_get"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/Profile"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_resources_list"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/ResourcePage"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_scenarios_list"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/ScenarioPage"}}}},
+          {"if": {"properties": {"cmd": {"enum": ["simulator_scenario_get", "simulator_scenario_save"]}}}, "then": {"properties": {"data": {"$ref": "#/$defs/Scenario"}}}},
+          {"if": {"properties": {"cmd": {"enum": ["simulator_run_create", "simulator_run_get"]}}}, "then": {"properties": {"data": {"$ref": "#/$defs/Run"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_runs_list"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/RunPage"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_records_list"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/RecordPage"}}}},
+          {"if": {"properties": {"cmd": {"const": "simulator_report_get"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/Report"}}}}
+        ]}}
+      ]
+    }
+  }
+}
