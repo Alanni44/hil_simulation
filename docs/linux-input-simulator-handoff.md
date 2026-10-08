@@ -6,7 +6,7 @@
 
 本次模拟器工作位于仓库根目录的 `input_simulator/`、`icd_runtime/`、`icd_gateway/`、`tests/icd_runtime/` 和 `tests/icd_gateway/`。Windows 和 Linux 使用相同模块、配置格式及冻结 ICD。Windows 虚拟环境、缓存、浏览器截图、静态 QA 的本地 vendor、重复打包目录不上传，也不应复制到 Linux 使用。
 
-当前只推进 PROTOCOL、SCENARIO 自行生成数据并经原工具链发送、标准接收解码和收发留痕。HISTORY 由外部接手人员负责，已有源码、测试、阶段计划及 `artifacts/icd_gateway/` 中的历史证据保留。当前不扩展 W4/W5，不将硬件采集、模型效果或正式替换资格列为发送里程碑前置。共享服务中的历史开发内容保留，不能据此推断目标后端已经接入。
+PROTOCOL、SCENARIO 自行生成数据并经原工具链发送、标准接收解码和收发留痕。2026-10-08 已合入外部 HISTORY/PCAP 交付和全部 200 份历史证据，入口与兼容性边界见 [合并说明](history-handoff-integration.md)。第三条原负责人交付的 Linux PCAP 脚本可继续使用，但其 Round 4 仍是会话准入诊断，不是具备实际消费者的生产回放服务。当前不扩展 W4/W5，不将硬件采集、模型效果或正式替换资格列为发送里程碑前置。
 
 ## 拉取与环境
 
@@ -52,8 +52,8 @@ python -X utf8 -m input_simulator.send_cli --contract-dir docs/interfaces/baseli
 
 - CANT 使用原 cantools/DBC、python-can 和 Linux SocketCAN；接收端显式加 `--can`，授权配置显式绑定 `CANFD_0` 到实际 `can0`。CAN FD 接口的设备、速率和权限由目标环境落实。
 - ETHGEN 使用原 Scapy L2；指定实际网卡和源/目的单播 MAC，落实原始套接字权限及需要的系统抓包依赖。不要把普通 UDP 发送当成 ETHGEN 回退。
-- HISTORY 的 canplayer/tcpreplay 与原回放分支保留，由第三条链路负责人接续。当前生成发送入口遇到未支持的回放动作明确拒绝，不跳过，也不伪造完成。
+- HISTORY 的 canplayer/tcpreplay 与原回放分支保留；新增 reference/prepared PCAP、双向抓包校核及在线会话准入诊断已集成。原生脚本使用 Linux、root、tcpreplay/tcpdump/iproute2/ethtool 和批准的隔离环境；Round 4 原脚本还要求 Python 位于 `uav-history-round4` Conda 环境。重跑必须指定新证据目录，不能覆盖导入记录。当前生成发送入口仍明确拒绝未实现的 REPLAY 动作，不把诊断脚本冒充运行服务。
 
-唯一待办仍为 `docs/superpowers/plans/linux-development-backlog.md`，本说明不新建第二套待办。当前目标主要对应 L-001/L-002/L-005/L-008/L-017；第三条 L-007/L-009 归接手人员。实际目标运行后应把命令、环境、完整 TX/RX 和真实结果追加到台账，缺环境的项目保持未执行。
+唯一待办仍为 `docs/superpowers/plans/linux-development-backlog.md`，本说明不新建第二套待办。当前目标主要对应 L-001/L-002/L-005/L-008/L-017；第三条 L-007/L-009 已追加此次外部交付与剩余验证边界。实际目标运行后应把命令、环境、完整 TX/RX 和真实结果追加到台账，缺环境的项目保持未执行。
 
 接收验证模式仅给出标准 RECEIVED/VALIDATED、probe_id=0，不证明模型 APPLIED/CONSUMED，也不代表正式 3.3 平滑替换已验收。未来真实 3.3 仍通过相同冻结 ICD 和同一接收路径接入，不按模拟器/真实来源分流。

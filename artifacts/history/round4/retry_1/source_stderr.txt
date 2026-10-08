@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/mnt/e/GuoZhao/Desktop/UAVDemo/3_6/code_handoff_33_36_20261006/scripts/validate_history_round4_gateway.py", line 444, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/mnt/e/GuoZhao/Desktop/UAVDemo/3_6/code_handoff_33_36_20261006/scripts/validate_history_round4_gateway.py", line 430, in main
+    result = run_source(args.output_dir, args.gateway_pid)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/e/GuoZhao/Desktop/UAVDemo/3_6/code_handoff_33_36_20261006/scripts/validate_history_round4_gateway.py", line 212, in run_source
+    write_json_new(output_dir / "session_open.json", _session_document(source, reply, gateway_pid))
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/e/GuoZhao/Desktop/UAVDemo/3_6/code_handoff_33_36_20261006/scripts/validate_history_round4_gateway.py", line 151, in _session_document
+    record = source.records[-1]
+             ^^^^^^^^^^^^^^
+AttributeError: 'UDPSource' object has no attribute 'records'

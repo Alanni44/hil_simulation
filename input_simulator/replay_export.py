@@ -37,6 +37,7 @@ class ExportBinding:
     interface: str
     source_mac: str | None = None
     destination_mac: str | None = None
+    output_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +75,12 @@ class ReplayExport:
         names, size = set(), len(self.report_json)
         for item, descriptor in zip(self.files, report["files"]):
             if (type(item) is not ExportFile or type(item.name) is not str
-                    or re.fullmatch(r"(?:ETH_[0-3]\.pcap|CANFD_[0-3]\.log)", item.name) is None
+                    or type(item.channel_id) is not str or type(item.format) is not str
+                    or re.fullmatch(r"(?:ETH_[0-3]\.pcap|CANFD_[0-3]\.log|prepared\.pcap)", item.name) is None
+                    or not ((item.format == "PCAP" and re.fullmatch(r"ETH_[0-3]", item.channel_id)
+                             and item.name in (item.channel_id + ".pcap", "prepared.pcap"))
+                            or (item.format == "CAN_LOG" and re.fullmatch(r"CANFD_[0-3]", item.channel_id)
+                                and item.name == item.channel_id + ".log"))
                     or item.name in names or type(item.data) is not bytes
                     or descriptor.get("name") != item.name or descriptor.get("channel_id") != item.channel_id
                     or descriptor.get("interface") != item.interface or descriptor.get("format") != item.format
@@ -125,13 +131,22 @@ class ReplayExporter:
     def _bindings(self, prepared, bindings):
         if type(bindings) is not tuple or not 1 <= len(bindings) <= 56:
             raise ICDError("RESOURCE", "explicit immutable per-channel output bindings required")
-        result, interfaces = {}, set()
+        result, interfaces, names = {}, set(), set()
         for b in bindings:
             if (type(b) is not ExportBinding or type(b.channel_id) is not str
                     or b.channel_id not in self.channels or b.channel_id in result
                     or type(b.interface) is not str or INTERFACE.fullmatch(b.interface) is None
                     or b.interface in interfaces):
                 raise ICDError("RESOURCE", "unknown/duplicate channel or unsafe/duplicate output interface")
+            ethernet = self.channels[b.channel_id]["type"] == "ETH"
+            default_name = b.channel_id + (".pcap" if ethernet else ".log")
+            allowed_names = (default_name, "prepared.pcap") if ethernet else (default_name,)
+            if b.output_name is not None and (type(b.output_name) is not str or b.output_name not in allowed_names):
+                raise ICDError("RESOURCE", "export filename must match its channel and capture format")
+            name = b.output_name or default_name
+            if name in names:
+                raise ICDError("RESOURCE", "duplicate export filename")
+            names.add(name)
             if (b.source_mac is None) != (b.destination_mac is None):
                 raise ICDError("RESOURCE", "both Ethernet MAC identities must be explicitly provided")
             if b.source_mac is not None:
@@ -374,7 +389,7 @@ class ReplayExporter:
                 if not udp and (actual.can.data != p.wire_data.data or actual.can.arbitration_id != p.wire_data.arbitration_id
                                 or not actual.can.is_fd or actual.can.bitrate_switch != p.wire_data.bitrate_switch):
                     raise ICDError("RESOURCE", "exported CAN log differs from prepared FD wire")
-            name = channel + (".pcap" if udp else ".log")
+            name = binding.output_name or channel + (".pcap" if udp else ".log")
             item = ExportFile(name, channel, binding.interface, fmt, data, _hash(data), timing)
             files.append(item)
             file_reports.append({"name": name, "channel_id": channel, "interface": binding.interface, "format": fmt,

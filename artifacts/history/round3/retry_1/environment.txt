@@ -1,0 +1,8 @@
+environment_class=WSL2_SOFTWARE_ONLY
+target_kylin_qualified=false
+kernel=Linux GuoZhao 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+prepared_pcap_sha256=febbf0e10c98b3d4adafa7dcb5027e0e6b0f212b6828a779f404d51ddf172134
+path_translation_only=true
+prepared_linux_path=/mnt/e/GuoZhao/Desktop/UAVDemo/3_6/code_handoff_33_36_20261006/artifacts/history/round2/prepared.pcap
+tx_namespace=uav-r3-tx-22344
+rx_namespace=uav-r3-rx-22344

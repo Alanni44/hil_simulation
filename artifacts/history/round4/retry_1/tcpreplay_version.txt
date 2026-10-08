@@ -1,0 +1,13 @@
+tcpreplay version: 4.4.4 (build git:v4.4.4) (debug)
+Copyright 2013-2022 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>
+The entire Tcpreplay Suite is licensed under the GPLv3
+Cache file supported: 04
+Compiled against libdnet: 1.17.0 (libdumbnet)
+Compiled against libpcap: 1.10.4
+64 bit packet counters: enabled
+Verbose printing via tcpdump: enabled
+Packet editing: disabled
+Fragroute engine: enabled
+Injection method: PF_PACKET send()
+Not compiled with netmap

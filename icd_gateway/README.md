@@ -4,6 +4,8 @@
 
 ## 2026-10-07 Reception Milestone
 
+2026-10-08 更新：已增量合入外部 HISTORY/PCAP 模块、脚本、配置、测试和 200 份历史抓包证据，详见 [合并说明](../docs/history-handoff-integration.md)。前两条生成发送、授权、接收与生命周期代码继续保留，默认网关仍仅 ID1。新的 HISTORY 兼容性测试验证同一 Receiver 的标准反馈及显式接收模式的完整解码/去重；历史 Round 4 仍为 RECEIVED/OK 后 FAILED/TARGET_MISSING，没有 APPLIED/CONSUMED。下文“第三条由接手人员负责”描述原开发分工，不表示此次交付尚未合入。原生 Linux/实际 3.6 联调与生产回放服务仍待完成，不自动接到 `send_cli` 的 REPLAY 分支。
+
 当前目标是自生数据、原工具发送、标准实收解码并留下记录，不以W4/W5、硬件采集、完整模型效果/断言/九项清理/RunReport为前置。HISTORY后续由接手人员负责，旧源码和历史证据保留。本批不声称三条实体链路已打通。
 
 `config/generated-input-reception.json`是一份完整运行配置，内含原SourceInputs、真实资源指纹、完整六字段环境快照和0/80/160步的风速0/8/16波形，不是第二份ICD。原业务定义仍只看`docs/interfaces/输入模拟器完整接口定义_v0.3_单文件汇总.md`；本地运行配置与JSONL日志不增加线上字段。

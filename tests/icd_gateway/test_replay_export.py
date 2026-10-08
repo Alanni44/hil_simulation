@@ -71,6 +71,37 @@ class ExportTests(unittest.TestCase):
             with self.assertRaises(FrozenInstanceError):
                 item.data = b"changed"
 
+    def test_explicit_prepared_filename_is_safe_and_survives_persistence(self):
+        from input_simulator.replay_export import ExportBinding
+
+        self.assertIn("output_name", ExportBinding.__dataclass_fields__)
+        prepared = self.prepared()
+        binding = ExportBinding("ETH_0", "eth0", output_name="prepared.pcap")
+        bundle = self.exporter().export(prepared, (binding,), epoch_ns=0)
+        self.assertEqual(bundle.files[0].name, "prepared.pcap")
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "export"
+            bundle.write_new_directory(target)
+            self.assertEqual((target / "prepared.pcap").read_bytes(), bundle.files[0].data)
+        for name in ("..\\outside.pcap", "prepared.pcap/child", "prepared.exe",
+                     "ETH_1.pcap", "CANFD_0.log", "", [], False):
+            invalid = ExportBinding("ETH_0", "eth0", output_name=name)
+            self.rejects("RESOURCE", lambda: self.exporter().export(prepared, (invalid,), epoch_ns=0))
+
+    def test_explicit_export_filename_cannot_change_medium_or_forge_persistence(self):
+        from icd_runtime.json_codec import canonicalize
+
+        self.assertIn("output_name", self.binding().__dataclass_fields__)
+        bundle = self.exporter().export(self.prepared(), (self.binding(),), epoch_ns=0)
+        item = replace(bundle.files[0], name="prepared.pcap", channel_id="CANFD_0", format="CAN_LOG")
+        report = bundle.report()
+        report["files"][0].update(name=item.name, channel_id=item.channel_id, format=item.format)
+        forged = replace(bundle, files=(item,), report_json=canonicalize(report))
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "export"
+            self.rejects("RESOURCE", lambda: forged.write_new_directory(target))
+            self.assertFalse(target.exists())
+
     def test_all_11_can_input_frames_reassemble_after_full_log_export(self):
         tested = 0
         for mid, entry in self.contract.messages.items():

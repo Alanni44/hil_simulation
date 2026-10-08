@@ -1,0 +1,20 @@
+{
+  "mode": "DEVELOPMENT",
+  "channel": "ETH_0",
+  "receiver_bind": {"ip": "10.36.0.20", "port": 36100},
+  "grants": [
+    {
+      "identity": {
+        "run_id": "item-01",
+        "source_id": "item-01",
+        "vehicle_id": "vehicle-01",
+        "scenario_id": "item-01",
+        "model_id": "quadrotor_hil",
+        "definition_version": "HIL-ICD-1.0"
+      },
+      "roles": ["CONTROLLER"],
+      "source_endpoint": {"ip": "10.36.0.10", "port": 36102},
+      "feedback_endpoint": {"ip": "10.36.0.10", "port": 36101}
+    }
+  ]
+}

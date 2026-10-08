@@ -50,3 +50,4 @@ Thumbs.db
 
 # Preserve the published, bounded simulator regression evidence.
 !/artifacts/icd_gateway/*.log
+!/artifacts/history/**/*.log

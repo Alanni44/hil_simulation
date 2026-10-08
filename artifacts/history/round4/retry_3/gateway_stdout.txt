@@ -1,0 +1,1 @@
+{"status": "DEVELOPMENT_READY", "bind": ["10.36.0.20", 36100], "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27", "replacement_ready": false}
