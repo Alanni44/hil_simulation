@@ -1028,7 +1028,8 @@ int main(void) {
             ControlSource source = active_control_source();
             apply_live_update();
             apply_mission_update();
-            if (source == CONTROL_SOURCE_DEMO_MISSION && HIL_ACTUATOR_COUNT == 4U) {
+            if (source == CONTROL_SOURCE_DEMO_MISSION && HIL_DEMO_MISSION_ENABLED &&
+                HIL_ACTUATOR_COUNT == 4U) {
                 configure_demo_mission_controller();
                 mission_controller_step(have_valid_state ? (const FlightState_t*)&state : NULL, 0.001,
                                         mission_motor);
@@ -1038,7 +1039,7 @@ int main(void) {
                         fixed_wing_v3_tcp_send_event("mission_end", mission.mission_id);
                 }
                 write_actuator_command(mission_motor, HIL_ACTUATOR_COUNT);
-            } else {
+            } else if (source != CONTROL_SOURCE_DEMO_MISSION) {
                 pthread_mutex_lock(&command_lock);
                 control_arbiter_get(&control_arbiter, monotonic_time_ns(),
                                     external_actuator, HIL_ACTUATOR_COUNT);

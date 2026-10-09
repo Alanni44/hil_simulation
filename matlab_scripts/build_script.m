@@ -320,7 +320,14 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     fprintf(fid, '};\n');
     source_mask = contract_control_source_mask(contract);
     fprintf(fid, '#define HIL_CONTROL_SOURCE_MASK %uU\n', source_mask);
-    fprintf(fid, '#define HIL_DEMO_MISSION_ENABLED %d\n', bitand(source_mask, 1) ~= 0);
+    % A legacy V2 contract may retain the compatibility source mask without
+    % declaring a vehicle/controller coupling.  Only an explicit multirotor
+    % contract authorizes the in-process demo mission controller to write
+    % flight-control inputs; ordinary axis-command inputs remain owned by
+    % their accepted input snapshot.
+    demo_mission_enabled = isfield(contract, 'vehicle_kind') && ...
+        strcmp(contract.vehicle_kind, 'multirotor') && bitand(source_mask, 1) ~= 0;
+    fprintf(fid, '#define HIL_DEMO_MISSION_ENABLED %d\n', demo_mission_enabled);
     if isfield(contract, 'vehicle_kind') && strcmp(contract.vehicle_kind, 'fixed_wing')
         fixed_control = contract.inputs.flight_control.ports;
         fixed_environment = contract.inputs.environment.ports;
