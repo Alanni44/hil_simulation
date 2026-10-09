@@ -1,0 +1,16 @@
+{
+  "dependencies": [],
+  "files": {
+    "README.md": "f68d5535d7591b1a79ca7f4b1778bf594a0fc710dff89f065ada02f7437f3180",
+    "development_quad_model.c": "b9402fd9942025d494a8e9d89bc86ac21ce12d3ffec2513338342dbee92788c7",
+    "development_quad_model.h": "057196f2bf5c23ad6ae3b4646756df09dbf8af379d56c4ff3cc718534605df9e",
+    "hil_contract.json": "302e12dd37c89e403f6a6df97969e30daa501446daaadc1e51331aab372118c5",
+    "model_rt_bridge.h": "2243cad1062eefa32e9974b61b4d53859c209bf6a10f228d95a10375f75332f8",
+    "quadrotor_hil.slx": "e7ae5e61074d75d5db1b30ebb5cf157ed6ab2823c98a2cb864e3e69c6ed5554d"
+  },
+  "matlab_version": "DEVELOPMENT_C_ABI_ONLY_NOT_MATLAB",
+  "model_ref": "DEVELOPMENT_ONLY_NOT_RELEASE",
+  "model_revision_ref": "development-quad-v1",
+  "package_sha256": "42449acbe49ac4bb926a65db32347ec4569a2a8a959dbf030c0734eeccffedb2",
+  "top_model": "quadrotor_hil.slx"
+}
