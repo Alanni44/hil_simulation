@@ -156,6 +156,15 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
     bridge = ws_server.bridge
     old_host, old_port = bridge.UE4_HOST, bridge.UE4_PORT
     bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', 5001, True
+
+    def accepted_v2_ack(frame):
+        """Return the exact V2 acknowledgement envelope required by bridge."""
+        return {
+            'protocol_version': '2.0', 'type': 'ack',
+            'seq': frame['seq'] + 1000000, 'vehicle_id': 'Drone1',
+            'data': {'ref_type': frame['type'], 'ref_seq': frame['seq'],
+                     'accepted': True}}
+
     try:
         bridge.send_mission_plan('acceptance-route', [
             {'x': 100.0, 'y': 200.0, 'height': 30.0, 'speed': 7.0},
@@ -163,13 +172,9 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
         bridge.start_bridge()
         peer, _ = server.accept(); peer.settimeout(5)
         hello = _tcp_recv_frame(peer)
-        _tcp_send_frame(peer, {'type': 'ack', 'data': {
-            'accepted': True, 'ref_type': 'hello',
-            'ref_seq': hello.get('seq')}})
+        _tcp_send_frame(peer, accepted_v2_ack(hello))
         mission = _tcp_recv_frame(peer)
-        _tcp_send_frame(peer, {'type': 'ack', 'data': {
-            'accepted': True, 'ref_type': 'mission_plan',
-            'ref_seq': mission.get('seq')}})
+        _tcp_send_frame(peer, accepted_v2_ack(mission))
         connected_deadline = time.monotonic() + 2.0
         while not bridge.is_connected() and time.monotonic() < connected_deadline:
             time.sleep(0.01)
@@ -198,9 +203,7 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
                 vehicle_states.append(frame)
             elif frame.get('type') == 'simulation_event':
                 reset_event = frame
-                _tcp_send_frame(peer, {'type': 'ack', 'data': {
-                    'accepted': True, 'ref_type': 'simulation_event',
-                    'ref_seq': frame.get('seq')}})
+                _tcp_send_frame(peer, accepted_v2_ack(frame))
         elapsed = time.monotonic() - stream_started
         if not vehicle_states:
             raise AssertionError('UE4 bridge did not send vehicle_state')
