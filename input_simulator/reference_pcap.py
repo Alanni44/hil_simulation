@@ -142,6 +142,13 @@ def build_reference_pcap(contract, *, profile=DEFAULT_REFERENCE_PROFILE):
     return _sample(contract, profile)[-1]
 
 
+def reference_history_definition(raw):
+    """Return the frozen HISTORY definition corresponding to reference PCAP bytes."""
+    if type(raw) is not bytes or not raw:
+        raise ICDError("RESOURCE", "reference HISTORY requires immutable nonempty PCAP bytes")
+    return _history(raw)
+
+
 def _history(raw):
     return {
         "source_type": "HISTORY",

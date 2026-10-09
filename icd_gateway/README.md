@@ -40,6 +40,23 @@ PROTOCOL生成时，在同一运行配置中将`source_kind`设为`PROTOCOL`，�
 
 其发送参数使用`--can-channel CANFD_0 --can-interface can0`，接收端加`--can`，走原cantools/DBC -> python-can -> SocketCAN -> 同一Receiver。也可在SCENARIO事件中显式选择CANT；同批混合CANT/ETHGEN时必须同时配置各自参数。缺SocketCAN或Scapy L2直接TARGET_MISSING，不在Windows另造后端，也不把普通UDP当ETHGEN回退。CUTIL/SAVVY默认观察及原回放分支继续保留，但本批发送投影不运行这些服务。
 
+在没有实体 CANFD 设备时，可使用下列第一条 PROTOCOL 软件链路验收入口。它用 `python-can` VirtualBus 连接原 CANT/DBC 编码器与同一 3.6 `CANGateway → Receiver → ReceptionService`，产生不可覆盖的 TX/RX JSONL 证据：
+
+```text
+python -X utf8 scripts/run_protocol_reception_demo.py --output artifacts/icd_gateway/protocol-chain-<utc>-<sha>.jsonl
+```
+
+成功仅表示 `PROTOCOL → CANFD_VIRTUAL → 3.6 解码` 已取得 E1 `RECEIVED/VALIDATED` 证据；输出始终标记 `model_application_verified=false` 和 `physical_tool_qualification=NOT_EVALUATED`。它不使用模型写入、物理 CANFD、真实 3.3 或真实接收设备，不能替代后续目标 Linux/实体链路资格。
+
+第二条 SCENARIO 和第三条 HISTORY 的同类软件验收入口分别为：
+
+```text
+python -X utf8 scripts/run_scenario_reception_demo.py --output artifacts/icd_gateway/scenario-chain-<utc>-<sha>.jsonl
+python -X utf8 scripts/run_history_reception_demo.py --output artifacts/icd_gateway/history-chain-<utc>-<sha>.jsonl
+```
+
+SCENARIO 保持原 Scapy ETHGEN 生成 L2/IP/UDP 帧，在无实体网卡时由受控用户态虚拟以太网中继交给同一 Receiver；HISTORY 则从冻结 PCAP 经 `HistoryDecoder → ReplayProcessor` 重建当前会话的标准 UDP 帧。二者均只输出 E1 解码证据：前者的物理以太网资格、后者的 `tcpreplay`/原始网卡资格，仍均为 `NOT_EVALUATED`。
+
 本地记录格式分别为`HIL_RECEPTION_RUN_1`、`HIL_GENERATED_SAMPLE_1`、`HIL_RECEPTION_TX_1`、`HIL_RECEPTION_SESSION_1`、`HIL_RECEPTION_RX_1`与`HIL_RECEPTION_SUMMARY_1`。TX记录包括完整请求/反馈、原CAN TX/RX或Scapy L2实际尝试、原字节HEX及完成/失败/不确定结果；会话开立原请求/回执另存。`sent_fragments`仅计原native完整写入，不证明远端收到。RX保存完整解码报文、identity、实际binding和接收单调时刻；CAN反馈失败退出也保存已解码尾部。文件flush只计本地写入，不声称崩溃安全或完整证据链。
 
 接收验证只完成冻结帧/CRC/重组、Schema、会话/角色/时效准入，标准ACK为RECEIVED -> VALIDATED且probe_id=0；不虚构Status、APPLIED/CONSUMED、模型应用或正式替换资格。默认不启用此模式，未来真实3.3仍经同一ICD和接收路径，不按模拟器/真实来源分流。
