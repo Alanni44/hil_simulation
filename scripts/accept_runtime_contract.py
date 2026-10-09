@@ -22,7 +22,9 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'python_services'))
-from shared.flight_state import FLIGHT_STATE_FORMAT, FLIGHT_STATE_SIZE, parse_flight_state  # noqa
+from shared.flight_state import (FLIGHT_STATE_FORMAT, FLIGHT_STATE_SIZE,
+                                 FLIGHT_STATE_V3_FORMAT, FLIGHT_STATE_V3_FIELDS,
+                                 parse_flight_state)  # noqa
 from shared.model_package import package_sha256, sha256_file  # noqa
 from shared import state_cache  # noqa
 import ws_server  # noqa
@@ -135,11 +137,18 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
                   'q_z': 0.7071067811865476, 'p_radps': 0.0, 'q_radps': 0.0,
                   'r_radps': 0.0, 'ax_mps2': 4.0, 'ay_mps2': 5.0, 'az_mps2': 6.0,
                   'airborne': 1, 'lifecycle': 0, 'reserved': 0})
-    known_state_raw = struct.pack(FLIGHT_STATE_FORMAT, *[
-        known[key] for key in ('version', 'sequence', 'sim_time_s', 'north_m', 'east_m', 'down_m',
-                               'vn_mps', 've_mps', 'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z',
-                               'p_radps', 'q_radps', 'r_radps', 'ax_mps2', 'ay_mps2', 'az_mps2',
-                               'airborne', 'lifecycle', 'reserved')])
+    # Preserve the actual normalized state ABI.  A V3 version marker with a
+    # truncated V2 payload is invalid and prevents the bridge from accessing
+    # the declared V3 derivatives and flight fields.
+    if known['version'] == 3:
+        known_state_raw = struct.pack(FLIGHT_STATE_V3_FORMAT, *[
+            known[key] for key in FLIGHT_STATE_V3_FIELDS])
+    else:
+        known_state_raw = struct.pack(FLIGHT_STATE_FORMAT, *[
+            known[key] for key in ('version', 'sequence', 'sim_time_s', 'north_m', 'east_m', 'down_m',
+                                   'vn_mps', 've_mps', 'vd_mps', 'q_w', 'q_x', 'q_y', 'q_z',
+                                   'p_radps', 'q_radps', 'r_radps', 'ax_mps2', 'ay_mps2', 'az_mps2',
+                                   'airborne', 'lifecycle', 'reserved')])
     state_cache.update(known_state_raw)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
