@@ -10,6 +10,13 @@ from common import EXPECTED, INTERFACES, ROOT
 
 
 class ProtocolReceptionDemoTests(unittest.TestCase):
+    def module(self):
+        path = ROOT / "scripts" / "run_protocol_reception_demo.py"
+        spec = importlib.util.spec_from_file_location("protocol_reception_demo_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
     def test_virtual_can_protocol_chain_generates_and_decodes_without_model_application(self):
         path = ROOT / "scripts" / "run_protocol_reception_demo.py"
         spec = importlib.util.spec_from_file_location("protocol_reception_demo", path)
@@ -41,6 +48,17 @@ class ProtocolReceptionDemoTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 module.run(INTERFACES, EXPECTED, evidence, count=1, period_steps=80)
             self.assertEqual(evidence.read_text(encoding="utf-8"), "existing\n")
+
+    def test_controller_and_stimulus_inputs_decode_for_their_model(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence = Path(folder) / "protocol-controller.jsonl"
+            result = self.module().run(INTERFACES, EXPECTED, evidence, count=1, period_steps=80,
+                                       model_id="quadrotor_hil", message_ids=(7, 10, 11, 14))
+            rows = [json.loads(line) for line in evidence.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(result["message_ids"], [7, 10, 11, 14])
+        received = [row for row in rows if row["format"] == "HIL_RECEPTION_RX_1"]
+        self.assertEqual([row["message"]["message_id"] for row in received], [7, 10, 11, 14])
+        self.assertTrue(all(row["model_applied"] is False for row in received))
 
     def test_cli_runs_from_repository_root(self):
         with tempfile.TemporaryDirectory() as folder:

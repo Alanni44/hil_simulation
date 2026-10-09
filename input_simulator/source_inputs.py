@@ -281,9 +281,11 @@ class SourceInputAuditor:
             raise ICDError("RESOURCE", "replay interval is outside actual capture range")
         return tuple(records)
 
-    def audit(self, inputs, resources, *, model_id, capture_bindings=None):
+    def audit(self, inputs, resources, *, model_id, capture_bindings=None, include_scenario=True):
         if type(model_id) is not str or model_id not in self._model_ids:
             raise ICDError("MODEL", "source audit requires a model defined by the frozen catalogue")
+        if type(include_scenario) is not bool:
+            raise ICDError("SCHEMA", "source audit scenario inclusion must be an exact boolean")
         self.contract.validate_source_definition("SourceInputs", inputs)
         inputs = copy.deepcopy(inputs)
         input_json = canonicalize(inputs)
@@ -313,13 +315,18 @@ class SourceInputAuditor:
                 self._message_ids(stream["message_ids"], declared, stream["direction"])
             self._policy(history["policy"], history["streams"])
             refs.append(history["resource"])
-        scenario_plan = self._scenario(inputs["scenario"], history, declared, model_id)
+        # A PROTOCOL-only sender still validates the complete frozen
+        # SourceInputs document, but must not execute or model-check an
+        # unrelated ScenarioSource.  This keeps each selected CAN input bound
+        # to its own model without weakening source-document validation.
+        scenario_plan = (self._scenario(inputs["scenario"], history, declared, model_id)
+                         if include_scenario else None)
         waveforms = () if scenario_plan is None else scenario_plan.waveforms
         evidence, blobs = self._resources(refs, resources, pins)
         parsed_protocol = ProtocolParser(self.contract).parse(protocol, blobs)
         pending = [f"PROTOCOL_PARSER:{fmt}" for fmt in parsed_protocol.pending_formats]
         pending.extend(("TOOL_AND_CONSUMER_QUALIFICATION", "RUN_CONFIGURATION_AND_BINDINGS"))
-        if inputs["scenario"] is not None:
+        if include_scenario and inputs["scenario"] is not None:
             pending.append("SCENARIO_EXECUTION_SEMANTICS")
         decoded = False
         records = ()
@@ -333,7 +340,7 @@ class SourceInputAuditor:
                 records = self._engineering(blobs[history["resource"]["resource_id"]], history, declared, model_id)
                 decoded = True
                 complete = not any(s["lost_packets"] or s["truncated_packets"] for s in history["streams"])
-                if inputs["scenario"] is not None:
+                if include_scenario and inputs["scenario"] is not None:
                     for event in inputs["scenario"]["events"]:
                         if event["type"] == "REPLAY":
                             policy = event["policy"]
@@ -355,7 +362,7 @@ class SourceInputAuditor:
                     decoded = True
                     complete = decoded_capture.complete_capture
                     bindings_json = canonicalize([asdict(b) for b in capture_bindings])
-                    if inputs["scenario"] is not None:
+                    if include_scenario and inputs["scenario"] is not None:
                         for event in inputs["scenario"]["events"]:
                             if event["type"] == "REPLAY":
                                 decoder.check_policy(event["policy"], decoded_capture)

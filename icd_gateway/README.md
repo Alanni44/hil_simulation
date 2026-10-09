@@ -48,6 +48,14 @@ python -X utf8 scripts/run_protocol_reception_demo.py --output artifacts/icd_gat
 
 成功仅表示 `PROTOCOL → CANFD_VIRTUAL → 3.6 解码` 已取得 E1 `RECEIVED/VALIDATED` 证据；输出始终标记 `model_application_verified=false` 和 `physical_tool_qualification=NOT_EVALUATED`。它不使用模型写入、物理 CANFD、真实 3.3 或真实接收设备，不能替代后续目标 Linux/实体链路资格。
 
+PROTOCOL 的全冻结 CANFD 输入覆盖可使用独立会话执行，输出目录必须不存在：
+
+```text
+python -X utf8 scripts/run_protocol_coverage_demo.py --output-directory artifacts/icd_gateway/protocol-coverage-<utc>-<sha>
+```
+
+该入口覆盖三种模型各自授权下的消息 7--16（Controller 与 Stimulus 数据）；消息 2 是会话保活，不是由 PROTOCOL 生成的模拟器输入，因此不在此覆盖集内。每个模型使用不同虚拟 CAN 总线和 grant，不能把不同模型身份共享到同一物理 CAN 绑定。结果仍只是 E1 接收解码，并不表示模型应用或物理链路资格。
+
 第二条 SCENARIO 和第三条 HISTORY 的同类软件验收入口分别为：
 
 ```text

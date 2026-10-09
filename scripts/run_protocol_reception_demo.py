@@ -8,6 +8,7 @@ installed here.
 """
 
 import argparse
+import copy
 from contextlib import ExitStack
 import json
 from pathlib import Path
@@ -75,18 +76,31 @@ def _write(output, value):
     output.flush()
 
 
-def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80):
+def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
+        model_id="quadrotor_hil", message_ids=(DEFAULT_MESSAGE_ID,)):
     """Generate PROTOCOL data and retain exactly one software-chain evidence file."""
     if type(count) is not int or not 1 <= count <= 64:
         raise ICDError("RANGE", "protocol demo count must be an integer in 1..64")
     if type(period_steps) is not int or not 1 <= period_steps <= 0xffffffff:
         raise ICDError("RANGE", "protocol demo period must be a positive uint32 step count")
+    if (type(model_id) is not str or type(message_ids) is not tuple or not message_ids
+            or any(type(mid) is not int for mid in message_ids) or len(set(message_ids)) != len(message_ids)):
+        raise ICDError("SCHEMA", "explicit model and distinct protocol message IDs are required")
     contract_dir = Path(contract_dir).resolve(strict=True)
     output_path = Path(output_path)
     contract = Contract.load(contract_dir, expected_sha256=expected_sha256)
     inputs, resources, messages = _load_protocol_inputs(ROOT, contract_dir)
-    stimulus = {"message_id": DEFAULT_MESSAGE_ID, "payload": messages[DEFAULT_MESSAGE_ID]["payload"]}
-    plan = SendPlan.protocol(contract, inputs, resources, model_id="quadrotor_hil", stimuli=[stimulus],
+    stimuli = []
+    roles = set()
+    for mid in message_ids:
+        entry = contract.entry(mid)
+        if mid not in messages or model_id not in entry["model_ids"]:
+            raise ICDError("MODEL", "protocol message fixture is not applicable to the requested model")
+        if entry["role"] != "ANY_SESSION_ROLE":
+            roles.add(entry["role"])
+        stimuli.append({"message_id": mid, "payload": messages[mid]["payload"]})
+    roles = tuple(role for role in ("STIMULUS", "CONTROLLER", "OBSERVER") if role in roles) or ("STIMULUS",)
+    plan = SendPlan.protocol(contract, inputs, resources, model_id=model_id, stimuli=stimuli,
                              count=count, period_steps=period_steps, first_step=0)
 
     receiver_endpoint = _reserve_udp_endpoint()
@@ -101,9 +115,10 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80)
         stack.callback(transport.close)
         udp_binding = PeerBinding("ETH_0", "UDP", "{}:{}".format(*transport.source_endpoint))
         can_binding = PeerBinding("CANFD_0", "CANFD", DEFAULT_INTERFACE)
-        identity = messages[1]["payload"]["identity"]
-        registry = SessionRegistry(contract, (SourceGrant(identity, ("STIMULUS",), (udp_binding, can_binding)),))
-        reception = ReceptionService(contract, registry, (DEFAULT_MESSAGE_ID,))
+        identity = copy.deepcopy(messages[1]["payload"]["identity"])
+        identity["model_id"] = model_id
+        registry = SessionRegistry(contract, (SourceGrant(identity, roles, (udp_binding, can_binding)),))
+        reception = ReceptionService(contract, registry, tuple(message_ids))
         receiver = Receiver(contract, registry, reception_service=reception)
         gateway = UDPGateway(receiver, bind=receiver_endpoint,
                              feedback_routes={udp_binding: transport.feedback_endpoint}, channel="ETH_0")
@@ -116,7 +131,7 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80)
         reservations = ChannelReservations()
         token = reservations.reserve("protocol-demo", "CANT", (DEFAULT_INTERFACE,), mode="SEND")
         stack.callback(reservations.release, token)
-        session = SourceSession(transport, identity, ("STIMULUS",), max_records=4096)
+        session = SourceSession(transport, identity, roles, max_records=4096)
         stack.callback(session.close)
         parser = ProtocolParser(contract)
         parser.parse(inputs["protocol"], resources)
@@ -136,8 +151,9 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80)
         thread.start()
         try:
             _write(output, {"format": "HIL_PROTOCOL_CHAIN_1", "status": "STARTED",
-                            "source": "PROTOCOL", "transport": "CANFD_VIRTUAL", "message_id": DEFAULT_MESSAGE_ID,
-                            "sample_count": count, "baseline_sha256": contract.baseline_sha256,
+                            "source": "PROTOCOL", "transport": "CANFD_VIRTUAL", "model_id": model_id,
+                            "message_ids": list(message_ids), "sample_count": len(plan.actions),
+                            "baseline_sha256": contract.baseline_sha256,
                             "validation_scope": "WIRE_SCHEMA_SESSION_ONLY", "model_application_verified": False,
                             "physical_tool_qualification": "NOT_EVALUATED", "replacement_ready": False})
             records = SendRun(plan, session, can_sender=sender).run(
@@ -152,6 +168,7 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80)
             for record in reception.records:
                 _write(output, record.document())
             _write(output, {"format": "HIL_PROTOCOL_CHAIN_1", "status": "RECEPTION_VALIDATED",
+                            "model_id": model_id, "message_ids": list(message_ids),
                             "generated_samples": len(records), "decoded_samples": len(reception.records),
                             "model_application_verified": False, "physical_tool_qualification": "NOT_EVALUATED",
                             "replacement_ready": False})
@@ -162,7 +179,8 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80)
                 raise ICDError("STATE", "software receiver loop did not stop")
         if errors:
             raise ICDError("RESOURCE", "software receiver loop failed") from errors[0]
-    return {"status": "RECEPTION_VALIDATED", "generated_samples": len(records),
+    return {"status": "RECEPTION_VALIDATED", "model_id": model_id, "message_ids": list(message_ids),
+            "generated_samples": len(records),
             "decoded_samples": len(records), "output": str(output_path.resolve()),
             "model_application_verified": False, "physical_tool_qualification": "NOT_EVALUATED",
             "replacement_ready": False}
@@ -175,10 +193,13 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--period-steps", type=int, default=80)
+    parser.add_argument("--model-id", default="quadrotor_hil")
+    parser.add_argument("--message-id", type=int, action="append")
     args = parser.parse_args()
     try:
         print(json.dumps(run(args.contract_dir, args.expected_sha256, args.output,
-                             count=args.count, period_steps=args.period_steps), ensure_ascii=True), flush=True)
+                             count=args.count, period_steps=args.period_steps, model_id=args.model_id,
+                             message_ids=tuple(args.message_id or (DEFAULT_MESSAGE_ID,))), ensure_ascii=True), flush=True)
         return 0
     except (ICDError, OSError, ValueError, json.JSONDecodeError) as error:
         print(json.dumps({"status": "FAILED", "error": error.code if isinstance(error, ICDError) else "RESOURCE",

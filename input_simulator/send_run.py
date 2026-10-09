@@ -63,7 +63,10 @@ class SendPlan:
             raise ICDError('RANGE','positive period and uint32 first step required')
         if first_step+(count-1)*period_steps>0xffffffff:
             raise ICDError('RANGE','generated final target exceeds uint32')
-        SourceInputAuditor(contract).audit(inputs,resources,model_id=model_id)
+        # Protocol generation is independent of the optional ScenarioSource.
+        # Keep validating the frozen source document and protocol resources,
+        # while leaving scenario execution semantics to SendPlan.scenario.
+        SourceInputAuditor(contract).audit(inputs,resources,model_id=model_id,include_scenario=False)
         parser=ProtocolParser(contract)
         parser.parse(inputs['protocol'],resources)
         actions=[]
