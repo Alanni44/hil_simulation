@@ -80,6 +80,8 @@ static int hil_contract_set_actuators(ModelU_t* input, const double* values,
 #define MISSION_ID_MAX 128
 #define MAX_INPUT_VALUE_COUNT 32U
 #define EXTERNAL_CONTROL_TIMEOUT_NS 100000000ULL
+#define ICD_ENVIRONMENT_FIELD_COUNT 6U
+#define ICD_ENVIRONMENT_MAX_LOOKAHEAD_STEPS 1000U
 
 static int control_source_allowed(ControlSource source) {
     return source != CONTROL_SOURCE_NONE &&
@@ -110,6 +112,36 @@ static HilParameterValues initial_parameters;
 static unsigned applied_live_generation = 0;
 static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
 static ControlArbiter control_arbiter;
+
+/* The ICD consumer owns this one-slot, target-step transaction separately
+ * from the legacy live-input command.  A terminal result is retained until a
+ * later transaction replaces it, so the gateway can read a model-boundary
+ * receipt rather than inferring application from a UDP accept response. */
+typedef enum {
+    ICD_ENVIRONMENT_EMPTY = 0,
+    ICD_ENVIRONMENT_STAGED,
+    ICD_ENVIRONMENT_APPLIED,
+    ICD_ENVIRONMENT_REJECTED
+} IcdEnvironmentState;
+
+typedef struct {
+    IcdEnvironmentState state;
+    char stage_request_id[REQUEST_ID_MAX];
+    char reason[64];
+    uint64_t target_step;
+    uint64_t deadline_ns;
+    uint64_t applied_step;
+    uint64_t model_revision;
+    double values[ICD_ENVIRONMENT_FIELD_COUNT];
+    double readback[ICD_ENVIRONMENT_FIELD_COUNT];
+} IcdEnvironmentStage;
+
+static const char* const ICD_ENVIRONMENT_FIELDS[ICD_ENVIRONMENT_FIELD_COUNT] = {
+    "environment.wind_n_mps", "environment.wind_e_mps", "environment.wind_d_mps",
+    "environment.pressure_pa", "environment.temperature_k", "environment.ground_height_m"
+};
+static IcdEnvironmentStage icd_environment;
+static uint64_t icd_environment_revision = 0;
 
 /* This measures process-local command-to-status latency with CLOCK_MONOTONIC:
  * UDP command receipt -> command effective at a model boundary -> completion
@@ -172,6 +204,18 @@ static uint64_t monotonic_time_ns(void) {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     return (uint64_t)now.tv_sec * 1000000000ULL + (uint64_t)now.tv_nsec;
+}
+
+/* Defaults are the deployed contract ports.  Explicit high ports keep a
+ * local acceptance process isolated from a running verified deployment. */
+static unsigned short configured_udp_port(const char* name, unsigned short fallback) {
+    const char* text = getenv(name);
+    char* end = NULL;
+    unsigned long value;
+    if (!text || !*text) return fallback;
+    value = strtoul(text, &end, 10);
+    if (!end || *end || value < 1UL || value > 65535UL) return fallback;
+    return (unsigned short)value;
 }
 
 /* command_lock must be held by the caller. */
@@ -326,6 +370,131 @@ static int parse_input_value(struct json_object* value, const HilInputSpec* spec
     for (index = 0; index < spec->dimension; ++index)
         if (values[index] < spec->min_value || values[index] > spec->max_value) return 0;
     return 1;
+}
+
+static int json_uint64(struct json_object* value, uint64_t* parsed) {
+    int64_t candidate;
+    if (!value || !parsed || json_object_get_type(value) != json_type_int) return 0;
+    candidate = json_object_get_int64(value);
+    if (candidate < 0) return 0;
+    *parsed = (uint64_t)candidate;
+    return 1;
+}
+
+static const char* icd_environment_state_name(IcdEnvironmentState state_value) {
+    switch (state_value) {
+    case ICD_ENVIRONMENT_STAGED: return "STAGED";
+    case ICD_ENVIRONMENT_APPLIED: return "APPLIED";
+    case ICD_ENVIRONMENT_REJECTED: return "REJECTED";
+    default: return "UNKNOWN";
+    }
+}
+
+static struct json_object* icd_environment_fields(const IcdEnvironmentStage* snapshot) {
+    struct json_object* fields = json_object_new_object();
+    struct json_object* readback = json_object_new_object();
+    unsigned index;
+    json_object_object_add(fields, "state",
+                           json_object_new_string(icd_environment_state_name(snapshot->state)));
+    json_object_object_add(fields, "stage_request_id",
+                           json_object_new_string(snapshot->stage_request_id));
+    json_object_object_add(fields, "target_step",
+                           json_object_new_int64((int64_t)snapshot->target_step));
+    json_object_object_add(fields, "applied_step",
+                           json_object_new_int64((int64_t)snapshot->applied_step));
+    json_object_object_add(fields, "model_revision",
+                           json_object_new_int64((int64_t)snapshot->model_revision));
+    json_object_object_add(fields, "reason", json_object_new_string(snapshot->reason));
+    if (snapshot->state == ICD_ENVIRONMENT_APPLIED) {
+        for (index = 0; index < ICD_ENVIRONMENT_FIELD_COUNT; ++index)
+            json_object_object_add(readback, ICD_ENVIRONMENT_FIELDS[index] + strlen("environment."),
+                                   json_object_new_double(snapshot->readback[index]));
+        json_object_object_add(fields, "readback", readback);
+    } else {
+        json_object_put(readback);
+    }
+    return fields;
+}
+
+/* Strict bridge command used only by the 3.6 ModelConsumer for ID10.  It
+ * requires the complete frozen Environment snapshot and does not alter the
+ * generated ModelU until the requested model-step boundary. */
+static void parse_stage_icd_environment(struct json_object* root, const char* request_id,
+                                        const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *target = NULL, *deadline = NULL, *environment = NULL;
+    IcdEnvironmentStage staged;
+    uint64_t now_ns = monotonic_time_ns();
+    unsigned index;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "target_step", &target) ||
+        !json_object_object_get_ex(params, "deadline_ns", &deadline) ||
+        !json_object_object_get_ex(params, "environment", &environment) ||
+        json_object_get_type(environment) != json_type_object ||
+        !json_uint64(target, &staged.target_step) || !json_uint64(deadline, &staged.deadline_ns) ||
+        json_object_object_length(environment) != ICD_ENVIRONMENT_FIELD_COUNT) {
+        send_receipt(sender, request_id, 0, "complete target_step, deadline_ns and environment are required",
+                     sequence, NULL);
+        return;
+    }
+    if (lifecycle != HIL_RUNNING || staged.deadline_ns <= now_ns ||
+        staged.target_step <= sequence ||
+        staged.target_step > sequence + ICD_ENVIRONMENT_MAX_LOOKAHEAD_STEPS) {
+        send_receipt(sender, request_id, 0, "target or lifecycle is not admissible", sequence, NULL);
+        return;
+    }
+    memset(&staged, 0, sizeof(staged));
+    /* json values were read before memset; recover the two scalar values. */
+    json_uint64(target, &staged.target_step);
+    json_uint64(deadline, &staged.deadline_ns);
+    for (index = 0; index < ICD_ENVIRONMENT_FIELD_COUNT; ++index) {
+        const HilInputSpec* spec = hil_contract_find_input(ICD_ENVIRONMENT_FIELDS[index]);
+        struct json_object* value = NULL;
+        if (!spec || !json_object_object_get_ex(environment,
+                                                 ICD_ENVIRONMENT_FIELDS[index] + strlen("environment."),
+                                                 &value) ||
+            !parse_input_value(value, spec, &staged.values[index])) {
+            send_receipt(sender, request_id, 0, "environment type, field set or range violates contract",
+                         sequence, NULL);
+            return;
+        }
+    }
+    staged.state = ICD_ENVIRONMENT_STAGED;
+    strncpy(staged.stage_request_id, request_id, sizeof(staged.stage_request_id) - 1U);
+    strncpy(staged.reason, "awaiting target boundary", sizeof(staged.reason) - 1U);
+    pthread_mutex_lock(&command_lock);
+    if (icd_environment.state == ICD_ENVIRONMENT_STAGED) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "previous ICD environment transaction is pending", sequence, NULL);
+        return;
+    }
+    icd_environment = staged;
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, 1, "staged", staged.target_step, NULL);
+}
+
+static void parse_get_icd_environment_result(struct json_object* root, const char* request_id,
+                                             const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *stage_request = NULL;
+    IcdEnvironmentStage snapshot;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "stage_request_id", &stage_request) ||
+        json_object_get_type(stage_request) != json_type_string) {
+        send_receipt(sender, request_id, 0, "params.stage_request_id is required", sequence, NULL);
+        return;
+    }
+    pthread_mutex_lock(&command_lock);
+    snapshot = icd_environment;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.state == ICD_ENVIRONMENT_EMPTY ||
+        strcmp(snapshot.stage_request_id, json_object_get_string(stage_request))) {
+        send_receipt(sender, request_id, 0, "unknown ICD environment transaction", sequence, NULL);
+        return;
+    }
+    send_receipt(sender, request_id, snapshot.state != ICD_ENVIRONMENT_REJECTED,
+                 snapshot.reason, snapshot.applied_step ? snapshot.applied_step : sequence,
+                 icd_environment_fields(&snapshot));
 }
 
 static void parse_set_inputs(struct json_object* root, const char* request_id,
@@ -745,6 +914,59 @@ static void apply_live_update(void) {
     }
 }
 
+/* Runs only on the real-time model thread immediately before model_step().
+ * This is the sole place an ICD Environment transaction becomes APPLIED. */
+static void apply_icd_environment_stage(uint64_t next_step) {
+    IcdEnvironmentStage snapshot;
+    unsigned index;
+    uint64_t now_ns = monotonic_time_ns();
+    pthread_mutex_lock(&command_lock);
+    snapshot = icd_environment;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.state != ICD_ENVIRONMENT_STAGED) return;
+
+    if (snapshot.deadline_ns <= now_ns || snapshot.target_step < next_step) {
+        pthread_mutex_lock(&command_lock);
+        if (icd_environment.state == ICD_ENVIRONMENT_STAGED &&
+            !strcmp(icd_environment.stage_request_id, snapshot.stage_request_id)) {
+            icd_environment.state = ICD_ENVIRONMENT_REJECTED;
+            strncpy(icd_environment.reason, snapshot.deadline_ns <= now_ns ? "EXPIRED" : "LATE",
+                    sizeof(icd_environment.reason) - 1U);
+        }
+        pthread_mutex_unlock(&command_lock);
+        return;
+    }
+    if (snapshot.target_step != next_step) return;
+
+    for (index = 0; index < ICD_ENVIRONMENT_FIELD_COUNT; ++index) {
+        if (!hil_contract_set_input(&active_input, ICD_ENVIRONMENT_FIELDS[index],
+                                    &snapshot.values[index], 1U)) {
+            pthread_mutex_lock(&command_lock);
+            if (icd_environment.state == ICD_ENVIRONMENT_STAGED &&
+                !strcmp(icd_environment.stage_request_id, snapshot.stage_request_id)) {
+                icd_environment.state = ICD_ENVIRONMENT_REJECTED;
+                strncpy(icd_environment.reason, "GENERATED_SETTER_UNAVAILABLE",
+                        sizeof(icd_environment.reason) - 1U);
+            }
+            pthread_mutex_unlock(&command_lock);
+            return;
+        }
+    }
+    *model_get_input() = active_input;
+
+    pthread_mutex_lock(&command_lock);
+    if (icd_environment.state == ICD_ENVIRONMENT_STAGED &&
+        !strcmp(icd_environment.stage_request_id, snapshot.stage_request_id)) {
+        for (index = 0; index < ICD_ENVIRONMENT_FIELD_COUNT; ++index)
+            icd_environment.readback[index] = snapshot.values[index];
+        icd_environment.state = ICD_ENVIRONMENT_APPLIED;
+        icd_environment.applied_step = next_step;
+        icd_environment.model_revision = ++icd_environment_revision;
+        strncpy(icd_environment.reason, "APPLIED", sizeof(icd_environment.reason) - 1U);
+    }
+    pthread_mutex_unlock(&command_lock);
+}
+
 static void apply_mission_update(void) {
     MissionMetadata snapshot;
     pthread_mutex_lock(&command_lock);
@@ -951,6 +1173,8 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     request_id = json_object_get_string(request); command = json_object_get_string(cmd);
     if (!strcmp(command, "tune")) parse_tune(root, request_id, sender);
     else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
+    else if (!strcmp(command, "stage_icd_environment")) parse_stage_icd_environment(root, request_id, sender);
+    else if (!strcmp(command, "get_icd_environment_result")) parse_get_icd_environment_result(root, request_id, sender);
     else if (!strcmp(command, "get_parameter_registry")) parse_get_parameter_registry(request_id, sender);
     else if (!strcmp(command, "select_control_source")) parse_select_control_source(root, request_id, sender);
     else if (!strcmp(command, "actuator_command")) parse_actuator_command(root, request_id, sender);
@@ -979,6 +1203,8 @@ static ControlSource active_control_source(void) {
 
 int main(void) {
     pthread_t command_worker; struct timespec next; unsigned send_counter = 0;
+    const unsigned short udp_cmd_port = configured_udp_port("HIL_UDP_CMD_PORT", UDP_CMD_PORT);
+    const unsigned short udp_status_port = configured_udp_port("HIL_UDP_STATUS_PORT", UDP_STATUS_PORT);
     uint64_t next_latency_report_ns = 0;
     float mission_motor[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {0.0f};
     float external_actuator[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1] = {0.0f};
@@ -996,7 +1222,7 @@ int main(void) {
                 stats.mlockall_errno ? strerror(stats.mlockall_errno) : "ok");
         return 1;
     }
-    if (udp_init(UDP_CMD_PORT, UDP_STATUS_PORT) != 0) { fprintf(stderr, "UDP initialization failed\n"); return 1; }
+    if (udp_init(udp_cmd_port, udp_status_port) != 0) { fprintf(stderr, "UDP initialization failed\n"); return 1; }
     model_initialize();
     initial_input = *model_get_input();
     memset(&initial_parameters, 0, sizeof(initial_parameters));
@@ -1027,6 +1253,7 @@ int main(void) {
         if (lifecycle == HIL_RUNNING) {
             ControlSource source = active_control_source();
             apply_live_update();
+            apply_icd_environment_stage(sequence + 1U);
             apply_mission_update();
             if (source == CONTROL_SOURCE_DEMO_MISSION && HIL_DEMO_MISSION_ENABLED &&
                 HIL_ACTUATOR_COUNT == 4U) {

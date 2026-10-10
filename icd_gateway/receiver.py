@@ -74,7 +74,8 @@ class Receiver:
     def __init__(self, contract, registry, *, maintenance_input_capacity=4096,
                  resource_worker=None, resource_record_capacity=64, status_service=None,
                  configuration_service=None, run_retirement_capacity=64,
-                 run_retirement_bytes=16*1024*1024, lifecycle_service=None, reception_service=None):
+                 run_retirement_bytes=16*1024*1024, lifecycle_service=None, reception_service=None,
+                 model_consumer_service=None):
         if type(maintenance_input_capacity) is not int or not 1 <= maintenance_input_capacity <= 4096:
             raise ICDError("CAPACITY", "maintenance input storage requires1..4096 entries")
         if type(resource_record_capacity) is not int or not 1 <= resource_record_capacity <= 64:
@@ -120,6 +121,14 @@ class Receiver:
         self._configuration_service=configuration_service
         self.lifecycle_service=self._lifecycle_service=lifecycle_service
         self.reception_service=self._reception_service=reception_service
+        self.model_consumer_service=self._model_consumer_service=model_consumer_service
+        if model_consumer_service is not None:
+            from .model_consumer import EnvironmentModelConsumerService
+            if (type(model_consumer_service) is not EnvironmentModelConsumerService
+                    or model_consumer_service.contract is not contract
+                    or model_consumer_service.registry is not registry):
+                raise ICDError('STATE','actual same-owner model consumer service required')
+            model_consumer_service._bind(self)
         if reception_service is not None:
             from .reception_service import ReceptionService
             if (type(reception_service) is not ReceptionService or reception_service.contract is not contract
@@ -338,6 +347,7 @@ class Receiver:
         self._check_configuration_service(closed_ok=True)
         self._check_lifecycle_service(closed_ok=True)
         self._check_reception_service(closed_ok=True)
+        self._check_model_consumer_service(closed_ok=True)
         if any(service is not None and service._lock.locked()
                for service in (self.status_service,self.configuration_service,self.lifecycle_service)):
             raise ICDError('STATE','cannot partially close installed model services during an operation')
@@ -349,6 +359,8 @@ class Receiver:
             self.status_service.close()
         if self.reception_service is not None:
             self.reception_service.close()
+        if self.model_consumer_service is not None:
+            self.model_consumer_service.close()
         if not self._closing:
             self._closing = True
             self._shutdown = ShutdownResult(self.registry.session_ids, ())
@@ -373,12 +385,16 @@ class Receiver:
         return {"session_id": sid, "sequence": sequence, "target_step": 0,
                 "transaction_id": transaction_id, "valid_for_ms": self.contract.entry(mid)["valid_for_ms"]}
 
-    def _ack(self, request_id, header, *, stage, error):
+    def _ack(self, request_id, header, *, stage, error, applied_step=0, model_revision=0, probe_id=0):
+        session_id = int(header['session_id']) if type(header) is dict else int(header.session_id)
+        transaction_id = int(header['transaction_id']) if type(header) is dict else int(header.transaction_id)
+        request_sequence = int(header['sequence']) if type(header) is dict else int(header.sequence)
         reply = {"message_id": 130,
-                 "header": self._header(130, int(header.session_id), int(header.transaction_id)),
-                 "payload": {"request_sequence": int(header.sequence), "request_message_id": request_id,
+                 "header": self._header(130, session_id, transaction_id),
+                 "payload": {"request_sequence": request_sequence, "request_message_id": request_id,
                              "stage": stage, "error": error, "applied_step": 0,
-                             "model_revision": 0, "probe_id": 0}}
+                             "model_revision": model_revision, "probe_id": probe_id}}
+        reply["payload"]["applied_step"] = applied_step
         self.contract.validate_message(reply, direction="FROM_36")
         return reply
 
@@ -409,6 +425,9 @@ class Receiver:
             model=self.registry.identity(sid)['model_id']
             capabilities['implemented_message_ids']=sorted(set(capabilities['implemented_message_ids']) | {
                 mid for mid in self.reception_service.message_ids if self.reception_service.supports(mid,model)})
+        if self.model_consumer_service is not None and self.model_consumer_service.supports(10, self.registry.identity(sid)['model_id']):
+            capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {10})
+            capabilities['available_probes'].append('consumer.Environment')
         reply = {"message_id": 129, "header": self._header(129, sid, transaction_id),
                  "payload": {"session_id": sid, "lease_ms": 1000, "receiver_step": receiver_step,
                              "baseline_sha256": self.contract.baseline_sha256,
@@ -444,6 +463,16 @@ class Receiver:
         if self._reception_service is not None:
             self._reception_service._check(closed_ok=closed_ok)
 
+    def _check_model_consumer_service(self, *, closed_ok=False):
+        if self.model_consumer_service is not self._model_consumer_service:
+            raise ICDError('STATE','original receiver model consumer service cannot be replaced')
+        if self._model_consumer_service is not None:
+            self._model_consumer_service._check(closed_ok=closed_ok)
+
+    def _model_consumer_handles(self, mid, sid):
+        return (self.model_consumer_service is not None
+                and self.model_consumer_service.supports(mid,self.registry.identity(sid)['model_id']))
+
     def _reception_handles(self, mid, sid):
         if self.reception_service is None or mid in (1,2):
             return False
@@ -464,6 +493,7 @@ class Receiver:
         self._check_configuration_service()
         self._check_lifecycle_service()
         self._check_reception_service()
+        self._check_model_consumer_service()
         self.tick(now_ns=now_ns)
         if not self.registry.link_authorized(binding):
             raise ICDError("AUTHORIZATION", "unregistered actual peer; no decode or allocation")
@@ -531,6 +561,16 @@ class Receiver:
                 if completed is not None:
                     now_ns=max(now_ns,completed)
                 replies=(received,self._ack(4,fragment.header,stage='FAILED',error=error.code))
+        elif self._model_consumer_handles(fragment.message_id,int(fragment.header.session_id)):
+            received=self._ack(fragment.message_id,fragment.header,stage='RECEIVED',error='OK')
+            try:
+                return self.model_consumer_service.respond(complete.message,received,now_ns=now_ns)
+            except ICDError as error:
+                self.note_error(error)
+                completed=self.model_consumer_service.last_observed_ns
+                if completed is not None:
+                    now_ns=max(now_ns,completed)
+                replies=(received,self._ack(fragment.message_id,fragment.header,stage='FAILED',error=error.code))
         elif fragment.message_id == 34 and self.resource_worker is not None:
             received = self._ack(34, fragment.header, stage="RECEIVED", error="OK")
             try:
