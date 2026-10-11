@@ -123,8 +123,8 @@ class Receiver:
         self.reception_service=self._reception_service=reception_service
         self.model_consumer_service=self._model_consumer_service=model_consumer_service
         if model_consumer_service is not None:
-            from .model_consumer import EnvironmentModelConsumerService
-            if (type(model_consumer_service) is not EnvironmentModelConsumerService
+            from .model_consumer import EnvironmentModelConsumerService, FlightModelConsumerService
+            if (type(model_consumer_service) not in (EnvironmentModelConsumerService, FlightModelConsumerService)
                     or model_consumer_service.contract is not contract
                     or model_consumer_service.registry is not registry):
                 raise ICDError('STATE','actual same-owner model consumer service required')
@@ -425,9 +425,14 @@ class Receiver:
             model=self.registry.identity(sid)['model_id']
             capabilities['implemented_message_ids']=sorted(set(capabilities['implemented_message_ids']) | {
                 mid for mid in self.reception_service.message_ids if self.reception_service.supports(mid,model)})
-        if self.model_consumer_service is not None and self.model_consumer_service.supports(10, self.registry.identity(sid)['model_id']):
-            capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {10})
-            capabilities['available_probes'].append('consumer.Environment')
+        if self.model_consumer_service is not None:
+            model_id = self.registry.identity(sid)['model_id']
+            if self.model_consumer_service.supports(10, model_id):
+                capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {10})
+                capabilities['available_probes'].append('consumer.Environment')
+            if self.model_consumer_service.supports(7, model_id):
+                capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {7})
+                capabilities['available_probes'].append('consumer.FlightQuad')
         reply = {"message_id": 129, "header": self._header(129, sid, transaction_id),
                  "payload": {"session_id": sid, "lease_ms": 1000, "receiver_step": receiver_step,
                              "baseline_sha256": self.contract.baseline_sha256,

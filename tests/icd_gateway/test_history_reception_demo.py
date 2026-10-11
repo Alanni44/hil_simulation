@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from common import EXPECTED, INTERFACES, ROOT
+from icd_runtime.errors import ICDError
 
 
 class HistoryReceptionDemoTests(unittest.TestCase):
@@ -40,3 +41,11 @@ class HistoryReceptionDemoTests(unittest.TestCase):
                                     capture_output=True, text=True, encoding="utf-8", timeout=15)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(json.loads(result.stdout)["status"], "RECEPTION_VALIDATED")
+
+    def test_model_application_mode_requires_an_explicit_generated_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence = Path(folder) / "history-chain.jsonl"
+            with self.assertRaises(ICDError) as error:
+                self.load_module().run(INTERFACES, EXPECTED, evidence,
+                                       model_endpoint="127.0.0.1:19997")
+        self.assertEqual(error.exception.code, "SCHEMA")

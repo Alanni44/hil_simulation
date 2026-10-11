@@ -143,6 +143,22 @@ static const char* const ICD_ENVIRONMENT_FIELDS[ICD_ENVIRONMENT_FIELD_COUNT] = {
 static IcdEnvironmentStage icd_environment;
 static uint64_t icd_environment_revision = 0;
 
+/* Flight-control commits are kept apart from environment staging because the
+ * motor command has a final control-arbiter write later in each loop. */
+typedef struct {
+    IcdEnvironmentState state;
+    char stage_request_id[REQUEST_ID_MAX];
+    char reason[64];
+    uint64_t target_step;
+    uint64_t deadline_ns;
+    uint64_t applied_step;
+    uint64_t model_revision;
+    double values[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+    double readback[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+} IcdFlightStage;
+static IcdFlightStage icd_flight;
+static uint64_t icd_flight_revision = 0;
+
 /* This measures process-local command-to-status latency with CLOCK_MONOTONIC:
  * UDP command receipt -> command effective at a model boundary -> completion
  * of the first UDP state send that contains that boundary.  Commands replaced
@@ -495,6 +511,107 @@ static void parse_get_icd_environment_result(struct json_object* root, const cha
     send_receipt(sender, request_id, snapshot.state != ICD_ENVIRONMENT_REJECTED,
                  snapshot.reason, snapshot.applied_step ? snapshot.applied_step : sequence,
                  icd_environment_fields(&snapshot));
+}
+
+static struct json_object* icd_flight_fields(const IcdFlightStage* snapshot) {
+    struct json_object* fields = json_object_new_object();
+    struct json_object* readback = json_object_new_array();
+    unsigned index;
+    json_object_object_add(fields, "state",
+                           json_object_new_string(icd_environment_state_name(snapshot->state)));
+    json_object_object_add(fields, "stage_request_id",
+                           json_object_new_string(snapshot->stage_request_id));
+    json_object_object_add(fields, "target_step",
+                           json_object_new_int64((int64_t)snapshot->target_step));
+    json_object_object_add(fields, "applied_step",
+                           json_object_new_int64((int64_t)snapshot->applied_step));
+    json_object_object_add(fields, "model_revision",
+                           json_object_new_int64((int64_t)snapshot->model_revision));
+    json_object_object_add(fields, "reason", json_object_new_string(snapshot->reason));
+    if (snapshot->state == ICD_ENVIRONMENT_APPLIED) {
+        for (index = 0; index < HIL_ACTUATOR_COUNT; ++index)
+            json_object_array_add(readback, json_object_new_double(snapshot->readback[index]));
+        json_object_object_add(fields, "readback", readback);
+    } else {
+        json_object_put(readback);
+    }
+    return fields;
+}
+
+/* ID7 is a complete four-motor snapshot.  The command thread only stages it;
+ * the main thread commits it after every other motor writer has run. */
+static void parse_stage_icd_flight_control(struct json_object* root, const char* request_id,
+                                           const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *target = NULL, *deadline = NULL, *flight = NULL, *motor = NULL;
+    IcdFlightStage staged;
+    const HilInputSpec* spec;
+    uint64_t now_ns = monotonic_time_ns();
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "target_step", &target) ||
+        !json_object_object_get_ex(params, "deadline_ns", &deadline) ||
+        !json_object_object_get_ex(params, "flight_control", &flight) ||
+        json_object_get_type(flight) != json_type_object ||
+        json_object_object_length(flight) != 1 ||
+        !json_object_object_get_ex(flight, "motor_command", &motor) ||
+        !json_uint64(target, &staged.target_step) || !json_uint64(deadline, &staged.deadline_ns) ||
+        lifecycle != HIL_RUNNING || staged.deadline_ns <= now_ns ||
+        staged.target_step <= sequence ||
+        staged.target_step > sequence + ICD_ENVIRONMENT_MAX_LOOKAHEAD_STEPS) {
+        send_receipt(sender, request_id, 0, "complete admissible target flight-control snapshot is required",
+                     sequence, NULL);
+        return;
+    }
+    spec = hil_contract_find_input("flight_control.motor_command");
+    if (!spec || spec->dimension != HIL_ACTUATOR_COUNT ||
+        !parse_input_value(motor, spec, staged.values)) {
+        send_receipt(sender, request_id, 0, "motor command type, dimension or range violates contract",
+                     sequence, NULL);
+        return;
+    }
+    memset(&staged, 0, sizeof(staged));
+    json_uint64(target, &staged.target_step);
+    json_uint64(deadline, &staged.deadline_ns);
+    if (!parse_input_value(motor, spec, staged.values)) {
+        send_receipt(sender, request_id, 0, "motor command violates contract", sequence, NULL);
+        return;
+    }
+    staged.state = ICD_ENVIRONMENT_STAGED;
+    strncpy(staged.stage_request_id, request_id, sizeof(staged.stage_request_id) - 1U);
+    strncpy(staged.reason, "awaiting final motor boundary", sizeof(staged.reason) - 1U);
+    pthread_mutex_lock(&command_lock);
+    if (icd_flight.state == ICD_ENVIRONMENT_STAGED) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "previous ICD flight-control transaction is pending", sequence, NULL);
+        return;
+    }
+    icd_flight = staged;
+    pthread_mutex_unlock(&command_lock);
+    send_receipt(sender, request_id, 1, "staged", staged.target_step, NULL);
+}
+
+static void parse_get_icd_flight_control_result(struct json_object* root, const char* request_id,
+                                                const struct sockaddr_in* sender) {
+    struct json_object *params = NULL, *stage_request = NULL;
+    IcdFlightStage snapshot;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        !json_object_object_get_ex(params, "stage_request_id", &stage_request) ||
+        json_object_get_type(stage_request) != json_type_string) {
+        send_receipt(sender, request_id, 0, "params.stage_request_id is required", sequence, NULL);
+        return;
+    }
+    pthread_mutex_lock(&command_lock);
+    snapshot = icd_flight;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.state == ICD_ENVIRONMENT_EMPTY ||
+        strcmp(snapshot.stage_request_id, json_object_get_string(stage_request))) {
+        send_receipt(sender, request_id, 0, "unknown ICD flight-control transaction", sequence, NULL);
+        return;
+    }
+    send_receipt(sender, request_id, snapshot.state != ICD_ENVIRONMENT_REJECTED,
+                 snapshot.reason, snapshot.applied_step ? snapshot.applied_step : sequence,
+                 icd_flight_fields(&snapshot));
 }
 
 static void parse_set_inputs(struct json_object* root, const char* request_id,
@@ -967,6 +1084,51 @@ static void apply_icd_environment_stage(uint64_t next_step) {
     pthread_mutex_unlock(&command_lock);
 }
 
+/* This runs after mission/external arbiter output.  It is therefore the
+ * final motor writer observed by the generated model for target step S. */
+static void apply_icd_flight_control_stage(uint64_t next_step) {
+    IcdFlightStage snapshot;
+    uint64_t now_ns = monotonic_time_ns();
+    pthread_mutex_lock(&command_lock);
+    snapshot = icd_flight;
+    pthread_mutex_unlock(&command_lock);
+    if (snapshot.state != ICD_ENVIRONMENT_STAGED) return;
+    if (snapshot.deadline_ns <= now_ns || snapshot.target_step < next_step) {
+        pthread_mutex_lock(&command_lock);
+        if (icd_flight.state == ICD_ENVIRONMENT_STAGED &&
+            !strcmp(icd_flight.stage_request_id, snapshot.stage_request_id)) {
+            icd_flight.state = ICD_ENVIRONMENT_REJECTED;
+            strncpy(icd_flight.reason, snapshot.deadline_ns <= now_ns ? "EXPIRED" : "LATE",
+                    sizeof(icd_flight.reason) - 1U);
+        }
+        pthread_mutex_unlock(&command_lock);
+        return;
+    }
+    if (snapshot.target_step != next_step) return;
+    if (!hil_contract_set_actuators(&active_input, snapshot.values, HIL_ACTUATOR_COUNT)) {
+        pthread_mutex_lock(&command_lock);
+        if (icd_flight.state == ICD_ENVIRONMENT_STAGED &&
+            !strcmp(icd_flight.stage_request_id, snapshot.stage_request_id)) {
+            icd_flight.state = ICD_ENVIRONMENT_REJECTED;
+            strncpy(icd_flight.reason, "GENERATED_SETTER_UNAVAILABLE",
+                    sizeof(icd_flight.reason) - 1U);
+        }
+        pthread_mutex_unlock(&command_lock);
+        return;
+    }
+    *model_get_input() = active_input;
+    pthread_mutex_lock(&command_lock);
+    if (icd_flight.state == ICD_ENVIRONMENT_STAGED &&
+        !strcmp(icd_flight.stage_request_id, snapshot.stage_request_id)) {
+        memcpy(icd_flight.readback, snapshot.values, sizeof(snapshot.values));
+        icd_flight.state = ICD_ENVIRONMENT_APPLIED;
+        icd_flight.applied_step = next_step;
+        icd_flight.model_revision = ++icd_flight_revision;
+        strncpy(icd_flight.reason, "APPLIED", sizeof(icd_flight.reason) - 1U);
+    }
+    pthread_mutex_unlock(&command_lock);
+}
+
 static void apply_mission_update(void) {
     MissionMetadata snapshot;
     pthread_mutex_lock(&command_lock);
@@ -1175,6 +1337,8 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     else if (!strcmp(command, "set_inputs")) parse_set_inputs(root, request_id, sender);
     else if (!strcmp(command, "stage_icd_environment")) parse_stage_icd_environment(root, request_id, sender);
     else if (!strcmp(command, "get_icd_environment_result")) parse_get_icd_environment_result(root, request_id, sender);
+    else if (!strcmp(command, "stage_icd_flight_control")) parse_stage_icd_flight_control(root, request_id, sender);
+    else if (!strcmp(command, "get_icd_flight_control_result")) parse_get_icd_flight_control_result(root, request_id, sender);
     else if (!strcmp(command, "get_parameter_registry")) parse_get_parameter_registry(request_id, sender);
     else if (!strcmp(command, "select_control_source")) parse_select_control_source(root, request_id, sender);
     else if (!strcmp(command, "actuator_command")) parse_actuator_command(root, request_id, sender);
@@ -1273,6 +1437,7 @@ int main(void) {
                 pthread_mutex_unlock(&command_lock);
                 write_actuator_command(external_actuator, HIL_ACTUATOR_COUNT);
             }
+            apply_icd_flight_control_stage(sequence + 1U);
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
             if (have_valid_state && sequence % 4U == 0U) udp_send_sensor(&state, sizeof(state));
         } else {

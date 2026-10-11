@@ -137,6 +137,48 @@ class QuadrotorEnvironmentBridge:
                                           canonicalize(fields["readback"]))
         raise ICDError("EXPIRED", "real model did not reach the requested Environment boundary in time")
 
+    def apply_flight_control(self, request, bindings, *, now_ns):
+        if type(bindings) is not ModelBindings or bindings.model_id != "quadrotor_hil":
+            raise ICDError("MODEL", "quadrotor flight-control bindings required")
+        if request["message_id"] != 7:
+            raise ICDError("TARGET_MISSING", "only FlightQuad ID7 is installed")
+        flight_control = request["payload"]
+        target_step, valid_for_ms = request["header"]["target_step"], request["header"]["valid_for_ms"]
+        if type(target_step) is not int or target_step < 1 or type(now_ns) is not int:
+            raise ICDError("SCHEMA", "actual target step and receiver time required")
+        mapped = bindings.map_message(request)
+        if {value.path for value in mapped} != {"flight_control.motor_command"}:
+            raise ICDError("MODEL", "FlightQuad binding differs from the frozen motor command")
+        stage_id = "icd7-%d-%d-%d" % (request["header"]["session_id"],
+                                      request["header"]["sequence"], request["header"]["transaction_id"])
+        deadline_ns = now_ns + valid_for_ms * 1000000
+        staged = self._exchange({"request_id": stage_id, "cmd": "stage_icd_flight_control",
+                                 "params": {"target_step": target_step, "deadline_ns": deadline_ns,
+                                            "flight_control": flight_control}})
+        if (not staged["accepted"] or staged.get("reason") != "staged"
+                or staged.get("effective_sequence") != target_step):
+            raise ICDError("BUSINESS_FAILED", "real model did not stage FlightQuad at its requested step")
+        while self._clock() * 1000000000 < deadline_ns:
+            result = self._exchange({"request_id": stage_id + "-result",
+                                     "cmd": "get_icd_flight_control_result",
+                                     "params": {"stage_request_id": stage_id}})
+            fields = result.get("fields")
+            if type(fields) is not dict or fields.get("stage_request_id") != stage_id:
+                raise ICDError("MODEL", "real model result does not identify the staged FlightQuad")
+            if fields.get("state") == "STAGED":
+                time.sleep(self.poll_s)
+                continue
+            if (fields.get("state") != "APPLIED" or not result["accepted"]
+                    or fields.get("target_step") != target_step
+                    or fields.get("applied_step") != target_step
+                    or type(fields.get("model_revision")) is not int
+                    or fields["model_revision"] < 1
+                    or canonicalize(fields.get("readback")) != canonicalize(flight_control["motor_command"])):
+                raise ICDError("BUSINESS_FAILED", "real model did not apply the exact FlightQuad motor snapshot")
+            return EnvironmentApplication(target_step, fields["model_revision"],
+                                          canonicalize(fields["readback"]))
+        raise ICDError("EXPIRED", "real model did not reach the requested FlightQuad boundary in time")
+
 
 class EnvironmentModelConsumerService:
     """Receiver-owned ID10 consumer that is permitted to create APPLIED."""
@@ -224,3 +266,57 @@ class EnvironmentModelConsumerService:
     def close(self):
         self._check(closed_ok=True)
         self._closed = True
+
+
+class FlightModelConsumerService(EnvironmentModelConsumerService):
+    """ID7 owner.  Exactly one live Controller SID may drive the C motor lane."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._flight_owner = None
+
+    def supports(self, message_id, model_id):
+        self._check()
+        return message_id == 7 and model_id == "quadrotor_hil"
+
+    def respond(self, request, received, *, now_ns):
+        self._check()
+        sid = request["header"]["session_id"]
+        if self._receiver is None or not self.supports(request["message_id"],
+                                                        self.registry.identity(sid)["model_id"]):
+            raise ICDError("TARGET_MISSING", "FlightQuad consumer is not installed for this model")
+        if "CONTROLLER" not in self.registry.roles(sid):
+            raise ICDError("CONTROL_OWNER", "FlightQuad requires the admitted Controller role")
+        if self._flight_owner not in self.registry.session_ids:
+            self._flight_owner = None
+        if self._flight_owner is not None and self._flight_owner != sid:
+            raise ICDError("CONTROL_OWNER", "another live Controller owns the FlightQuad lane")
+        if self._completion is not None:
+            raise ICDError("STATE", "one FlightQuad completion at a time")
+        if len(self._records) >= self._max_records:
+            raise ICDError("BUFFER_FULL", "retain FlightQuad evidence before another application")
+        completed = self._clock()
+        if type(completed) is not int or completed < now_ns:
+            raise ICDError("CLOCK_UNSYNC", "actual FlightQuad consumer clock differs from receiver")
+        app = self.backend.apply_flight_control(request, self.bindings, now_ns=completed)
+        completed = self._clock()
+        if type(completed) is not int or completed < now_ns:
+            raise ICDError("CLOCK_UNSYNC", "actual FlightQuad completion clock differs from receiver")
+        terminal = self._receiver._ack(7, request["header"], stage="APPLIED", error="OK",
+                                       applied_step=app.applied_step, model_revision=app.model_revision,
+                                       probe_id=1007)
+        replies = (received, terminal)
+        record = EnvironmentConsumerRecord(canonicalize(request), app.readback_json, now_ns, completed,
+                                           app.applied_step, app.model_revision)
+        if self._bytes + record.stored_bytes > self._max_bytes:
+            raise ICDError("BUFFER_FULL", "FlightQuad evidence storage is full")
+        self._completion = (canonicalize(request), tuple(canonicalize(reply) for reply in replies), completed)
+        try:
+            self.registry._record_flight_response(request, replies, self, now_ns=completed)
+        finally:
+            self._completion = None
+        self._flight_owner = sid
+        self._records.append(record)
+        self._bytes += record.stored_bytes
+        self._last_observed_ns = completed
+        return replies

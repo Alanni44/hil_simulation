@@ -14,6 +14,12 @@ class FakeEnvironmentBridge(QuadrotorEnvironmentBridge):
         return EnvironmentApplication(request['header']['target_step'], 7,
                                       canonicalize(request['payload']))
 
+    def apply_flight_control(self, request, bindings, *, now_ns):
+        from icd_gateway.model_consumer import EnvironmentApplication
+        from icd_runtime.json_codec import canonicalize
+        return EnvironmentApplication(request['header']['target_step'], 9,
+                                      canonicalize(request['payload']['motor_command']))
+
 
 class EnvironmentConsumerTests(GatewayTest):
     def setUp(self):
@@ -66,3 +72,34 @@ class EnvironmentConsumerTests(GatewayTest):
                                     applied_step=80, model_revision=7, probe_id=1010)
         self.rejects('STATE', lambda: self.registry._record_environment_response(
             request, (received, forged), object(), now_ns=100))
+
+    def test_controller_flight_command_is_applied_at_its_target_step(self):
+        from icd_gateway.model_bindings import ModelBindings
+        from icd_gateway.model_consumer import FlightModelConsumerService
+        from icd_gateway.receiver import Receiver
+        from icd_gateway.session import PeerBinding, SessionRegistry, SourceGrant
+        identity = message(1)['payload']['identity']
+        identity['model_id'] = 'quadrotor_hil'
+        binding = PeerBinding('ETH_0', 'UDP', '127.0.0.1:36112')
+        registry = SessionRegistry(self.contract, [SourceGrant(identity, ('CONTROLLER',), (binding,))])
+        bindings = ModelBindings(self.contract, 'quadrotor_hil', declared_runtime(self.contract, 'quadrotor_hil'))
+        service = FlightModelConsumerService(self.contract, registry, bindings, FakeEnvironmentBridge(),
+                                             clock=lambda: 100)
+        receiver = Receiver(self.contract, registry, model_consumer_service=service)
+
+        def deliver(value, now=0):
+            replies = ()
+            for packet in receiver.wire.encode(value, 'UDP'):
+                replies = receiver.receive(packet, binding, now_ns=now)
+            return replies
+
+        opening = message(1)
+        opening['payload']['identity'] = identity
+        opening['payload']['roles'] = ['CONTROLLER']
+        sid = deliver(opening)[0]['payload']['session_id']
+        value = message(7)
+        value['header'].update(session_id=sid, sequence=2, transaction_id=20, target_step=80)
+        replies = deliver(value)
+        self.assertEqual([reply['payload']['stage'] for reply in replies], ['RECEIVED', 'APPLIED'])
+        self.assertEqual((replies[-1]['payload']['probe_id'], replies[-1]['payload']['applied_step']),
+                         (1007, 80))
