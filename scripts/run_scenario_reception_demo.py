@@ -3,8 +3,10 @@
 The scenario source remains the frozen W3 waveform and is sent by the original
 Scapy ETHGEN source.  A local user-space Ethernet relay is used only because
 this development acceptance has no physical NIC; it preserves the Scapy-built
-L2/IP/UDP frame and feeds its UDP bytes into the standard 3.6 gateway.  No
-model consumer or physical Ethernet qualification is installed.
+L2/IP/UDP frame and feeds its UDP bytes into the standard 3.6 gateway.
+Without ``--model-endpoint`` this remains the original E1 reception check.
+With an explicit local C runtime endpoint it requires ID10 APPLIED evidence
+and generated-model readback; physical Ethernet remains unqualified.
 """
 
 import argparse
@@ -28,6 +30,8 @@ if str(ROOT) not in sys.path:
 
 from icd_gateway.receiver import Receiver
 from icd_gateway.reception_service import ReceptionService
+from icd_gateway.model_bindings import ModelBindings
+from icd_gateway.model_consumer import EnvironmentModelConsumerService, QuadrotorEnvironmentBridge
 from icd_gateway.session import PeerBinding, SessionRegistry, SourceGrant
 from icd_gateway.udp import UDPGateway
 from icd_runtime.contract import Contract
@@ -54,6 +58,19 @@ def _reserve_udp_endpoint():
         probe.close()
 
 
+def _endpoint(text):
+    if type(text) is not str or text.count(":") != 1:
+        raise ICDError("SCHEMA", "model endpoint must be HOST:PORT")
+    host, port = text.rsplit(":", 1)
+    try:
+        port = int(port)
+    except ValueError as error:
+        raise ICDError("SCHEMA", "model endpoint port must be an integer") from error
+    if not host or not 1 <= port <= 65535:
+        raise ICDError("SCHEMA", "model endpoint is outside the UDP port range")
+    return host, port
+
+
 def _load_inputs(root, contract_dir):
     definition = json.loads((root / "config" / "generated-input-reception.json").read_text(encoding="utf-8"))
     inputs = definition["source_inputs"]
@@ -74,7 +91,7 @@ def _write(output, value):
     output.flush()
 
 
-def run(contract_dir, expected_sha256, output_path):
+def run(contract_dir, expected_sha256, output_path, *, model_endpoint=None, model_contract_path=None):
     contract_dir = Path(contract_dir).resolve(strict=True)
     output_path = Path(output_path)
     contract = Contract.load(contract_dir, expected_sha256=expected_sha256)
@@ -88,6 +105,7 @@ def run(contract_dir, expected_sha256, output_path):
     errors = []
     captured_frames = []
     records = ()
+    model_application = model_endpoint is not None
     with ExitStack() as stack:
         output = stack.enter_context(output_path.open("x", encoding="utf-8"))
         left, relay = socket.socketpair()
@@ -104,8 +122,23 @@ def run(contract_dir, expected_sha256, output_path):
         udp_binding = PeerBinding("ETH_0", "UDP", "{}:{}".format(*transport.source_endpoint))
         identity = messages[1]["payload"]["identity"]
         registry = SessionRegistry(contract, (SourceGrant(identity, ("STIMULUS",), (udp_binding,)),))
-        reception = ReceptionService(contract, registry, (10,))
-        receiver = Receiver(contract, registry, reception_service=reception)
+        reception = None
+        consumer = None
+        bridge = None
+        target_step_base = 0
+        if model_application:
+            if model_contract_path is None:
+                raise ICDError("SCHEMA", "actual model contract path is required for model application")
+            model_contract_path = Path(model_contract_path).resolve(strict=True)
+            bindings = ModelBindings(contract, "quadrotor_hil",
+                                     json.loads(model_contract_path.read_text(encoding="utf-8")))
+            bridge = QuadrotorEnvironmentBridge(_endpoint(model_endpoint))
+            consumer = EnvironmentModelConsumerService(contract, registry, bindings, bridge,
+                                                       clock=time.monotonic_ns)
+            receiver = Receiver(contract, registry, model_consumer_service=consumer)
+        else:
+            reception = ReceptionService(contract, registry, (10,))
+            receiver = Receiver(contract, registry, reception_service=reception)
         gateway = UDPGateway(receiver, bind=receiver_endpoint,
                              feedback_routes={udp_binding: transport.feedback_endpoint}, channel="ETH_0")
         stack.callback(gateway.close)
@@ -140,24 +173,45 @@ def run(contract_dir, expected_sha256, output_path):
         thread = threading.Thread(target=serve, name="scenario-reception-demo", daemon=True)
         thread.start()
         try:
+            if model_application:
+                # Opening may consume measurable wall time.  Bind the frozen
+                # relative waveform to the current C step only afterwards.
+                session.open()
+                target_step_base = bridge.current_step() + 50
             _write(output, {"format": "HIL_SCENARIO_CHAIN_1", "status": "STARTED", "source": "SCENARIO",
                             "transport": "ETHERNET_VIRTUAL", "sample_count": len(plan.actions),
                             "baseline_sha256": contract.baseline_sha256,
-                            "validation_scope": "WIRE_SCHEMA_SESSION_ONLY", "model_application_verified": False,
+                            "validation_scope": "MODEL_BOUNDARY_READBACK" if model_application else "WIRE_SCHEMA_SESSION_ONLY",
+                            "model_application_verified": model_application,
                             "physical_tool_qualification": "NOT_EVALUATED", "replacement_ready": False})
-            records = SendRun(plan, session).run(on_record=lambda record: _write(output, record.document()))
+            records = SendRun(plan, session, terminal_stage="APPLIED" if model_application else "VALIDATED",
+                              terminal_probe_id=1010 if model_application else 0,
+                              target_step_base=target_step_base).run(
+                                  on_record=lambda record: _write(output, record.document()))
             deadline = time.monotonic() + 1.0
-            while len(reception.records) != len(records) and time.monotonic() < deadline and not errors:
+            while ((len(consumer.records) if model_application else len(reception.records)) != len(records)
+                   and time.monotonic() < deadline and not errors):
                 time.sleep(0.001)
             if errors:
                 raise ICDError("RESOURCE", "virtual Ethernet receiver loop failed") from errors[0]
-            if len(reception.records) != len(records) or len(captured_frames) < len(records):
-                raise ICDError("STATE", "all scenario samples require Scapy frame and decoded reception evidence")
-            for record in reception.records:
-                _write(output, record.document())
-            _write(output, {"format": "HIL_SCENARIO_CHAIN_1", "status": "RECEPTION_VALIDATED",
+            terminal_records = consumer.records if model_application else reception.records
+            if len(terminal_records) != len(records) or len(captured_frames) < len(records):
+                raise ICDError("STATE", "all scenario samples require Scapy frames and terminal receiver evidence")
+            if model_application:
+                for record in consumer.records:
+                    _write(output, {"format": "HIL_SCENARIO_MODEL_APPLIED_1",
+                                    "request": json.loads(record.request_json),
+                                    "readback": json.loads(record.readback_json),
+                                    "received_ns": str(record.received_ns), "completed_ns": str(record.completed_ns),
+                                    "applied_step": record.applied_step, "model_revision": record.model_revision,
+                                    "model_application_verified": True})
+            else:
+                for record in reception.records:
+                    _write(output, record.document())
+            _write(output, {"format": "HIL_SCENARIO_CHAIN_1",
+                            "status": "MODEL_APPLIED" if model_application else "RECEPTION_VALIDATED",
                             "generated_samples": len(records), "scapy_l2_frames": len(captured_frames),
-                            "decoded_samples": len(reception.records), "model_application_verified": False,
+                            "decoded_samples": len(terminal_records), "model_application_verified": model_application,
                             "physical_tool_qualification": "NOT_EVALUATED", "replacement_ready": False})
         finally:
             stop.set()
@@ -166,9 +220,9 @@ def run(contract_dir, expected_sha256, output_path):
                 raise ICDError("STATE", "virtual Ethernet receiver loop did not stop")
         if errors:
             raise ICDError("RESOURCE", "virtual Ethernet receiver loop failed") from errors[0]
-    return {"status": "RECEPTION_VALIDATED", "generated_samples": len(records),
+    return {"status": "MODEL_APPLIED" if model_application else "RECEPTION_VALIDATED", "generated_samples": len(records),
             "decoded_samples": len(records), "output": str(output_path.resolve()),
-            "model_application_verified": False, "physical_tool_qualification": "NOT_EVALUATED",
+            "model_application_verified": model_application, "physical_tool_qualification": "NOT_EVALUATED",
             "replacement_ready": False}
 
 
@@ -177,9 +231,14 @@ def main():
     parser.add_argument("--contract-dir", type=Path, default=Path("docs/interfaces/baseline"))
     parser.add_argument("--expected-sha256", default=DEFAULT_BASELINE_SHA256)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--model-endpoint", help="explicit local C runtime UDP endpoint, HOST:PORT")
+    parser.add_argument("--model-contract", type=Path,
+                        help="generated hil_contract.json for --model-endpoint")
     args = parser.parse_args()
     try:
-        print(json.dumps(run(args.contract_dir, args.expected_sha256, args.output), ensure_ascii=True), flush=True)
+        print(json.dumps(run(args.contract_dir, args.expected_sha256, args.output,
+                             model_endpoint=args.model_endpoint,
+                             model_contract_path=args.model_contract), ensure_ascii=True), flush=True)
         return 0
     except (ICDError, OSError, ValueError, json.JSONDecodeError) as error:
         print(json.dumps({"status": "FAILED", "error": error.code if isinstance(error, ICDError) else "RESOURCE",

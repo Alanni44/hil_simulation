@@ -81,6 +81,16 @@ class QuadrotorEnvironmentBridge:
             raise ICDError("MODEL", "real C model bridge returned an invalid receipt")
         return reply
 
+    def current_step(self):
+        """Read the runtime's actual sequence without staging any input."""
+        reply = self._exchange({"request_id": "icd10-step-probe",
+                                "cmd": "get_icd_environment_result",
+                                "params": {"stage_request_id": "__step_probe__"}})
+        step = reply.get("effective_sequence")
+        if reply.get("accepted") or type(step) is not int or step < 0:
+            raise ICDError("MODEL", "real C model bridge did not expose its current sequence")
+        return step
+
     def apply_environment(self, request, bindings, *, now_ns):
         if type(bindings) is not ModelBindings or bindings.model_id != "quadrotor_hil":
             raise ICDError("MODEL", "quadrotor Environment bindings required")

@@ -132,10 +132,12 @@ class SendRecord:
     sent_fragments: int
     error: str | None
     native_json: tuple = ()
+    model_application_verified: bool = False
+    application_probe_id: int = 0
 
     @property
     def validation_scope(self):
-        return 'WIRE_SCHEMA_SESSION_ONLY'
+        return 'MODEL_BOUNDARY_READBACK' if self.model_application_verified else 'WIRE_SCHEMA_SESSION_ONLY'
 
     def document(self):
         return {'format':'HIL_RECEPTION_TX_1','source_kind':self.source_kind,'event_id':self.sample.event_id,
@@ -146,17 +148,24 @@ class SendRecord:
             'sent_fragments':self.sent_fragments,'sent_fragments_semantics':'COMPLETE_NATIVE_WRITES_NOT_REMOTE_RECEIPTS',
             'native_observations':[loads(raw) for raw in self.native_json],
             'error':self.error,'validation_scope':self.validation_scope,
-            'model_application_verified':False,'physical_tool_qualification':'NOT_EVALUATED'}
+            'model_application_verified':self.model_application_verified,
+            'application_probe_id':self.application_probe_id,
+            'physical_tool_qualification':'NOT_EVALUATED'}
 
 
 class SendRun:
-    def __init__(self, plan, session, *, can_sender=None, feedback_timeout=0.2):
+    def __init__(self, plan, session, *, can_sender=None, feedback_timeout=0.2,
+                 terminal_stage='VALIDATED', terminal_probe_id=0, target_step_base=0):
         if (type(plan) is not SendPlan or type(session) is not SourceSession
                 or session.contract is not plan._contract or session.contract.baseline_sha256!=plan.baseline_sha256
                 or loads(session._identity_json)['model_id']!=plan.model_id):
             raise ICDError('STATE','same verified original plan/source session required')
         if type(feedback_timeout) not in (int,float) or not 0<feedback_timeout<=0.5:
             raise ICDError('SCHEMA','bounded positive reception feedback timeout required')
+        if (terminal_stage not in ('VALIDATED','APPLIED') or type(terminal_probe_id) is not int
+                or not 0<=terminal_probe_id<=0xffff or type(target_step_base) is not int
+                or not 0<=target_step_base<=0xffffffff):
+            raise ICDError('SCHEMA','explicit terminal evidence and uint32 target-step base required')
         links={a.link_id for a in plan.actions}
         if 'CANT' in links and (type(can_sender) is not CANSignalSender or can_sender.session is not session):
             raise ICDError('TARGET_MISSING','actual original CANT sender required')
@@ -171,6 +180,8 @@ class SendRun:
                 raise ICDError('AUTHORIZATION','all planned input roles must be explicitly requested before TX')
         self.plan,self.session,self.can_sender=plan,session,can_sender
         self._timeout=feedback_timeout
+        self._terminal_stage,self._terminal_probe_id,self._target_step_base=(
+            terminal_stage,terminal_probe_id,target_step_base)
         self._records=[]
         self._bytes=0
         self._started=False
@@ -195,6 +206,9 @@ class SendRun:
         self._open()
         origin=time.monotonic_ns()
         for sample in self.plan.actions:
+            target_step=sample.step+self._target_step_base
+            if target_step>0xffffffff:
+                raise ICDError('RANGE','absolute target step exceeds uint32')
             due=origin+sample.step*1000000
             while True:
                 remaining=due-time.monotonic_ns()
@@ -219,7 +233,7 @@ class SendRun:
             try:
                 if sample.link_id=='CANT':
                     sender=self.can_sender
-                    tool=sender.builder.prepare(sender.reservation,sample.stimulus,sender.binding,target_step=sample.step)
+                    tool=sender.builder.prepare(sender.reservation,sample.stimulus,sender.binding,target_step=target_step)
                     request=_snapshot_message(tool.source_input.message)
                     sent=sender.send(tool)
                     for _ in range(3):
@@ -228,7 +242,7 @@ class SendRun:
                         if reply['message_id']==130 and reply['payload']['stage']!='RECEIVED':
                             break
                 else:
-                    item=self.session.prepare_input(sample.stimulus,'UDP',target_step=sample.step)
+                    item=self.session.prepare_input(sample.stimulus,'UDP',target_step=target_step)
                     value=item.message
                     request=_snapshot_message(value)
                     with self.session._operation():
@@ -244,11 +258,14 @@ class SendRun:
                             if reply['message_id']==130 and reply['payload']['stage']!='RECEIVED':
                                 break
                 final=loads(replies[-1])
-                if final['message_id']!=130 or final['payload']['stage']!='VALIDATED' or final['payload']['error']!='OK':
+                if (final['message_id']!=130 or final['payload']['stage']!=self._terminal_stage
+                        or final['payload']['error']!='OK'):
                     code=final['payload'].get('error','STATE')
-                    raise ICDError(code if code!='OK' else 'STATE','run requires genuine correlated E1 VALIDATED, not model evidence')
-                if final['payload']['probe_id']!=0:
-                    raise ICDError('STATE','reception-only result must not claim a consumer probe')
+                    raise ICDError(code if code!='OK' else 'STATE','run did not receive its required terminal evidence')
+                if final['payload']['probe_id']!=self._terminal_probe_id:
+                    raise ICDError('STATE','terminal feedback probe differs from the installed consumer')
+                if self._terminal_stage=='APPLIED' and final['payload']['applied_step']!=target_step:
+                    raise ICDError('STATE','model applied Environment at another target step')
             except ICDError as exc:
                 error=exc.code
                 raise
@@ -264,7 +281,8 @@ class SendRun:
                     sent=sum(row.sent_bytes==len(row.ethernet_data) for row in observations)
                 native=tuple(_native_snapshot(row) for row in observations)
                 record=SendRecord(self.plan.source_kind,sample,request,tuple(replies),started,
-                                  time.monotonic_ns(),sent,error,native)
+                                  time.monotonic_ns(),sent,error,native,
+                                  self._terminal_stage=='APPLIED',self._terminal_probe_id)
                 self._records.append(record)
                 self._bytes+=512+len(request or b'')+sum(map(len,replies))+len(sample.stimulus_json)+sum(map(len,native))
                 try:
