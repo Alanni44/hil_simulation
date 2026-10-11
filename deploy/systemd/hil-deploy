@@ -116,6 +116,50 @@ def _copy_checked(source_path, expected_sha256, target_path):
             os.unlink(temporary_path)
 
 
+def _snapshot_current(target_path):
+    """Keep one hard-linked predecessor only for this deployment transaction."""
+    rollback_path = target_path + '.rollback'
+    try:
+        details = os.lstat(target_path)
+    except OSError as exc:
+        if getattr(exc, 'errno', None) == 2:
+            return None
+        raise DeployError('failed to inspect current model core: {}'.format(exc))
+    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+        raise DeployError('current model core is not a regular file')
+    if os.path.lexists(rollback_path):
+        raise DeployError('previous deployment rollback record is still present')
+    try:
+        os.link(target_path, rollback_path)
+    except OSError as exc:
+        raise DeployError('failed to preserve current model core for rollback: {}'.format(exc))
+    return rollback_path
+
+
+def _restore_current(target_path, rollback_path):
+    try:
+        if rollback_path is None:
+            if os.path.lexists(target_path):
+                os.unlink(target_path)
+        else:
+            os.replace(rollback_path, target_path)
+    except OSError as exc:
+        raise DeployError('failed to restore previous model core: {}'.format(exc))
+
+
+def _discard_snapshot(rollback_path):
+    if rollback_path is None:
+        return
+    try:
+        os.unlink(rollback_path)
+    except OSError as exc:
+        raise DeployError('failed to clear deployment rollback record: {}'.format(exc))
+
+
+def _restart_core(instance):
+    subprocess.check_call(['systemctl', 'restart', 'hil-core@{}.service'.format(instance)], timeout=30)
+
+
 def deploy(instance):
     if not INSTANCE_RE.match(instance):
         raise DeployError('invalid deployment instance')
@@ -130,17 +174,28 @@ def deploy(instance):
     if not os.path.isdir(verified_root):
         raise DeployError('verified runtime directory is unavailable')
     target = os.path.join(verified_root, instance + '_rt')
-    _copy_checked(executable, expected_sha256, target)
+    rollback_path = _snapshot_current(target)
     try:
-        subprocess.check_call(['systemctl', 'restart', 'hil-core@{}.service'.format(instance)],
-                              timeout=30)
+        _copy_checked(executable, expected_sha256, target)
+    except Exception:
+        _discard_snapshot(rollback_path)
+        raise
+    try:
+        _restart_core(instance)
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        raise DeployError('failed to restart model core: {}'.format(exc))
+        try:
+            _restore_current(target, rollback_path)
+            rollback_path = None
+            _restart_core(instance)
+        except (DeployError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as rollback_exc:
+            raise DeployError('failed to restart model core and rollback failed: {}'.format(rollback_exc))
+        raise DeployError('failed to restart model core; previous verified core was restored: {}'.format(exc))
     # A descriptor is a single deployment request, not an active-model pointer.
     try:
         os.unlink(pending)
     except OSError as exc:
         raise DeployError('core started but pending descriptor could not be cleared: {}'.format(exc))
+    _discard_snapshot(rollback_path)
 
 
 def main(argv=None):

@@ -6,6 +6,7 @@ import os
 import pathlib
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -65,3 +66,29 @@ class SystemdDeployHelperTests(unittest.TestCase):
 
         with self.assertRaisesRegex(self.helper.DeployError, 'SHA-256 is invalid'):
             self.helper._read_descriptor('current')
+
+    def test_failed_restart_restores_the_previous_verified_core(self):
+        executable = self.runtime / 'work' / 'run-1' / 'model_rt'
+        executable.write_bytes(b'new verified model')
+        executable.chmod(0o750)
+        self.write_descriptor(executable, hashlib.sha256(executable.read_bytes()).hexdigest())
+        current = self.runtime / 'verified' / 'current_rt'
+        current.write_bytes(b'old verified model')
+        current.chmod(0o750)
+
+        def copy_checked(source, expected, destination):
+            self.assertEqual(str(executable), source)
+            staged = pathlib.Path(destination + '.new')
+            staged.write_bytes(executable.read_bytes())
+            os.replace(str(staged), destination)
+
+        with patch.object(self.helper.os, 'geteuid', return_value=0), \
+                patch.object(self.helper, '_copy_checked', side_effect=copy_checked), \
+                patch.object(self.helper, '_restart_core', side_effect=[OSError('new core failed'), None]) as restart:
+            with self.assertRaisesRegex(self.helper.DeployError, 'previous verified core was restored'):
+                self.helper.deploy('current')
+
+        self.assertEqual(current.read_bytes(), b'old verified model')
+        self.assertFalse((self.runtime / 'verified' / 'current_rt.rollback').exists())
+        self.assertTrue((self.runtime / 'pending' / 'current.json').exists())
+        self.assertEqual(restart.call_count, 2)

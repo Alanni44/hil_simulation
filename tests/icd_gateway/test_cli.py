@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import queue
@@ -56,7 +57,7 @@ class CLITests(GatewayTest):
         from icd_gateway.config import load_deployment
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "deployment.json"
-            for mutation, code in (("unknown", "SCHEMA"), ("formal", "STATE"), ("grant", "SCHEMA")):
+            for mutation, code in (("unknown", "SCHEMA"), ("formal", "NOT_RELEASED"), ("grant", "SCHEMA")):
                 config = self.deployment()
                 if mutation == "unknown":
                     config["private_windows_entry"] = True
@@ -66,6 +67,67 @@ class CLITests(GatewayTest):
                     config["grants"][0]["roles"] = []
                 path.write_text(json.dumps(config), encoding="utf-8")
                 self.rejects(code, lambda: load_deployment(path, self.contract))
+
+    def formal_release(self, folder):
+        release = folder / "release"
+        release.mkdir()
+        components = {}
+        for name in ("gateway_entry", "runtime_library", "contract_manifest", "model_contract",
+                     "runtime_executable"):
+            path = release / (name + ".bin")
+            path.write_bytes((name + "\n").encode("ascii"))
+            components[name] = {"path": path.name,
+                                "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+        manifest = {"format": "HIL_FORMAL_RELEASE_1", "baseline_sha256": self.contract.baseline_sha256,
+                    "components": components}
+        manifest_path = release / "release-manifest.json"
+        manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+        return {"root": str(release), "manifest": manifest_path.name,
+                "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()}, manifest_path, components
+
+    def test_formal_mode_requires_a_pinned_complete_release(self):
+        from icd_gateway.config import load_deployment
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            config_path = folder / "deployment.json"
+            config = self.deployment()
+            config["mode"] = "FORMAL"
+            release, manifest_path, components = self.formal_release(folder)
+            config["release"] = release
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            deployed = load_deployment(config_path, self.contract)
+            self.assertIsNotNone(deployed.formal_release)
+            command = [sys.executable, "-X", "utf8", "-m", "icd_gateway", "--contract-dir", str(INTERFACES),
+                       "--expected-sha256", EXPECTED, "--deployment", str(config_path)]
+            gateway = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       text=True, encoding="utf-8")
+            lines = queue.Queue()
+            reader = threading.Thread(target=lambda: lines.put(gateway.stdout.readline()), daemon=True)
+            reader.start()
+            try:
+                ready = json.loads(lines.get(timeout=10))
+                self.assertEqual(ready["status"], "FORMAL_RELEASE_READY")
+                self.assertTrue(ready["release_gate_verified"])
+                self.assertFalse(ready["replacement_ready"])
+            finally:
+                gateway.terminate()
+                gateway.wait(timeout=10)
+                gateway.stdout.close()
+                gateway.stderr.close()
+
+            components["model_contract"]["sha256"] = "0" * 64
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["components"] = components
+            manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+            config["release"]["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            self.rejects("NOT_RELEASED", lambda: load_deployment(config_path, self.contract))
+
+            del manifest["components"]["runtime_library"]
+            manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+            config["release"]["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            self.rejects("NOT_RELEASED", lambda: load_deployment(config_path, self.contract))
 
     def test_independent_gateway_and_source_processes_exchange_formal_wire(self):
         with tempfile.TemporaryDirectory() as temporary:

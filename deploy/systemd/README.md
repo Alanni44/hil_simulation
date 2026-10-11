@@ -18,7 +18,10 @@ is ready to start. There is intentionally no rollback pointer or hot reload.
 `hil-core@current` has no dependency on `hil-python-services`; restarting the
 Python bridge does not stop a running core. A successful production deployment
 reports `DEPLOYED` only after the existing UDP health gate receives a valid
-RUNNING state.
+RUNNING state. If restarting the new core fails, the helper restores the
+previous verified executable and restarts that core before reporting failure.
+The predecessor exists only during that transaction; there is no operator
+rollback pointer or hot reload.
 
 ## Install on a target
 

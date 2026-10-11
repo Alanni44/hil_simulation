@@ -130,7 +130,7 @@ with UDPSource(contract, source_bind=("127.0.0.1", 36102), feedback_bind=("127.0
 - 完整合法模型业务只生成真实RECEIVED后FAILED/TARGET_MISSING；不执行假模型、不生成VALIDATED/APPLIED/CONSUMED或E2/E3。未实现服务命令返回FAILED/UNSUPPORTED。Heartbeat虽可续租，但缺实际Status消费者时返回FAILED/TARGET_MISSING。
 - 默认Capabilities仅ID1；显式安装实际可用存储worker时为[1,34]。所有模型/初始化/替换ready为false，qualified_channels/available_probes/supported_codecs为空。queue_capacity4096是冻结契约常量，不表示模型应用队列已接入。完整SessionClose/Cleanup尚未实现，不能把本地对象关闭当作实体清理通过。
 - 接入进程独立执行空闲超时清理；关闭清空会话、组和缓存。框架不可信时丢弃并记录有界本地错误，不从损坏的头猜造线上ACK。这些错误计数不是完整E1原码证据包，更不是E2。
-- 配置有未知字段、非法端点/角色/identity、组件不匹配即拒绝启动；FORMAL模式始终拒绝，因为正式发布门禁/目标资格尚未实现。DEVELOPMENT_READY不等于正式发布。
+- 配置有未知字段、非法端点/角色/identity、组件不匹配即拒绝启动。FORMAL 模式必须提供固定 SHA-256 的 `release-manifest.json`，其中完整列出网关入口、运行库、ICD 清单、模型契约和实时可执行文件五项的相对路径与哈希；任一缺失、符号链接或哈希不符均以 `NOT_RELEASED` 拒绝。通过该本地发布完整性门禁时仅报告 `FORMAL_RELEASE_READY`，仍不表示目标硬件、模型实时性或平滑替换已验收。
 
 ## Remaining Work
 

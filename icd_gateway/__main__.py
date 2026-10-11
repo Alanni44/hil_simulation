@@ -1,4 +1,4 @@
-"""Development-only standard UDP ingress process, never a formal release claim."""
+"""Standard UDP ingress process with an explicit formal-release integrity gate."""
 
 import argparse
 from contextlib import ExitStack
@@ -59,8 +59,11 @@ def main():
                 from .can_ingress import CANGateway
                 for binding in deployment.can_bindings:
                     gateways.append(stack.enter_context(CANGateway(receiver,channel=binding.channel,interface=binding.peer)))
-            print(json.dumps({"status": "DEVELOPMENT_READY", "bind": list(service.address),
+            formal = deployment.formal_release is not None
+            print(json.dumps({"status": "FORMAL_RELEASE_READY" if formal else "DEVELOPMENT_READY",
+                              "bind": list(service.address),
                               "baseline_sha256": contract.baseline_sha256, "replacement_ready": False,
+                              "release_gate_verified": formal,
                               'validation_scope':'WIRE_SCHEMA_SESSION_ONLY' if reception else 'NO_MODEL_BACKEND',
                               'can_inputs':[b.peer for b in deployment.can_bindings] if args.can else []}), flush=True)
             while True:

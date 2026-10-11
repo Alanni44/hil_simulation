@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from icd_runtime.errors import ICDError
 from icd_runtime.json_codec import loads
+from .release_gate import verify_formal_release
 from .session import PeerBinding, SessionRegistry, SourceGrant
 
 
@@ -20,6 +21,11 @@ _SCHEMA = {
     "required": ["mode", "channel", "receiver_bind", "grants"],
     "properties": {
         "mode": {"enum": ["DEVELOPMENT", "FORMAL"]},
+        "release": {"type": "object", "additionalProperties": False,
+                    "required": ["root", "manifest", "manifest_sha256"],
+                    "properties": {"root": {"type": "string", "minLength": 1},
+                                   "manifest": {"type": "string", "minLength": 1},
+                                   "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
         "channel": {"enum": [f"ETH_{i}" for i in range(4)]},
         "receiver_bind": _ENDPOINT,
         "grants": {"type": "array", "minItems": 1, "maxItems": 64,
@@ -68,6 +74,7 @@ class Deployment:
     grants: tuple
     feedback_routes: dict
     can_bindings: tuple = ()
+    formal_release: object = None
 
 
 def load_deployment(path, contract):
@@ -79,8 +86,11 @@ def load_deployment(path, contract):
     error = next(Draft202012Validator(_SCHEMA, format_checker=FormatChecker()).iter_errors(value), None)
     if error:
         raise ICDError("SCHEMA", "invalid deployment fields")
-    if value["mode"] != "DEVELOPMENT":
-        raise ICDError("STATE", "formal deployment unavailable: release/target gates are not implemented")
+    if value["mode"] == "DEVELOPMENT" and "release" in value:
+        raise ICDError("SCHEMA", "development deployment must not carry a formal release")
+    formal_release = None
+    if value["mode"] == "FORMAL":
+        formal_release = verify_formal_release(value.get("release"), contract)
     unpack = lambda item: endpoint((item["ip"], int(item["port"])))
     bind = unpack(value["receiver_bind"])
     grants, routes, can_bindings = [], {}, []
@@ -104,4 +114,4 @@ def load_deployment(path, contract):
     SessionRegistry(contract, grants)
     if len({b.channel for b in can_bindings})!=len(can_bindings) or len({b.peer for b in can_bindings})!=len(can_bindings):
         raise ICDError('AUTHORIZATION','physical CAN input must have one unambiguous source grant')
-    return Deployment(bind, value["channel"], tuple(grants), routes,tuple(can_bindings))
+    return Deployment(bind, value["channel"], tuple(grants), routes, tuple(can_bindings), formal_release)
