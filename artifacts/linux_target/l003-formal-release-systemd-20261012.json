@@ -1,0 +1,39 @@
+{
+  "completed_utc": "2026-10-12T06:55:19Z",
+  "completed_linux_items": [
+    "L-003"
+  ],
+  "execution_host": "Linux Ubuntu 18.04.6 PREEMPT_RT 5.4.10-rt5 x86_64",
+  "git_head": "b0382af",
+  "scope": "Formal-release integrity and systemd deployment/rollback gate only; this does not qualify physical interfaces, real-time performance, model application, or real 3.3 replacement.",
+  "status": "LINUX_TARGET_VERIFIED",
+  "verification": {
+    "formal_gateway": {
+      "complete_manifest": "FORMAL_RELEASE_READY on 127.0.0.1:36120",
+      "manifest_sha256": "f9c8593caf5e185df0d0851be17c4c7a2bb6359431cb52d0a28449539ec9161f",
+      "missing_manifest": "NOT_RELEASED rejected before gateway startup",
+      "required_components": [
+        "contract_manifest",
+        "gateway_entry",
+        "model_contract",
+        "runtime_executable",
+        "runtime_library"
+      ]
+    },
+    "installed_deploy_helper_sha256": "15ffa5a53576b02432384c8f80dab0008e8e2c4f311c77723eee04215c8e9707",
+    "systemd": {
+      "core_after_test": {
+        "active_state": "active",
+        "main_pid": 23639,
+        "restart_count": 0,
+        "sub_state": "running"
+      },
+      "path_after_test": "active/waiting",
+      "tests": {
+        "immediate_exit_replacement": "deployment failed and helper restored the previous verified core; current core active",
+        "same_byte_deploy": "passed active-window check",
+        "wrong_sha256": "rejected before replacement; current core active"
+      }
+    }
+  }
+}
