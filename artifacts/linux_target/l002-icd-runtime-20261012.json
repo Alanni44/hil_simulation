@@ -1,0 +1,43 @@
+{
+  "completed_utc": "2026-10-12T06:28:58Z",
+  "completed_linux_items": [
+    "L-002"
+  ],
+  "execution_host": "Linux Ubuntu 18.04.6 PREEMPT_RT 5.4.10-rt5 x86_64",
+  "git_head": "6ce9540d45d20c7afae221d3a42796c0d2962852",
+  "interpreter": {
+    "executable": "runtime/python3.12/bin/python3.12",
+    "version": "3.12.12"
+  },
+  "scope": "Common ICD library Linux qualification only; this result does not qualify the active model, physical interfaces, real-time performance, formal release, or real 3.3 replacement.",
+  "status": "LINUX_TARGET_VERIFIED",
+  "verification": {
+    "commands": [
+      "runtime/python3.12/bin/python3.12 -X utf8 scripts/test_icd_runtime.py",
+      "PYTHONPATH=. runtime/python3.12/bin/python3.12 -X utf8 -m unittest -v tests.test_static_contract tests.test_parameter_registry_static",
+      "runtime/python3.12/bin/python3.12 -m compileall -q icd_runtime icd_gateway input_simulator",
+      "runtime/python3.12/bin/python3.12 -m pip check"
+    ],
+    "component_sha256": {
+      "model_contract": "56f3b802426f6f1c293fe41eadf416280d1eefdef4c1cc85230cf427ab11489d",
+      "model_executable": "6895964e1e905e61c5b881680973cc6eeff86ad8e1783a4d5461e394b835943b",
+      "model_slx": "23c40583fde19aa723c8c20ec2949d03f855f4779fb1ac1b461a1b8928552ba4",
+      "requirements_icd": "88efe632fc3309006308d2fa8e09c1b69e9ead70260bdb373d1df700c9a7aece",
+      "target_toolchain": "d7e08d6b0e7c63f54976c1df5921e821c2033ce3f45418cf532782811c13efc6"
+    },
+    "results": {
+      "compileall": "PASS",
+      "full_runtime_suite": {
+        "duration_seconds": 1818.423,
+        "result": "PASS",
+        "tests": 1224
+      },
+      "golden_vectors": "PASS through the full common ICD suite",
+      "isolated_dependency_check": "PASS",
+      "static_qa": {
+        "result": "PASS",
+        "tests": 23
+      }
+    }
+  }
+}

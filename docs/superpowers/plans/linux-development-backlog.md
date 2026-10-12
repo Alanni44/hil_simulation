@@ -15,7 +15,7 @@ Linux完成后在本文件追加`Linux完成证据：L-编号 -> 仓库内相对
 ## Linux待办
 
 - [ ] **L-001** 目标Ubuntu RT环境盘点与隔离Python3.12部署：记录Git、内核、旧Python3.6、MATLAB R2018b、模型/许可证和旧启动路径；运行独立依赖安装、`pip check`及旧目标验收，禁止覆盖系统Python。
-- [ ] **L-002** 共用ICD库Linux资格：运行`python -X utf8 scripts/test_icd_runtime.py`、黄金向量自检及静态QA；记录解释器/依赖/组件哈希，比较当前宿主结果。不得重新实现编解码。
+- [x] **L-002** 共用ICD库Linux资格：运行`python -X utf8 scripts/test_icd_runtime.py`、黄金向量自检及静态QA；记录解释器/依赖/组件哈希，比较当前宿主结果。不得重新实现编解码。
 - [ ] **L-003** 正式发布门禁与目标启动验证：共用发布规则先在后续共用代码实现；Linux验证NOT_RELEASED拒绝正式启动、组件缺失/错哈希失败、部署回退，不把开发模式当正式发布。
 - [ ] **L-004** 真实模型映射与缺口修复：按97条绑定实施C/Simulink输入和参数、初始化端口、完整环境/系统消费者、传感失效/陈旧与真值分离、六电机5/6和固定翼故障、真实延迟/丢包；在实际目标留下E2/E3，未知字段拒绝。
 - [ ] **L-005** SocketCAN/vcan与正式CANFD驱动：共用帧库接实际python-can后端，验证标准ID/FD/BRS/DLC、通道、时间戳及断链。vcan只计软件验证，实际仲裁/负载须设备验收。
@@ -85,6 +85,13 @@ Linux完成后在本文件追加`Linux完成证据：L-编号 -> 仓库内相对
 W2后续：实际消费者接入契约、目标步/状态/角色/控制源门禁、4096模型队列、真实Status/ClockStatus、完整SessionClose/Cleanup、资源/视频关联、证据包与正式发布门禁。它们不是Windows专用内容，不得全部转为Linux重写。W3三类资源/原工具封装、W4 API/控制台/Robot均继续共用开发；Linux仅承担不可在当前宿主完成的后端及目标验证。
 
 ## 阶段追加记录
+
+Linux完成证据：L-002 -> artifacts/linux_target/l002-icd-runtime-20261012.json
+
+### 2026-10-12 L-001/L-002 目标机资格执行
+
+- 已确认执行主机为 Ubuntu 18.04.6、`5.4.10-rt5 PREEMPT_RT`，隔离运行时为仓库内 Python 3.12.12；其 `pip check` 通过。完整 ICD 入口在该解释器以退出码 0 通过 1224 项，随后静态 QA 23 项和 `compileall` 通过。L-002 证据记录解释器、依赖、模型包和工具链哈希，并只声明共用 ICD Linux 资格。
+- 旧系统 Python/旧 HIL 服务仍为 Python 3.6.9（`/opt/hil/venv/bin/python3`）。其 `pip check` 报 `launchpadlib` 缺少 `testresources`；活动 `/opt/hil/runtime/verified/current_rt` 受权限保护，当前执行身份不能读取字节计算哈希。已记录服务入口和模型包，但在旧依赖问题处理、取得受控哈希读权限及完成旧目标验收前，L-001 保持未勾选；没有改动系统 Python、活动核心或 systemd 服务。
 
 ### 2026-10-03 W1收尾移交
 
