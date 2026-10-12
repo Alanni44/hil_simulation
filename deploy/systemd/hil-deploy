@@ -19,6 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 
 RUNTIME_ROOT = os.environ.get('HIL_RUNTIME_ROOT', '/opt/hil/runtime')
@@ -157,7 +158,14 @@ def _discard_snapshot(rollback_path):
 
 
 def _restart_core(instance):
-    subprocess.check_call(['systemctl', 'restart', 'hil-core@{}.service'.format(instance)], timeout=30)
+    unit = 'hil-core@{}.service'.format(instance)
+    subprocess.check_call(['systemctl', 'restart', unit], timeout=30)
+    # Type=simple can report success before an immediately exiting executable
+    # has reached the failed state. Keep the transaction open long enough to
+    # make that failure eligible for automatic rollback.
+    for _ in range(3):
+        time.sleep(0.5)
+        subprocess.check_call(['systemctl', 'is-active', '--quiet', unit], timeout=5)
 
 
 def deploy(instance):

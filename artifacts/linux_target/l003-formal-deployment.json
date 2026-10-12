@@ -1,0 +1,25 @@
+{
+  "channel": "ETH_0",
+  "grants": [
+    {
+      "feedback_endpoint": {"ip": "127.0.0.1", "port": 36121},
+      "identity": {
+        "definition_version": "HIL-ICD-1.0",
+        "model_id": "quadrotor_hil",
+        "run_id": "l003-target-gate",
+        "scenario_id": "l003-target-gate",
+        "source_id": "l003-target-gate",
+        "vehicle_id": "vehicle-l003"
+      },
+      "roles": ["STIMULUS"],
+      "source_endpoint": {"ip": "127.0.0.1", "port": 36122}
+    }
+  ],
+  "mode": "FORMAL",
+  "receiver_bind": {"ip": "127.0.0.1", "port": 36120},
+  "release": {
+    "manifest": "release-manifest.json",
+    "manifest_sha256": "f9c8593caf5e185df0d0851be17c4c7a2bb6359431cb52d0a28449539ec9161f",
+    "root": "/home/user/桌面/hil-simulator"
+  }
+}

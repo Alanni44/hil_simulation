@@ -1,0 +1,26 @@
+{
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+  "components": {
+    "contract_manifest": {
+      "path": "docs/interfaces/baseline/input-simulator-v0.3.manifest.json",
+      "sha256": "10dbe61e93d050bc24df5b30704213d4748aa327e8b588b0e01b3d24855ba0f6"
+    },
+    "gateway_entry": {
+      "path": "icd_gateway/__main__.py",
+      "sha256": "7f9bd714b76c21570a8525e20367d0f3b756f9098e59a8a13ce616cbf018092c"
+    },
+    "model_contract": {
+      "path": "artifacts/z_mission/model/hil_contract.json",
+      "sha256": "56f3b802426f6f1c293fe41eadf416280d1eefdef4c1cc85230cf427ab11489d"
+    },
+    "runtime_executable": {
+      "path": "artifacts/z_mission/bin/quadrotor_hil_rt",
+      "sha256": "6895964e1e905e61c5b881680973cc6eeff86ad8e1783a4d5461e394b835943b"
+    },
+    "runtime_library": {
+      "path": "icd_runtime/__init__.py",
+      "sha256": "be6e9526e32a8a73df2a51e6babd03aede7b5aa71ab39b5ef040e1f216ba50b1"
+    }
+  },
+  "format": "HIL_FORMAL_RELEASE_1"
+}

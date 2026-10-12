@@ -92,3 +92,14 @@ class SystemdDeployHelperTests(unittest.TestCase):
         self.assertFalse((self.runtime / 'verified' / 'current_rt.rollback').exists())
         self.assertTrue((self.runtime / 'pending' / 'current.json').exists())
         self.assertEqual(restart.call_count, 2)
+
+    def test_restart_requires_the_replacement_to_remain_active(self):
+        with patch.object(self.helper.subprocess, 'check_call', side_effect=[None, None,
+                self.helper.subprocess.CalledProcessError(3, ['systemctl', 'is-active'])]) as call, \
+                patch.object(self.helper.time, 'sleep') as sleep:
+            with self.assertRaises(self.helper.subprocess.CalledProcessError):
+                self.helper._restart_core('current')
+
+        self.assertEqual(call.call_args_list[0].args[0],
+                         ['systemctl', 'restart', 'hil-core@current.service'])
+        self.assertEqual(sleep.call_count, 2)
