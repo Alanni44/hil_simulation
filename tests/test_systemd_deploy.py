@@ -103,3 +103,8 @@ class SystemdDeployHelperTests(unittest.TestCase):
         self.assertEqual(call.call_args_list[0].args[0],
                          ['systemctl', 'restart', 'hil-core@current.service'])
         self.assertEqual(sleep.call_count, 2)
+
+    def test_deploy_unit_does_not_order_a_restart_behind_itself(self):
+        unit = (ROOT / 'deploy' / 'systemd' / 'hil-deploy@.service').read_text(encoding='utf-8')
+        self.assertNotIn('Before=hil-core@%i.service', unit)
+        self.assertIn('ExecStart=/opt/hil/bin/hil-deploy %i', unit)

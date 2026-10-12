@@ -23,6 +23,10 @@ the previous verified executable and restarts that core before reporting failure
 The predecessor exists only during that transaction; there is no operator
 rollback pointer or hot reload.
 
+The deployment unit deliberately has no `Before=hil-core@%i.service` ordering
+edge: the helper itself synchronously restarts that same unit, and such an edge
+would make systemd wait for the helper while the helper waits for the restart.
+
 ## Install on a target
 
 First synchronize this repository to `/opt/hil` and create
