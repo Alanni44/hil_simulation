@@ -47,7 +47,11 @@ function contract_path = create_generic_vehicle_contract(output_dir, vehicle_kin
     % controller.  C remains generic and receives the ordered channels above.
     contract.virtual_fc = virtual_fc_profile(vehicle_kind, channels);
     contract.inputs.environment = environment_inputs();
-    contract.inputs.fault = fault_inputs();
+    if strcmp(vehicle_kind, 'multirotor')
+        contract.inputs.fault = fault_inputs(motor_count);
+    else
+        contract.inputs.fault = fault_inputs(4);
+    end
     contract.outputs.internal_state = internal_outputs();
     contract.execution = struct('step_s',0.001, 'locked_configuration', ...
         {{'solver_step_s','model_topology','port_schema','communication_endpoint'}});
@@ -111,12 +115,15 @@ function value = environment_inputs()
         'pressure_pa','Pa',1000,120000,101325;'temperature_k','K',150,350,288.15;'ground_height_m','m',-1000,10000,0};
     for i = 1:size(fields,1), value.ports.(fields{i,1}) = descriptor(fields{i,1},fields{i,2},'double',1,fields{i,3},fields{i,4},fields{i,5}); end
 end
-function value = fault_inputs()
+function value = fault_inputs(motor_count)
     fields = {'gps_bias_n_m','m','double',-1000,1000;'gps_bias_e_m','m','double',-1000,1000;'gps_bias_d_m','m','double',-1000,1000; ...
         'imu_bias_p_radps','rad/s','double',-10,10;'imu_bias_q_radps','rad/s','double',-10,10;'imu_bias_r_radps','rad/s','double',-10,10; ...
-        'motor_1_failed','bool','bool',0,1;'motor_2_failed','bool','bool',0,1;'motor_3_failed','bool','bool',0,1;'motor_4_failed','bool','bool',0,1; ...
         'command_delay_ms','ms','double',0,1000;'sensor_delay_ms','ms','double',0,1000;'packet_loss_ratio','1','double',0,1};
     for i = 1:size(fields,1), value.ports.(fields{i,1}) = descriptor(fields{i,1},fields{i,2},fields{i,3},1,fields{i,4},fields{i,5}); end
+    for i = 1:motor_count
+        name = sprintf('motor_%d_failed', i);
+        value.ports.(name) = descriptor(name,'bool','bool',1,0,1);
+    end
 end
 function value = internal_outputs()
     value.rate_hz = 50; value.consumer = 'c_python_only'; value.include_in_ue4_json = false;

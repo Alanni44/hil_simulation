@@ -1,0 +1,23 @@
+[Unit]
+Description=HIL first-circle preparation management service
+After=network-online.target hil-core@current.service hil-prepare.service
+Wants=network-online.target
+Requires=hil-core@current.service
+
+[Service]
+Type=simple
+User=hil
+Group=hil
+WorkingDirectory=/opt/hil
+ExecStart=/opt/hil/.venv/bin/python -m icd_gateway.prepare_manage --contract-dir /opt/hil/docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27 --template /opt/hil/config/minimal-integration-template.json --deployment /etc/hil/minimal-integration-gateway.json --c-core-endpoint quadrotor_hil=127.0.0.1:9997 --bind 0.0.0.0:18081
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/hil /etc/hil
+
+[Install]
+WantedBy=multi-user.target

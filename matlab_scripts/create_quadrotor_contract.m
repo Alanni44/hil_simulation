@@ -8,6 +8,11 @@ function contract_path = create_quadrotor_contract(output_dir)
     contract = struct();
     contract.contract_version = 2;
     contract.model_name = 'quadrotor_hil';
+    % This explicit vehicle coupling authorizes the C-core's four-motor
+    % demo_mission controller.  Without it the generated contract header
+    % correctly leaves that controller disabled, even if a local mission is
+    % syntactically accepted.
+    contract.vehicle_kind = 'multirotor';
 
     contract.state.frame = 'NED';
     contract.state.orientation = 'FRD_TO_NED_QUATERNION';
@@ -31,6 +36,14 @@ function contract_path = create_quadrotor_contract(output_dir)
         'q_w','1','q_x','1','q_y','1','q_z','1', ...
         'p_radps','rad/s','q_radps','rad/s','r_radps','rad/s', ...
         'airborne','bool');
+    % This is an explicit, generated-code-verified ABI for the actual plant
+    % state.  build_script.m checks every field against the exact DWork
+    % typedef before emitting getters/setters; no string/offset probing occurs
+    % at runtime.
+    contract.state.initialization = struct('storage','dwork', ...
+        'position_ned','position_ned', 'velocity_ned','velocity_ned', ...
+        'quaternion_frd_to_ned','quaternion_frd_to_ned', ...
+        'body_rates','body_rates');
 
     flight_control.mode = 'motor_command';
     flight_control.ports.motor_command = descriptor('motor_command', '1', 'double', 4, 0.0, 1.0);

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Provision the bounded three-chain development SocketCAN topology.
+set -eu
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "hil-vcan-setup must run as root" >&2
+    exit 1
+fi
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+for interface in can0 can1 can2; do
+    if ip link show dev "$interface" >/dev/null 2>&1; then
+        if ! ip -details link show dev "$interface" | grep -Eq '(^|[[:space:]])vcan([[:space:]]|$)'; then
+            echo "refusing to replace non-vcan interface: $interface" >&2
+            exit 1
+        fi
+    else
+        ip link add dev "$interface" type vcan
+    fi
+    ip link set dev "$interface" up
+done

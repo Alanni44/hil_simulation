@@ -1,0 +1,11 @@
+[Unit]
+Description=HIL three-chain virtual CAN topology
+Before=hil-gateway.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/hil/bin/hil-vcan-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

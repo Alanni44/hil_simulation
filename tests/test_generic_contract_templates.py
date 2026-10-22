@@ -22,7 +22,8 @@ class GenericContractTemplateTests(unittest.TestCase):
 
     def test_template_covers_sensor_rates_faults_and_complex_parameters(self):
         for expected in ("'imu'", "'gps'", "'magnetometer'", "'barometer'",
-                         "'motor_4_failed'", "'packet_loss_ratio'", "'inertia_zz_kgm2'",
+                         "sprintf('motor_%d_failed', i)", "fault_inputs(motor_count)",
+                         "'packet_loss_ratio'", "'inertia_zz_kgm2'",
                          "'wind_d_bias_mps'"):
             self.assertIn(expected, self.source)
 

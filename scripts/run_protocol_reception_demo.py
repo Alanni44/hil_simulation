@@ -1,10 +1,11 @@
 """Run the first 3.3 simulator chain through a virtual CANFD 3.6 receiver.
 
-This is a development-only, software-only acceptance runner.  It exercises the
-frozen PROTOCOL resource, the original CANT/python-can sender, CAN ingress and
-the standard 3.6 reception service.  Reception evidence is deliberately E1
-only: no model writer, application probe or physical-bus qualification is
-installed here.
+This is a development-only acceptance runner.  It exercises the frozen
+PROTOCOL resource, the original CANT/python-can sender, CAN ingress and the
+standard 3.6 reception service.  The default remains E1 reception-only.  With
+an explicit local C endpoint plus generated contract, the supported
+quadrotor ID10 Environment message is applied and read back at the C model
+boundary; virtual CAN remains unqualified as a physical bus.
 """
 
 import argparse
@@ -26,6 +27,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from icd_gateway.can_ingress import CANGateway
+from icd_gateway.model_bindings import ModelBindings
+from icd_gateway.model_consumer import (EnvironmentModelConsumerService, FaultModelConsumerService,
+                                        QuadrotorEnvironmentBridge)
 from icd_gateway.receiver import Receiver
 from icd_gateway.reception_service import ReceptionService
 from icd_gateway.session import PeerBinding, SessionRegistry, SourceGrant
@@ -71,13 +75,27 @@ def _load_protocol_inputs(root, contract_dir):
     return inputs, resources, messages
 
 
+def _endpoint(text):
+    if type(text) is not str or text.count(":") != 1:
+        raise ICDError("SCHEMA", "model endpoint must be HOST:PORT")
+    host, port = text.rsplit(":", 1)
+    try:
+        port = int(port)
+    except ValueError as error:
+        raise ICDError("SCHEMA", "model endpoint port must be an integer") from error
+    if not host or not 1 <= port <= 65535:
+        raise ICDError("SCHEMA", "model endpoint is outside the UDP port range")
+    return host, port
+
+
 def _write(output, value):
     output.write(json.dumps(value, ensure_ascii=True, allow_nan=False, separators=(",", ":")) + "\n")
     output.flush()
 
 
 def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
-        model_id="quadrotor_hil", message_ids=(DEFAULT_MESSAGE_ID,)):
+        model_id="quadrotor_hil", message_ids=(DEFAULT_MESSAGE_ID,), model_endpoint=None,
+        model_contract_path=None):
     """Generate PROTOCOL data and retain exactly one software-chain evidence file."""
     if type(count) is not int or not 1 <= count <= 64:
         raise ICDError("RANGE", "protocol demo count must be an integer in 1..64")
@@ -89,6 +107,9 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
     contract_dir = Path(contract_dir).resolve(strict=True)
     output_path = Path(output_path)
     contract = Contract.load(contract_dir, expected_sha256=expected_sha256)
+    model_application = model_endpoint is not None
+    if model_application and (model_id != "quadrotor_hil" or message_ids not in ((10,), (11,))):
+        raise ICDError("UNSUPPORTED", "model-bound PROTOCOL mode supports only one quadrotor ID10 or ID11 snapshot")
     inputs, resources, messages = _load_protocol_inputs(ROOT, contract_dir)
     stimuli = []
     roles = set()
@@ -118,8 +139,23 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
         identity = copy.deepcopy(messages[1]["payload"]["identity"])
         identity["model_id"] = model_id
         registry = SessionRegistry(contract, (SourceGrant(identity, roles, (udp_binding, can_binding)),))
-        reception = ReceptionService(contract, registry, tuple(message_ids))
-        receiver = Receiver(contract, registry, reception_service=reception)
+        reception = None
+        consumer = None
+        bridge = None
+        target_step_base = 0
+        if model_application:
+            if model_contract_path is None:
+                raise ICDError("SCHEMA", "actual model contract path is required for model application")
+            model_contract_path = Path(model_contract_path).resolve(strict=True)
+            bindings = ModelBindings(contract, model_id,
+                                     json.loads(model_contract_path.read_text(encoding="utf-8")))
+            bridge = QuadrotorEnvironmentBridge(_endpoint(model_endpoint))
+            service = EnvironmentModelConsumerService if message_ids == (10,) else FaultModelConsumerService
+            consumer = service(contract, registry, bindings, bridge, clock=time.monotonic_ns)
+            receiver = Receiver(contract, registry, model_consumer_service=consumer)
+        else:
+            reception = ReceptionService(contract, registry, tuple(message_ids))
+            receiver = Receiver(contract, registry, reception_service=reception)
         gateway = UDPGateway(receiver, bind=receiver_endpoint,
                              feedback_routes={udp_binding: transport.feedback_endpoint}, channel="ETH_0")
         stack.callback(gateway.close)
@@ -154,23 +190,44 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
                             "source": "PROTOCOL", "transport": "CANFD_VIRTUAL", "model_id": model_id,
                             "message_ids": list(message_ids), "sample_count": len(plan.actions),
                             "baseline_sha256": contract.baseline_sha256,
-                            "validation_scope": "WIRE_SCHEMA_SESSION_ONLY", "model_application_verified": False,
+                            "validation_scope": "MODEL_BOUNDARY_READBACK" if model_application else "WIRE_SCHEMA_SESSION_ONLY",
+                            "model_application_verified": model_application,
                             "physical_tool_qualification": "NOT_EVALUATED", "replacement_ready": False})
-            records = SendRun(plan, session, can_sender=sender).run(
+            if model_application:
+                session.open()
+                target_step_base = bridge.current_step() + 50
+            records = SendRun(plan, session, can_sender=sender,
+                              terminal_stage="APPLIED" if model_application else "VALIDATED",
+                              terminal_probe_id={10: 1010, 11: 1011}.get(message_ids[0], 0)
+                              if model_application else 0,
+                              target_step_base=target_step_base).run(
                 on_record=lambda record: _write(output, record.document()))
             deadline = time.monotonic() + 1.0
-            while len(reception.records) != len(records) and time.monotonic() < deadline and not errors:
+            while ((len(consumer.records) if model_application else len(reception.records)) != len(records)
+                   and time.monotonic() < deadline and not errors):
                 time.sleep(0.001)
             if errors:
                 raise ICDError("RESOURCE", "software receiver loop failed") from errors[0]
-            if len(reception.records) != len(records):
+            terminal_records = consumer.records if model_application else reception.records
+            if len(terminal_records) != len(records):
                 raise ICDError("STATE", "all transmitted protocol samples must be decoded before completion")
-            for record in reception.records:
-                _write(output, record.document())
-            _write(output, {"format": "HIL_PROTOCOL_CHAIN_1", "status": "RECEPTION_VALIDATED",
+            if model_application:
+                for record in consumer.records:
+                    _write(output, {"format": "HIL_PROTOCOL_MODEL_APPLIED_1",
+                                    "request": json.loads(record.request_json),
+                                    "readback": json.loads(record.readback_json),
+                                    "received_ns": str(record.received_ns), "completed_ns": str(record.completed_ns),
+                                    "applied_step": record.applied_step, "model_revision": record.model_revision,
+                                    "model_application_verified": True})
+            else:
+                for record in reception.records:
+                    _write(output, record.document())
+            _write(output, {"format": "HIL_PROTOCOL_CHAIN_1",
+                            "status": "MODEL_APPLIED" if model_application else "RECEPTION_VALIDATED",
                             "model_id": model_id, "message_ids": list(message_ids),
-                            "generated_samples": len(records), "decoded_samples": len(reception.records),
-                            "model_application_verified": False, "physical_tool_qualification": "NOT_EVALUATED",
+                            "generated_samples": len(records), "decoded_samples": len(terminal_records),
+                            "model_application_verified": model_application,
+                            "physical_tool_qualification": "NOT_EVALUATED",
                             "replacement_ready": False})
         finally:
             stop.set()
@@ -179,10 +236,11 @@ def run(contract_dir, expected_sha256, output_path, *, count=3, period_steps=80,
                 raise ICDError("STATE", "software receiver loop did not stop")
         if errors:
             raise ICDError("RESOURCE", "software receiver loop failed") from errors[0]
-    return {"status": "RECEPTION_VALIDATED", "model_id": model_id, "message_ids": list(message_ids),
+    return {"status": "MODEL_APPLIED" if model_application else "RECEPTION_VALIDATED",
+            "model_id": model_id, "message_ids": list(message_ids),
             "generated_samples": len(records),
             "decoded_samples": len(records), "output": str(output_path.resolve()),
-            "model_application_verified": False, "physical_tool_qualification": "NOT_EVALUATED",
+            "model_application_verified": model_application, "physical_tool_qualification": "NOT_EVALUATED",
             "replacement_ready": False}
 
 
@@ -195,11 +253,16 @@ def main():
     parser.add_argument("--period-steps", type=int, default=80)
     parser.add_argument("--model-id", default="quadrotor_hil")
     parser.add_argument("--message-id", type=int, action="append")
+    parser.add_argument("--model-endpoint", help="explicit local C runtime UDP endpoint, HOST:PORT")
+    parser.add_argument("--model-contract", type=Path,
+                        help="generated hil_contract.json for --model-endpoint")
     args = parser.parse_args()
     try:
         print(json.dumps(run(args.contract_dir, args.expected_sha256, args.output,
                              count=args.count, period_steps=args.period_steps, model_id=args.model_id,
-                             message_ids=tuple(args.message_id or (DEFAULT_MESSAGE_ID,))), ensure_ascii=True), flush=True)
+                             message_ids=tuple(args.message_id or (DEFAULT_MESSAGE_ID,)),
+                             model_endpoint=args.model_endpoint,
+                             model_contract_path=args.model_contract), ensure_ascii=True), flush=True)
         return 0
     except (ICDError, OSError, ValueError, json.JSONDecodeError) as error:
         print(json.dumps({"status": "FAILED", "error": error.code if isinstance(error, ICDError) else "RESOURCE",

@@ -68,15 +68,20 @@ function build_script(task_file, result_file)
         build_info = RTW.getBuildDir(model_name);
         code_dir = build_info.BuildDirectory;
         model_h = fullfile(code_dir, [model_name '.h']);
-        [u_type, y_type] = find_ert_io_types(model_h);
+        [u_type, y_type, dw_type] = find_ert_io_types(model_h);
         if isempty(u_type) || isempty(y_type)
             error('ERT external input/output ABI was not generated');
         end
         u_fields = parse_struct_fields_with_types(model_h, u_type);
         y_fields = parse_struct_fields_with_types(model_h, y_type);
-        exported_globals = validate_contract_abi(contract, y_fields, u_fields, model_h);
+        dw_fields = struct('name', {}, 'type', {}, 'dimension', {});
+        if isfield(contract.state, 'initialization')
+            if isempty(dw_type), error('Generated ERT model has no declared DWork ABI for initial state'); end
+            dw_fields = parse_struct_fields_with_types(model_h, dw_type);
+        end
+        exported_globals = validate_contract_abi(contract, y_fields, u_fields, dw_fields, model_h);
         generate_contract_header(fullfile(code_dir, 'model_contract.h'), contract, y_fields, u_fields, exported_globals);
-        generate_bridge_header(fullfile(code_dir, 'model_rt_bridge.h'), model_name, u_type, y_type);
+        generate_bridge_header(fullfile(code_dir, 'model_rt_bridge.h'), model_name, u_type, y_type, dw_type);
 
         c_files = dir(fullfile(code_dir, '*.c'));
         flags = generated_c_flags(code_dir, c_files);
@@ -118,13 +123,15 @@ function write_json(path, value)
     fid = fopen(path, 'w'); fprintf(fid, '%s', jsonencode(value)); fclose(fid);
 end
 
-function [u_type, y_type] = find_ert_io_types(header_path)
+function [u_type, y_type, dw_type] = find_ert_io_types(header_path)
     content = fileread(header_path);
     u = regexp(content, 'typedef\s+struct\s*\{[\s\S]*?\}\s*(ExtU[A-Za-z0-9_]*)\s*;', 'tokens', 'once');
     y = regexp(content, 'typedef\s+struct\s*\{[\s\S]*?\}\s*(ExtY[A-Za-z0-9_]*)\s*;', 'tokens', 'once');
-    u_type = ''; y_type = '';
+    dw = regexp(content, 'typedef\s+struct\s*\{[\s\S]*?\}\s*(DW_[A-Za-z0-9_]*)\s*;', 'tokens', 'once');
+    u_type = ''; y_type = ''; dw_type = '';
     if ~isempty(u), u_type = u{1}; end
     if ~isempty(y), y_type = y{1}; end
+    if ~isempty(dw), dw_type = dw{1}; end
 end
 
 function fields = parse_struct_fields_with_types(header_path, struct_name)
@@ -143,7 +150,7 @@ function fields = parse_struct_fields_with_types(header_path, struct_name)
     if isempty(fields), error('Generated ABI struct %s has no scalar fields', struct_name); end
 end
 
-function exported_globals = validate_contract_abi(contract, y_fields, u_fields, model_header)
+function exported_globals = validate_contract_abi(contract, y_fields, u_fields, dw_fields, model_header)
     exported_globals = struct('name', {}, 'type', {});
     required = required_state_fields();
     if ~isfield(contract, 'state') || ~isfield(contract.state, 'outputs') || ...
@@ -168,6 +175,7 @@ function exported_globals = validate_contract_abi(contract, y_fields, u_fields, 
     end
     validate_internal_acceleration_abi(contract, y_fields);
     validate_input_contract_abi(contract, u_fields);
+    validate_initial_state_abi(contract, dw_fields);
     if ~isfield(contract, 'parameters') || ~iscell_or_struct_array(contract.parameters)
         error('Contract parameters must be an array');
     end
@@ -205,6 +213,27 @@ function exported_globals = validate_contract_abi(contract, y_fields, u_fields, 
             error('Parameter %s numeric ABI mismatch', p.name);
         end
         if ~any(strcmp(p.class, {'live','reset_only','readonly'})), error('Invalid parameter class'); end
+    end
+end
+
+function validate_initial_state_abi(contract, dw_fields)
+    if ~isfield(contract.state, 'initialization'), return; end
+    declaration = contract.state.initialization;
+    names = {'position_ned','velocity_ned','quaternion_frd_to_ned','body_rates'};
+    dimensions = [3,3,4,3];
+    if ~isstruct(declaration) || ~isfield(declaration, 'storage') || ...
+            ~strcmp(declaration.storage, 'dwork')
+        error('Initial state ABI must explicitly declare DWork storage');
+    end
+    for i = 1:length(names)
+        key = names{i};
+        if ~isfield(declaration, key) || ~ischar(declaration.(key)) || isempty(declaration.(key))
+            error('Initial state ABI lacks DWork field %s', key);
+        end
+        field = lookup_field(dw_fields, declaration.(key));
+        if isempty(field) || field.dimension ~= dimensions(i) || ~is_numeric_type(field.type)
+            error('Initial state DWork field is absent or incompatible: %s', declaration.(key));
+        end
     end
 end
 
@@ -274,6 +303,7 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
         key = required{i}; name = contract.state.outputs.(key);
         fprintf(fid, '#define MODEL_READ_%s(y) ((y)->%s)\n', key, name);
     end
+    generate_initial_state_abi(fid, contract);
     declaration = internal_output_declaration(contract);
     acceleration = declaration.acceleration;
     % Acceleration stays in the C/Python model-state ABI.  The TCP bridge
@@ -303,6 +333,21 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
             for j = 0:d.dimension - 1
                 if strcmp(d.type, 'bool'), fprintf(fid, 'u->%s[%d] = values[%d] != 0.0; ', d.field, j, j);
                 else, fprintf(fid, 'u->%s[%d] = (%s)values[%d]; ', d.field, j, c_cast_type(d.type), j); end
+            end
+            fprintf(fid, 'return 1; }\n');
+        end
+    end
+    fprintf(fid, '(void)u; (void)name; (void)values; (void)count; return 0; }\n');
+    fprintf(fid, '#define HIL_CONTRACT_GET_INPUT 1\n');
+    fprintf(fid, 'static int hil_contract_get_input(const ModelU_t* u, const char* name, double* values, unsigned count) {\n');
+    for i = 1:length(input_descriptors)
+        d = input_descriptors(i);
+        fprintf(fid, 'if (!strcmp(name,"%s.%s")) { if (count != %d) return 0; ', d.group, d.name, d.dimension);
+        if d.dimension == 1
+            fprintf(fid, 'values[0] = (double)u->%s; return 1; }\n', d.field);
+        else
+            for j = 0:d.dimension - 1
+                fprintf(fid, 'values[%d] = (double)u->%s[%d]; ', j, d.field, j);
             end
             fprintf(fid, 'return 1; }\n');
         end
@@ -469,6 +514,27 @@ function generate_contract_header(path, contract, y_fields, u_fields, exported_g
     fprintf(fid, '(void)u; (void)values; (void)name; (void)value; return 0; }\n#endif\n'); fclose(fid);
 end
 
+function generate_initial_state_abi(fid, contract)
+    if ~isfield(contract.state, 'initialization'), return; end
+    d = contract.state.initialization;
+    % The public shape is intentionally the frozen ID3 InitialState payload,
+    % not a byte copy of a generated DWork structure.  The following direct
+    % field accesses are emitted only after validate_initial_state_abi has
+    % proved every declared name/type/dimension against this exact ERT build.
+    fprintf(fid, '#define HIL_CONTRACT_INITIAL_STATE 1\n');
+    fprintf(fid, 'typedef struct { double north_m,east_m,down_m; double vn_mps,ve_mps,vd_mps; double q_w,q_x,q_y,q_z; double p_radps,q_radps,r_radps; int airborne; } HilInitialState;\n');
+    fprintf(fid, 'static int hil_contract_set_initial_state(const HilInitialState* s) { if (!s) return 0; ');
+    fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->north_m; MODEL_DW_VAR.%s[1]=s->east_m; MODEL_DW_VAR.%s[2]=s->down_m; ', d.position_ned, d.position_ned, d.position_ned);
+    fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->vn_mps; MODEL_DW_VAR.%s[1]=s->ve_mps; MODEL_DW_VAR.%s[2]=s->vd_mps; ', d.velocity_ned, d.velocity_ned, d.velocity_ned);
+    fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->q_w; MODEL_DW_VAR.%s[1]=s->q_x; MODEL_DW_VAR.%s[2]=s->q_y; MODEL_DW_VAR.%s[3]=s->q_z; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->p_radps; MODEL_DW_VAR.%s[1]=s->q_radps; MODEL_DW_VAR.%s[2]=s->r_radps; return 1; }\n', d.body_rates, d.body_rates, d.body_rates);
+    fprintf(fid, 'static int hil_contract_get_initial_state(HilInitialState* s, double ground_height_m) { if (!s) return 0; ');
+    fprintf(fid, 's->north_m=MODEL_DW_VAR.%s[0]; s->east_m=MODEL_DW_VAR.%s[1]; s->down_m=MODEL_DW_VAR.%s[2]; ', d.position_ned, d.position_ned, d.position_ned);
+    fprintf(fid, 's->vn_mps=MODEL_DW_VAR.%s[0]; s->ve_mps=MODEL_DW_VAR.%s[1]; s->vd_mps=MODEL_DW_VAR.%s[2]; ', d.velocity_ned, d.velocity_ned, d.velocity_ned);
+    fprintf(fid, 's->q_w=MODEL_DW_VAR.%s[0]; s->q_x=MODEL_DW_VAR.%s[1]; s->q_y=MODEL_DW_VAR.%s[2]; s->q_z=MODEL_DW_VAR.%s[3]; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    fprintf(fid, 's->p_radps=MODEL_DW_VAR.%s[0]; s->q_radps=MODEL_DW_VAR.%s[1]; s->r_radps=MODEL_DW_VAR.%s[2]; s->airborne=s->down_m < -ground_height_m; return 1; }\n', d.body_rates, d.body_rates, d.body_rates);
+end
+
 function mask = contract_control_source_mask(contract)
     % Bit positions deliberately match ControlSource in control_arbiter.h.
     mask = 7; % V2 compatibility: demo, PX4 SITL and physical UUT.
@@ -490,11 +556,18 @@ function mask = contract_control_source_mask(contract)
     end
 end
 
-function generate_bridge_header(path, model_name, u_type, y_type)
+function generate_bridge_header(path, model_name, u_type, y_type, dw_type)
     fid = fopen(path, 'w');
     fprintf(fid, '#ifndef HIL_MODEL_RT_BRIDGE_H\n#define HIL_MODEL_RT_BRIDGE_H\n#include "%s.h"\n', model_name);
     fprintf(fid, 'typedef %s ModelU_t;\n#define MODEL_U_T_DEFINED 1\ntypedef %s ModelY_t;\n#define MODEL_Y_T_DEFINED 1\n', u_type, y_type);
-    fprintf(fid, '#define MODEL_INIT_FN %s_initialize\n#define MODEL_STEP_FN %s_step\n#define MODEL_TERM_FN %s_terminate\n#define MODEL_U_VAR %s_U\n#define MODEL_Y_VAR %s_Y\n#endif\n', model_name, model_name, model_name, model_name, model_name);
+    if ~isempty(dw_type)
+        fprintf(fid, 'typedef %s ModelDW_t;\n#define MODEL_DW_T_DEFINED 1\n', dw_type);
+    end
+    fprintf(fid, '#define HIL_MODEL_ID "%s"\n#define MODEL_INIT_FN %s_initialize\n#define MODEL_STEP_FN %s_step\n#define MODEL_TERM_FN %s_terminate\n#define MODEL_U_VAR %s_U\n#define MODEL_Y_VAR %s_Y\n', model_name, model_name, model_name, model_name, model_name, model_name);
+    if ~isempty(dw_type)
+        fprintf(fid, '#define MODEL_DW_VAR %s_DW\n', model_name);
+    end
+    fprintf(fid, '#endif\n');
     fclose(fid);
 end
 

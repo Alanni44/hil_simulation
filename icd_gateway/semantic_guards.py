@@ -220,9 +220,13 @@ class SemanticGuards:
                                                 "p_radps", "q_radps", "r_radps"))):
             raise ICDError("RANGE", "quad/hex initial state must be stationary on ground")
 
-    def run_configure(self, message, view, *, terrain_ground_down=None):
+    def run_configure(self, message, view, *, terrain_ground_down=None,
+                      allow_configured_existing=False):
         self._message(message, view, 3)
-        if view.state != "STOPPED" and not (view.state == "CONFIGURED" and not view.configured_once):
+        if type(allow_configured_existing) is not bool:
+            raise ICDError("SCHEMA", "strict configured-existing permission required")
+        if view.state != "STOPPED" and not (view.state == "CONFIGURED" and
+                                              (not view.configured_once or allow_configured_existing)):
             raise ICDError("STATE", "RunConfigure requires STOPPED or initial CONFIGURED")
         self._target(message, view)
         payload = message["payload"]

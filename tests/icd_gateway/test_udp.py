@@ -12,17 +12,33 @@ def available_port():
         return sock.getsockname()[1]
 
 
+def defined_port_host(ports):
+    """Pick the local address for the frozen deployment port roles.
+
+    A verified HIL deployment keeps its gateway bound to 127.0.0.1:36100 on
+    the target host.  The roles, not the default loopback address, are what
+    this test verifies, so a busy 127.0.0.1 falls back to the 127.0.0.2 alias.
+    """
+    for port in ports:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError:
+                return "127.0.0.2"
+    return "127.0.0.1"
+
+
 class UDPTests(GatewayTest):
-    def create_network(self, ports=(0, 0, 0)):
+    def create_network(self, ports=(0, 0, 0), host="127.0.0.1"):
         from icd_gateway.session import PeerBinding, SessionRegistry, SourceGrant
         from icd_gateway.receiver import Receiver
         from icd_gateway.udp import UDPGateway
         from input_simulator.udp_source import UDPSource
-        endpoint = ("127.0.0.1", ports[0] or available_port())
-        self.source = UDPSource(self.contract, source_bind=("127.0.0.1", ports[1]),
-                                feedback_bind=("127.0.0.1", ports[2]), receiver_endpoint=endpoint, channel="ETH_0")
+        endpoint = (host, ports[0] or available_port())
+        self.source = UDPSource(self.contract, source_bind=(host, ports[1]),
+                                feedback_bind=(host, ports[2]), receiver_endpoint=endpoint, channel="ETH_0")
         self.addCleanup(self.source.close)
-        binding = PeerBinding("ETH_0", "UDP", f"127.0.0.1:{self.source.source_endpoint[1]}")
+        binding = PeerBinding("ETH_0", "UDP", f"{host}:{self.source.source_endpoint[1]}")
         grant = SourceGrant(message(1)["payload"]["identity"], ("STIMULUS",), (binding,))
         self.registry = SessionRegistry(self.contract, [grant])
         self.receiver = Receiver(self.contract, self.registry)
@@ -199,10 +215,12 @@ class UDPTests(GatewayTest):
         self.assertEqual(self.source.dropped_feedback, 1)
 
     def test_defined_port_roles_36100_36101_36102_use_actual_sockets(self):
-        self.create_network(ports=(36100, 36102, 36101))
-        self.assertEqual(self.gateway.address, ("127.0.0.1", 36100))
-        self.assertEqual(self.source.source_endpoint, ("127.0.0.1", 36102))
-        self.assertEqual(self.source.feedback_endpoint, ("127.0.0.1", 36101))
+        ports = (36100, 36102, 36101)
+        host = defined_port_host(ports)
+        self.create_network(ports=ports, host=host)
+        self.assertEqual(self.gateway.address, (host, 36100))
+        self.assertEqual(self.source.source_endpoint, (host, 36102))
+        self.assertEqual(self.source.feedback_endpoint, (host, 36101))
         self.assertEqual(self.roundtrip(message(1))["message_id"], 129)
 
     def test_reliable_retries_are_identical_and_periodic_control_is_not_retried(self):

@@ -24,6 +24,9 @@ typedef struct {
 int control_arbiter_init(ControlArbiter* arbiter, unsigned actuator_count,
                          const float* safe_values, uint64_t timeout_ns);
 int control_arbiter_select(ControlArbiter* arbiter, ControlSource source);
+/* Clears ownership and restores safe values.  This is the only valid source
+ * state at the CONFIGURED/STOPPED safety boundary. */
+int control_arbiter_clear(ControlArbiter* arbiter);
 int control_arbiter_submit(ControlArbiter* arbiter, ControlSource source,
                            const float* command, unsigned count,
                            uint64_t now_ns);

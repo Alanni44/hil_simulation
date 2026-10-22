@@ -1,0 +1,21 @@
+{
+  "identity": {
+    "run_id": "item-01",
+    "source_id": "item-01",
+    "vehicle_id": "vehicle-01",
+    "scenario_id": "item-01",
+    "model_id": "quadrotor_hil",
+    "definition_version": "HIL-ICD-1.0"
+  },
+  "roles": ["STIMULUS"],
+  "channel": "ETH_0",
+  "can_channel": "CANFD_0",
+  "can_interface": "can0",
+  "resource_root": "docs/interfaces/baseline",
+  "source_bind": "127.0.0.1:36102",
+  "feedback_bind": "127.0.0.1:36101",
+  "receiver_endpoint": "127.0.0.1:36100",
+  "stop_lead_steps": 180,
+  "status_poll_ms": 20,
+  "session_max_records": 4096
+}

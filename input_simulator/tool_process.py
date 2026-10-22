@@ -199,6 +199,14 @@ class ProcessSupervisor:
                 return self._stop('STOPPED')
             if self._process is not None and self._process.poll() is None:
                 return self._stop('FAILED')
+            # A failed child can be reaped before its two pipe-reader threads
+            # publish EOF.  A caller retrying stop is also the bounded cleanup
+            # path for that race; without this join, a higher-level owner can
+            # incorrectly retain its direct-child handles as pending.
+            if self._process is not None:
+                status = self._snapshot()
+                if not status.output_complete or any(thread.is_alive() for thread in self._threads):
+                    return self._stop('FAILED' if self._state == 'FAILED' else 'EXITED')
             return self._snapshot()
 
     def close(self):

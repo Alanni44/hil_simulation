@@ -37,7 +37,12 @@ FLIGHT_STATE_V3_FIELDS = FLIGHT_STATE_FIELDS + (
     'flight_phase', 'control_surface_valid', 'reserved_v3',
 )
 
-LIFECYCLE_NAMES = {0: 'RUNNING', 1: 'PAUSED', 2: 'RESETTING', 3: 'ENDED'}
+# Values 0..3 are retained for deployed C-core packets.  The explicit
+# pre-run states were appended by the two-loop HIL safety boundary.
+LIFECYCLE_NAMES = {
+    0: 'RUNNING', 1: 'PAUSED', 2: 'RESETTING', 3: 'ENDED',
+    4: 'CONFIGURED', 5: 'STOPPED', 6: 'FAILED',
+}
 FLIGHT_PHASE_NAMES = {
     0: 'ready', 1: 'taking_off', 2: 'flying', 3: 'landing',
     4: 'landed', 5: 'fault',

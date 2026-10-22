@@ -583,6 +583,71 @@ class SessionRegistry:
         record.responses = copy.deepcopy(responses)
         record.deadline_ns = now_ns + self._policy['duplicate_retention_ms'] * 1000000
 
+    def _record_fault_response(self, message, responses, service, *, now_ns):
+        """Accept ID11 APPLIED only from the installed target-step consumer."""
+        from .model_consumer import FaultModelConsumerService
+        if (type(service) is not FaultModelConsumerService or service.registry is not self
+                or service.contract is not self.contract
+                or not service._owns_completed_reply(message, responses, now_ns)):
+            raise ICDError('STATE', 'only the actual FaultQuad consumer may complete its reply')
+        self.observe_admitted(message, now_ns=now_ns)
+        record = self._admitted_record(message)
+        if (message['message_id'] != 11 or record.responses is not None
+                or type(responses) is not tuple or len(responses) != 2):
+            raise ICDError('STATE', 'original unapplied FaultQuad admission required')
+        for reply in responses:
+            self.contract.validate_message(reply, direction='FROM_36')
+            if (reply['message_id'] != 130
+                    or reply['header']['session_id'] != message['header']['session_id']
+                    or reply['header']['transaction_id'] != message['header']['transaction_id']
+                    or reply['payload']['request_sequence'] != message['header']['sequence']
+                    or reply['payload']['request_message_id'] != 11):
+                raise ICDError('STATE', 'original FaultQuad feedback correlation required')
+        first, last = responses[0]['payload'], responses[1]['payload']
+        if (first['stage'] != 'RECEIVED' or first['error'] != 'OK' or first['probe_id'] != 0
+                or last['stage'] != 'APPLIED' or last['error'] != 'OK'
+                or last['probe_id'] != 1011
+                or last['applied_step'] != message['header']['target_step']
+                or last['model_revision'] < 1
+                or sum(len(canonicalize(reply)) for reply in responses) > 4096):
+            raise ICDError('STATE', 'actual original FaultQuad completion pair required')
+        self._clock(now_ns)
+        record.responses = copy.deepcopy(responses)
+        record.deadline_ns = now_ns + self._policy['duplicate_retention_ms'] * 1000000
+
+    def _record_binding_response(self, message, responses, service, *, now_ns):
+        """Record an APPLIED pair produced by the generated 97-binding owner."""
+        from .model_consumer import BindingModelConsumerService
+        if (type(service) is not BindingModelConsumerService or service.registry is not self
+                or service.contract is not self.contract
+                or not service._owns_completed_reply(message, responses, now_ns)):
+            raise ICDError('STATE', 'only the actual generated binding consumer may complete its reply')
+        self.observe_admitted(message, now_ns=now_ns)
+        record = self._admitted_record(message)
+        message_id = message['message_id']
+        if (not service.supports(message_id, self.identity(message['header']['session_id'])['model_id'])
+                or record.responses is not None or type(responses) is not tuple or len(responses) != 2):
+            raise ICDError('STATE', 'original unapplied generated binding admission required')
+        for reply in responses:
+            self.contract.validate_message(reply, direction='FROM_36')
+            if (reply['message_id'] != 130
+                    or reply['header']['session_id'] != message['header']['session_id']
+                    or reply['header']['transaction_id'] != message['header']['transaction_id']
+                    or reply['payload']['request_sequence'] != message['header']['sequence']
+                    or reply['payload']['request_message_id'] != message_id):
+                raise ICDError('STATE', 'original generated binding feedback correlation required')
+        first, last = responses[0]['payload'], responses[1]['payload']
+        if (first['stage'] != 'RECEIVED' or first['error'] != 'OK' or first['probe_id'] != 0
+                or last['stage'] != 'APPLIED' or last['error'] != 'OK'
+                or last['probe_id'] != 1000 + message_id
+                or last['applied_step'] != message['header']['target_step']
+                or last['model_revision'] < 1
+                or sum(len(canonicalize(reply)) for reply in responses) > 4096):
+            raise ICDError('STATE', 'actual generated binding completion pair required')
+        self._clock(now_ns)
+        record.responses = copy.deepcopy(responses)
+        record.deadline_ns = now_ns + self._policy['duplicate_retention_ms'] * 1000000
+
     def _resource_record(self, message, now_ns):
         self.contract.validate_message(message, direction="TO_36")
         if message["message_id"] != 34:

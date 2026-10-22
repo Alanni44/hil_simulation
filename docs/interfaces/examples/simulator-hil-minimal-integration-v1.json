@@ -1,0 +1,169 @@
+{
+  "kind": "SIMULATOR_HIL_MANAGEMENT_SCHEMA_FIXTURES",
+  "version": "1",
+  "purpose": "SCHEMA_FIXTURES_ONLY_NOT_DEPLOYMENT_OR_EXECUTION_RESULTS",
+  "notes": [
+    "The create request is referenced from the frozen baseline fixture so its complete RunConfigure and SourceInputs remain byte-for-byte under the existing baseline ownership.",
+    "The responses are schema-valid rejection envelopes only. They do not claim that a target was contacted, that a Run was created, or that a HIL lifecycle action occurred.",
+    "The endpoint address is deployment-owned and intentionally absent from this file."
+  ],
+  "requests": [
+    {
+      "name": "CREATE",
+      "baseline_fixture": {
+        "file": "input-simulator-v0.3.examples.json",
+        "key": "management_create_schema_fixture"
+      }
+    },
+    {
+      "name": "GET",
+      "value": {
+        "cmd": "simulator_run_get",
+        "params": {
+          "api_version": "0.3",
+          "request_id": "schema-get-01",
+          "run_id": "schema-run-01"
+        }
+      }
+    },
+    {
+      "name": "START",
+      "value": {
+        "cmd": "simulator_run_control",
+        "params": {
+          "api_version": "0.3",
+          "request_id": "schema-start-01",
+          "run_id": "schema-run-01",
+          "expected_revision": "1",
+          "action": "START"
+        }
+      }
+    },
+    {
+      "name": "STOP",
+      "value": {
+        "cmd": "simulator_run_control",
+        "params": {
+          "api_version": "0.3",
+          "request_id": "schema-stop-01",
+          "run_id": "schema-run-01",
+          "expected_revision": "2",
+          "action": "STOP"
+        }
+      }
+    },
+    {
+      "name": "RECORDS",
+      "value": {
+        "cmd": "simulator_records_list",
+        "params": {
+          "api_version": "0.3",
+          "request_id": "schema-records-01",
+          "run_id": "schema-run-01",
+          "after_cursor": "0",
+          "limit": 100
+        }
+      }
+    }
+  ],
+  "formal_message_fixtures": [
+    {
+      "name": "SessionOpen",
+      "message_id": 1
+    },
+    {
+      "name": "RunConfigure",
+      "message_id": 3
+    },
+    {
+      "name": "Lifecycle",
+      "message_id": 4
+    },
+    {
+      "name": "Environment",
+      "message_id": 10
+    }
+  ],
+  "responses": [
+    {
+      "name": "CREATE_REJECTED_FIXTURE",
+      "value": {
+        "kind": "RESPONSE",
+        "api_version": "0.3",
+        "request_id": "schema-create-01",
+        "cmd": "simulator_run_create",
+        "status": "REJECTED",
+        "code": "OPERATION_NOT_ALLOWED",
+        "message": "Schema fixture only; no target action was attempted.",
+        "timestamp": "2026-10-20T00:00:00Z",
+        "operation_id": null,
+        "data": null,
+        "error": {
+          "code": "OPERATION_NOT_ALLOWED",
+          "retryable": false,
+          "details": []
+        }
+      }
+    },
+    {
+      "name": "GET_REJECTED_FIXTURE",
+      "value": {
+        "kind": "RESPONSE",
+        "api_version": "0.3",
+        "request_id": "schema-get-01",
+        "cmd": "simulator_run_get",
+        "status": "REJECTED",
+        "code": "NOT_FOUND",
+        "message": "Schema fixture only; no Run lookup was attempted.",
+        "timestamp": "2026-10-20T00:00:00Z",
+        "operation_id": null,
+        "data": null,
+        "error": {
+          "code": "NOT_FOUND",
+          "retryable": false,
+          "details": []
+        }
+      }
+    },
+    {
+      "name": "CONTROL_REJECTED_FIXTURE",
+      "value": {
+        "kind": "RESPONSE",
+        "api_version": "0.3",
+        "request_id": "schema-start-01",
+        "cmd": "simulator_run_control",
+        "status": "REJECTED",
+        "code": "TOOL_UNAVAILABLE",
+        "message": "Schema fixture only; no HIL action was attempted.",
+        "timestamp": "2026-10-20T00:00:00Z",
+        "operation_id": null,
+        "data": null,
+        "error": {
+          "code": "TOOL_UNAVAILABLE",
+          "retryable": false,
+          "details": []
+        }
+      }
+    },
+    {
+      "name": "RECORDS_REJECTED_FIXTURE",
+      "value": {
+        "kind": "RESPONSE",
+        "api_version": "0.3",
+        "request_id": "schema-records-01",
+        "cmd": "simulator_records_list",
+        "status": "REJECTED",
+        "code": "NOT_FOUND",
+        "message": "Schema fixture only; no Record lookup was attempted.",
+        "timestamp": "2026-10-20T00:00:00Z",
+        "operation_id": null,
+        "data": null,
+        "error": {
+          "code": "NOT_FOUND",
+          "retryable": false,
+          "details": []
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[Unit]
+Description=HIL telemetry and first-circle initialization service for 3.6
+After=network-online.target hil-core@current.service hil-preparation.service
+Wants=network-online.target hil-preparation.service
+Requires=hil-core@current.service
+Conflicts=hil-python-services.service
+
+[Service]
+Type=simple
+User=hil
+Group=hil
+WorkingDirectory=/opt/hil/python_services
+ExecStart=/opt/hil/.venv/bin/python /opt/hil/python_services/telemetry_main.py
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/hil
+ReadWritePaths=/opt/hil/logs
+
+[Install]
+WantedBy=multi-user.target

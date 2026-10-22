@@ -58,7 +58,11 @@ class CANGateway:
             if (frame.is_fd is not True or frame.bitrate_switch is not True
                     or frame.is_extended_id is not False or frame.is_remote_frame is not False
                     or frame.is_error_frame is not False or frame.error_state_indicator is not False
-                    or frame.is_rx is not True or type(frame.dlc) is not int or frame.dlc!=64
+                    # SocketCAN supplies False here even for a frame sent by
+                    # another socket.  This gateway disables own-message
+                    # echo, so complete frames obtained from bus.recv() are
+                    # inbound regardless of that python-can metadata flag.
+                    or frame.is_rx not in (True, False) or type(frame.dlc) is not int or frame.dlc!=64
                     or len(frame.data)!=64):
                 raise ICDError('SCHEMA','actual received non-error FD/BRS standard 64-byte data frame required')
             packet=CANFrame(frame.arbitration_id,bytes(frame.data))

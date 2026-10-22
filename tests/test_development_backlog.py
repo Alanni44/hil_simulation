@@ -46,7 +46,10 @@ def assert_linux_evidence(test, ledger):
     test.assertTrue(checked <= set(evidence), "Linux completion requires a target report")
     for key in checked:
         path = (ROOT / evidence[key]).resolve()
-        test.assertTrue(path.is_relative_to(ROOT.resolve()))
+        try:
+            path.relative_to(ROOT.resolve())
+        except ValueError:
+            test.fail("Linux evidence must remain below the repository root")
         report = json.loads(path.read_text(encoding="utf-8"))
         test.assertTrue(report["execution_host"].lower().startswith("linux"))
         test.assertEqual(report["status"], "LINUX_TARGET_VERIFIED")
@@ -72,6 +75,7 @@ class BacklogTests(unittest.TestCase):
         self.assertIn("追加", self.ledger)
         self.assertIn("已有记录不得删除覆盖", self.ledger)
         assert_linux_evidence(self, self.ledger)
-        checked_without_evidence = self.ledger.replace("- [ ] **L-001**", "- [x] **L-001**")
+        checked_without_evidence = self.ledger.replace(
+            "Linux完成证据：L-001 -> artifacts/linux_target/l001-target-environment-20261018.json\n", "")
         with self.assertRaises(AssertionError):
             assert_linux_evidence(self, checked_without_evidence)

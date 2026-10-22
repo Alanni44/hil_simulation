@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HIL Spring WebSocket V0.3 envelope",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "request_id", "data"],
+      "properties": {
+        "type": {"const": "COMMAND"},
+        "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "data": {"type": "object", "required": ["action"], "properties": {"action": {"enum": ["START", "STOP"]}}}
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "request_id", "data"],
+      "properties": {
+        "type": {"const": "COMMAND_RESULT"},
+        "request_id": {"type": "string", "minLength": 1},
+        "data": {"type": "object", "required": ["accepted", "reason"], "properties": {"accepted": {"type": "boolean"}, "reason": {"type": "string"}}}
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "request_id", "data"],
+      "properties": {
+        "type": {"const": "INITIALIZE"},
+        "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "data": {
+          "type": "object",
+          "required": ["model_id", "config_id", "config_sha256", "create_params_json"],
+          "properties": {
+            "model_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "config_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "create_params_json": {"type": "string", "minLength": 2}
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "request_id", "data"],
+      "properties": {
+        "type": {"const": "INITIALIZE_RESULT"},
+        "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "data": {
+          "type": "object",
+          "required": ["ready"],
+          "properties": {
+            "ready": {"type": "boolean"},
+            "lifecycle": {"enum": ["CONFIGURED"]},
+            "model_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "config_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "reason": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "data"],
+      "properties": {
+        "type": {"const": "STATE_TELEMETRY"},
+        "source_run_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "timestamp_ms": {"type": "integer"},
+        "data": {"type": "object", "required": ["sequence", "lifecycle"], "properties": {"sequence": {"type": "string", "pattern": "^[0-9]+$"}, "lifecycle": {"enum": ["RUNNING", "PAUSED", "RESETTING", "ENDED", "CONFIGURED", "STOPPED", "FAILED"]}}}
+      }
+    }
+  ]
+}

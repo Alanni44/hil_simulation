@@ -1,0 +1,26 @@
+[Unit]
+Description=HIL C-core formal UDP and three-chain CAN gateway
+After=network-online.target hil-vcan.service hil-core@current.service
+Wants=network-online.target
+Requires=hil-vcan.service hil-core@current.service
+
+[Service]
+Type=simple
+User=hil
+Group=hil
+WorkingDirectory=/opt/hil
+ExecStart=/opt/hil/.venv/bin/python -m icd_gateway --contract-dir /opt/hil/docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27 --deployment /etc/hil/minimal-integration-gateway.json --can --c-core-endpoint quadrotor_hil=127.0.0.1:9997 --c-core-resource-root /opt/hil/runtime/hil-gateway-resources --c-core-runtime-contract quadrotor_hil=/opt/hil/artifacts/z_mission/model/hil_contract.json
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/hil /etc/hil
+ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts /opt/hil/logs
+
+[Install]
+WantedBy=multi-user.target

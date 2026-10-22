@@ -122,9 +122,15 @@ class BindingTests(GatewayTest):
         with self.assertRaises(AttributeError):
             result[0].path = "state.outputs.north_m"
 
-    def test_existing_six_motor_declaration_is_not_full_v03_qualification(self):
+    def test_existing_six_motor_declaration_is_structurally_mappable_not_abi_qualification(self):
         definition = json.loads((ROOT / "artifacts/generic_models/multirotor_6/hil_contract.json").read_bytes())
-        self.rejects("MODEL", lambda: self.create("multirotor_6_hil", definition))
+        mapping = self.create("multirotor_6_hil", definition)
+        values = mapping.map_message(message(8))
+        self.assertEqual([item.path for item in values], ["flight_control.motor_command"])
+        self.assertEqual(json.loads(values[0].value_json), message(8)["payload"]["motor_command"])
+        # ModelBindings proves only frozen descriptor equivalence.  It cannot
+        # establish generated ABI, model application or physical HIL status.
+        self.assertFalse(getattr(mapping, "execution_ready", False))
 
     def test_control_mode_extra_root_and_non_scalar_parameter_are_rejected(self):
         definition = declared_runtime(self.contract, "quadrotor_hil")

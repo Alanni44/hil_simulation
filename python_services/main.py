@@ -3,17 +3,20 @@ import threading
 import time
 import sys
 import os
+import queue
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from shared.logger import get_logger
 from ws_server import start_ws_server, _ws_listen_host
+from spring_ws_server import start_spring_ws_server
 from udp_forwarder import start_udp_forwarder
 from bridge_tcp_client import start_bridge
 from fixed_wing_v3_bridge import FixedWingV3BridgeServer
 from config_loader import CONFIG
 from hil_adapters.px4_hil_service import Px4HilService
 from hil_adapters.virtual_quad_fc import VirtualQuadrotorFcService, register_service
+from service_startup import StartupError, listener_specs, preflight_listeners
 
 logger = get_logger('main')
 
@@ -21,15 +24,18 @@ logger = get_logger('main')
 def main():
     # Fail the complete service before any worker starts when GitLab management
     # would violate its loopback-only boundary.
-    _ws_listen_host()
+    management_host = _ws_listen_host()
+    preflight_listeners(listener_specs(CONFIG, management_host))
     bridge_version = CONFIG.get('bridge', {}).get('protocol_version', '2.0')
     print("=" * 60)
     print("  HIL Python Services (V{} protocol)".format(bridge_version))
     print("=" * 60)
-    print("  WebSocket (client)           -> Spring Boot {}:{}{}".format(
-        CONFIG['spring_boot'].get('host', '?'),
-        CONFIG['spring_boot']['websocket_port'],
-        CONFIG['spring_boot'].get('path', '/ws/hil')))
+    spring_ws = CONFIG.get('spring_ws', {})
+    print("  Spring WebSocket (server)    <- {}:{}{}".format(
+        spring_ws.get('listen_host', '0.0.0.0'), spring_ws.get('listen_port', 8765),
+        spring_ws.get('path', '/ws/hil')))
+    print("  Management WebSocket (server)<- {}:{}".format(
+        management_host, CONFIG['spring_boot']['websocket_port']))
     if bridge_version == '3.0':
         endpoint = CONFIG.get('fixed_wing_v3', {})
         print("  V3.0 Bridge (server)         <- Fixed-wing client {}:{}".format(
@@ -45,9 +51,23 @@ def main():
     print("  MATLAB builder               on demand")
     print("=" * 60)
 
+    # Bind the UDP receiver synchronously.  A listener collision therefore
+    # fails the service before any WebSocket listener claims a partial start.
+    udp_worker = start_udp_forwarder()
+    logger.info('udp started')
+    worker_failures = queue.Queue()
+
+    def run_listener(name, target):
+        try:
+            target()
+        except Exception as exc:
+            logger.exception('%s listener stopped during startup/runtime', name)
+            worker_failures.put((name, exc))
+
     workers = [
-        threading.Thread(target=start_udp_forwarder, daemon=True, name='udp'),
-        threading.Thread(target=start_ws_server, daemon=True, name='ws'),
+        threading.Thread(target=run_listener, args=('ws', start_ws_server), daemon=True, name='ws'),
+        threading.Thread(target=run_listener, args=('spring-ws', start_spring_ws_server),
+                         daemon=True, name='spring-ws'),
     ]
     v3_server = None
     if bridge_version == '3.0':
@@ -85,7 +105,11 @@ def main():
     logger.info("All services running. Ctrl+C to stop.")
     try:
         while True:
-            time.sleep(1)
+            try:
+                name, error = worker_failures.get(timeout=1)
+                raise RuntimeError('{} listener failed: {}'.format(name, error))
+            except queue.Empty:
+                pass
     except KeyboardInterrupt:
         logger.info("Stopping...")
         if px4_service is not None:
@@ -95,7 +119,16 @@ def main():
         if v3_server is not None:
             v3_server.stop()
         sys.exit(0)
+    except (StartupError, RuntimeError) as exc:
+        logger.error('Service startup/runtime failure: %s', exc)
+        if v3_server is not None:
+            v3_server.stop()
+        sys.exit(1)
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (StartupError, OSError) as exc:
+        logger.error('Service startup failure: %s', exc)
+        sys.exit(1)

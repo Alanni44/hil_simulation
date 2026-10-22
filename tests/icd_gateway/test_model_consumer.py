@@ -20,6 +20,12 @@ class FakeEnvironmentBridge(QuadrotorEnvironmentBridge):
         return EnvironmentApplication(request['header']['target_step'], 9,
                                       canonicalize(request['payload']['motor_command']))
 
+    def apply_fault(self, request, bindings, *, now_ns):
+        from icd_gateway.model_consumer import EnvironmentApplication
+        from icd_runtime.json_codec import canonicalize
+        return EnvironmentApplication(request['header']['target_step'], 11,
+                                      canonicalize(request['payload']))
+
 
 class EnvironmentConsumerTests(GatewayTest):
     def setUp(self):
@@ -103,3 +109,34 @@ class EnvironmentConsumerTests(GatewayTest):
         self.assertEqual([reply['payload']['stage'] for reply in replies], ['RECEIVED', 'APPLIED'])
         self.assertEqual((replies[-1]['payload']['probe_id'], replies[-1]['payload']['applied_step']),
                          (1007, 80))
+
+    def test_complete_fault_snapshot_is_applied_at_its_target_step(self):
+        from icd_gateway.model_bindings import ModelBindings
+        from icd_gateway.model_consumer import FaultModelConsumerService
+        from icd_gateway.receiver import Receiver
+        from icd_gateway.session import PeerBinding, SessionRegistry, SourceGrant
+        identity = message(1)['payload']['identity']
+        identity['model_id'] = 'quadrotor_hil'
+        binding = PeerBinding('ETH_0', 'UDP', '127.0.0.1:36113')
+        registry = SessionRegistry(self.contract, [SourceGrant(identity, ('STIMULUS',), (binding,))])
+        bindings = ModelBindings(self.contract, 'quadrotor_hil', declared_runtime(self.contract, 'quadrotor_hil'))
+        service = FaultModelConsumerService(self.contract, registry, bindings, FakeEnvironmentBridge(),
+                                            clock=lambda: 100)
+        receiver = Receiver(self.contract, registry, model_consumer_service=service)
+
+        def deliver(value, now=0):
+            replies = ()
+            for packet in receiver.wire.encode(value, 'UDP'):
+                replies = receiver.receive(packet, binding, now_ns=now)
+            return replies
+
+        opening = message(1)
+        opening['payload']['identity'] = identity
+        sid = deliver(opening)[0]['payload']['session_id']
+        self.assertIn(11, receiver._opened(sid, 1)['payload']['capabilities']['implemented_message_ids'])
+        value = message(11)
+        value['header'].update(session_id=sid, sequence=2, transaction_id=20, target_step=80)
+        replies = deliver(value)
+        self.assertEqual([reply['payload']['stage'] for reply in replies], ['RECEIVED', 'APPLIED'])
+        self.assertEqual((replies[-1]['payload']['probe_id'], replies[-1]['payload']['applied_step'],
+                          replies[-1]['payload']['model_revision']), (1011, 80, 11))

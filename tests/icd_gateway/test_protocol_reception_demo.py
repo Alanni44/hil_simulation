@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from common import EXPECTED, INTERFACES, ROOT
+from icd_runtime.errors import ICDError
 
 
 class ProtocolReceptionDemoTests(unittest.TestCase):
@@ -59,6 +60,25 @@ class ProtocolReceptionDemoTests(unittest.TestCase):
         received = [row for row in rows if row["format"] == "HIL_RECEPTION_RX_1"]
         self.assertEqual([row["message"]["message_id"] for row in received], [7, 10, 11, 14])
         self.assertTrue(all(row["model_applied"] is False for row in received))
+
+    def test_model_application_requires_contract_and_only_supports_one_quadrotor_snapshot(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence = Path(folder) / "protocol-model.jsonl"
+            with self.assertRaises(ICDError) as missing_contract:
+                self.module().run(INTERFACES, EXPECTED, evidence, model_endpoint="127.0.0.1:19997")
+            self.assertEqual(missing_contract.exception.code, "SCHEMA")
+            with self.assertRaises(ICDError) as unsupported:
+                self.module().run(INTERFACES, EXPECTED, evidence, model_endpoint="127.0.0.1:19997",
+                                  model_id="quadrotor_hil", message_ids=(7,))
+        self.assertEqual(unsupported.exception.code, "UNSUPPORTED")
+
+    def test_fault_model_application_is_admitted_by_the_runner(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence = Path(folder) / "protocol-model-fault.jsonl"
+            with self.assertRaises(ICDError) as missing_contract:
+                self.module().run(INTERFACES, EXPECTED, evidence, model_endpoint="127.0.0.1:19997",
+                                  model_id="quadrotor_hil", message_ids=(11,))
+        self.assertEqual(missing_contract.exception.code, "SCHEMA")
 
     def test_cli_runs_from_repository_root(self):
         with tempfile.TemporaryDirectory() as folder:

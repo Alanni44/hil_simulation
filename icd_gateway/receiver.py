@@ -123,8 +123,10 @@ class Receiver:
         self.reception_service=self._reception_service=reception_service
         self.model_consumer_service=self._model_consumer_service=model_consumer_service
         if model_consumer_service is not None:
-            from .model_consumer import EnvironmentModelConsumerService, FlightModelConsumerService
-            if (type(model_consumer_service) not in (EnvironmentModelConsumerService, FlightModelConsumerService)
+            from .model_consumer import (EnvironmentModelConsumerService, FlightModelConsumerService,
+                                         FaultModelConsumerService, BindingModelConsumerService)
+            if (type(model_consumer_service) not in (EnvironmentModelConsumerService, FlightModelConsumerService,
+                                                     FaultModelConsumerService, BindingModelConsumerService)
                     or model_consumer_service.contract is not contract
                     or model_consumer_service.registry is not registry):
                 raise ICDError('STATE','actual same-owner model consumer service required')
@@ -427,12 +429,42 @@ class Receiver:
                 mid for mid in self.reception_service.message_ids if self.reception_service.supports(mid,model)})
         if self.model_consumer_service is not None:
             model_id = self.registry.identity(sid)['model_id']
-            if self.model_consumer_service.supports(10, model_id):
-                capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {10})
-                capabilities['available_probes'].append('consumer.Environment')
-            if self.model_consumer_service.supports(7, model_id):
-                capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {7})
-                capabilities['available_probes'].append('consumer.FlightQuad')
+            from .model_consumer import BindingModelConsumerService
+            if type(self.model_consumer_service) is BindingModelConsumerService:
+                binding_messages = {"quadrotor_hil": (7, 10, 11, 17),
+                                    "multirotor_6_hil": (8, 10, 12, 18),
+                                    "fixed_wing_hil": (9, 10, 13, 19)}
+                for message_id in binding_messages.get(model_id, ()):
+                    if self.model_consumer_service.supports(message_id, model_id):
+                        capabilities['implemented_message_ids'] = sorted(
+                            set(capabilities['implemented_message_ids']) | {message_id})
+                consumer_probes = {7: 'consumer.FlightQuad', 8: 'consumer.FlightHex',
+                    9: 'consumer.FlightFixed', 10: 'consumer.Environment',
+                    11: 'consumer.FaultQuad', 12: 'consumer.FaultHex',
+                    13: 'consumer.FaultFixed', 17: 'consumer.TuneQuad',
+                    18: 'consumer.TuneHex', 19: 'consumer.TuneFixed'}
+                capabilities['available_probes'].extend(
+                    consumer_probes[mid] for mid in binding_messages.get(model_id, ()))
+                capabilities['available_probes'].extend(
+                    model_id + '.input.' + row['path']
+                    for row in self.contract.catalogue['model_bindings']
+                    if row['model_id'] == model_id)
+                capabilities['initialization_port_ready'] = all(
+                    self.model_consumer_service.supports(mid, model_id)
+                    for mid in binding_messages.get(model_id, ()))
+                capabilities['extended_environment_ready'] = self.model_consumer_service.supports(10, model_id)
+                capabilities['hex_motor_faults_ready'] = (model_id == 'multirotor_6_hil'
+                    and self.model_consumer_service.supports(12, model_id))
+            else:
+                if self.model_consumer_service.supports(10, model_id):
+                    capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {10})
+                    capabilities['available_probes'].append('consumer.Environment')
+                if self.model_consumer_service.supports(7, model_id):
+                    capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {7})
+                    capabilities['available_probes'].append('consumer.FlightQuad')
+                if self.model_consumer_service.supports(11, model_id):
+                    capabilities['implemented_message_ids'] = sorted(set(capabilities['implemented_message_ids']) | {11})
+                    capabilities['available_probes'].append('consumer.FaultQuad')
         reply = {"message_id": 129, "header": self._header(129, sid, transaction_id),
                  "payload": {"session_id": sid, "lease_ms": 1000, "receiver_step": receiver_step,
                              "baseline_sha256": self.contract.baseline_sha256,

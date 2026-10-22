@@ -1,0 +1,11 @@
+{
+  "template_version": "1",
+  "external_file": "config/quadrotor_hil.external.json",
+  "profile_ref": {
+    "profile_id": "minimal-integration-profile",
+    "version": "1",
+    "profile_hash": "8ddeeac31fad309043ed8d60f8f1aa585c749f65f34a1bc972a05b3f16bf38b2"
+  },
+  "resource_root": "docs/interfaces/baseline",
+  "clock_domain_id": "SIMULATOR_MONOTONIC"
+}

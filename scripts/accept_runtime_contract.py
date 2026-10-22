@@ -35,6 +35,22 @@ V2_VEHICLE_STATE_FIELDS = frozenset((
     'angular_velocity', 'flight_state'))
 
 
+def acceptance_udp_port(name, default):
+    value = os.environ.get(name, str(default))
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise RuntimeError('{} must be a UDP port number'.format(name))
+    if not 1 <= port <= 65535:
+        raise RuntimeError('{} must be within 1..65535'.format(name))
+    return port
+
+
+ACCEPTANCE_COMMAND_PORT = acceptance_udp_port('HIL_UDP_CMD_PORT', 9997)
+ACCEPTANCE_STATUS_PORT = acceptance_udp_port('HIL_UDP_STATUS_PORT', 9998)
+ACCEPTANCE_UE4_PORT = acceptance_udp_port('HIL_UE4_ACCEPTANCE_PORT', 5001)
+
+
 def write_json(path, value):
     with open(path, 'w') as output:
         json.dump(value, output, indent=2, sort_keys=True); output.write('\n')
@@ -69,7 +85,8 @@ def packet(log, kind, value):
 def core_command(command_socket, packet_log, request_id, cmd, params, observed=None):
     command = {'request_id': request_id, 'cmd': cmd, 'params': params}
     packet(packet_log, 'command', command)
-    command_socket.sendto(json.dumps(command).encode('utf-8'), ('127.0.0.1', 9997))
+    command_socket.sendto(json.dumps(command).encode('utf-8'),
+                          ('127.0.0.1', ACCEPTANCE_COMMAND_PORT))
     while True:
         data, _ = command_socket.recvfrom(65536)
         receipt = json.loads(data.decode('utf-8'))
@@ -152,10 +169,10 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
     state_cache.update(known_state_raw)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind(('127.0.0.1', 5001)); server.listen(1); server.settimeout(8)
+    server.bind(('127.0.0.1', ACCEPTANCE_UE4_PORT)); server.listen(1); server.settimeout(8)
     bridge = ws_server.bridge
     old_host, old_port = bridge.UE4_HOST, bridge.UE4_PORT
-    bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', 5001, True
+    bridge.UE4_HOST, bridge.UE4_PORT, bridge._running = '127.0.0.1', ACCEPTANCE_UE4_PORT, True
 
     def accepted_v2_ack(frame):
         """Return the exact V2 acknowledgement envelope required by bridge."""
@@ -180,11 +197,15 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
             time.sleep(0.01)
         if not bridge.is_connected():
             raise AssertionError('UE4 bridge did not complete the acknowledged handshake')
-        stream_started = time.monotonic()
-        stream_deadline = stream_started + 10.0
         vehicle_states, reset_event, reset_writer = [], None, _ReceiptWriter()
         # Route an accepted core reset through the production WebSocket
         # command handler; that is the only allowed path to notify UE4.
+        old_core_request = ws_server._core_request
+
+        def acceptance_core_request(command):
+            return old_core_request(command, port=ACCEPTANCE_COMMAND_PORT)
+
+        ws_server._core_request = acceptance_core_request
         event_loop = asyncio.new_event_loop()
         try:
             event_loop.run_until_complete(ws_server._handle_core_command(
@@ -192,6 +213,27 @@ def receive_ue4_vehicle_stream(packet_log, runtime_log_path, source_state):
                 lifecycle_event='reset'))
         finally:
             event_loop.close()
+            ws_server._core_request = old_core_request
+        # State publication starts with the mission handshake, while the reset
+        # receipt can take a separate UDP round trip.  Consume the pre-existing
+        # state frames until its single protocol event is actually confirmed;
+        # they are not part of the subsequent measured stream interval.
+        reset_deadline = time.monotonic() + 2.0
+        peer.settimeout(0.1)
+        while reset_event is None and time.monotonic() < reset_deadline:
+            try:
+                queued = _tcp_recv_frame(peer)
+            except socket.timeout:
+                continue
+            if queued.get('type') == 'simulation_event':
+                reset_event = queued
+                _tcp_send_frame(peer, accepted_v2_ack(queued))
+        peer.settimeout(5)
+        state_cache.update(known_state_raw)
+        # The 10-second rate window measures vehicle-state publication only;
+        # the preceding reset command is independently verified below.
+        stream_started = time.monotonic()
+        stream_deadline = stream_started + 10.0
         while time.monotonic() < stream_deadline:
             # The production forwarder continually refreshes this cache.  The
             # acceptance peer supplies the same valid source state at the
@@ -376,7 +418,8 @@ def main():
                 shutil.copyfile(response['log_path'], os.path.join(evidence, 'build.log'))
                 first_runtime_log = os.path.join(os.path.dirname(os.path.dirname(executable)), 'runtime.log')
                 if os.path.isfile(first_runtime_log): shutil.copyfile(first_runtime_log, runtime_log_path)
-                status = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); status.bind(('127.0.0.1', 9998)); status.settimeout(3)
+                status = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                status.bind(('127.0.0.1', ACCEPTANCE_STATUS_PORT)); status.settimeout(3)
                 command = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); command.bind(('127.0.0.1', 0)); command.settimeout(3)
                 with open(os.path.join(evidence, 'packets.ndjson'), 'w') as packet_log:
                     first = recv_state(status, packet_log)

@@ -76,10 +76,15 @@ typedef struct {
 #pragma pack(pop)
 
 enum {
+    /* Keep the original on-wire values stable for deployed V2/V3 consumers.
+     * The explicit pre-run states are appended rather than renumbering them. */
     HIL_RUNNING = 0,
     HIL_PAUSED = 1,
     HIL_RESETTING = 2,
-    HIL_ENDED = 3
+    HIL_ENDED = 3,
+    HIL_CONFIGURED = 4,
+    HIL_STOPPED = 5,
+    HIL_FAILED = 6
 };
 
 #define FLIGHT_STATE_VERSION 2U

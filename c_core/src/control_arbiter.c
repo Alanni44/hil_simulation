@@ -28,7 +28,7 @@ int control_arbiter_init(ControlArbiter* arbiter, unsigned actuator_count,
     if (!arbiter || !safe_values || !actuator_count || actuator_count > HIL_MAX_ACTUATORS || !timeout_ns)
         return 0;
     memset(arbiter, 0, sizeof(*arbiter));
-    arbiter->active_source = CONTROL_SOURCE_DEMO_MISSION;
+    arbiter->active_source = CONTROL_SOURCE_NONE;
     arbiter->actuator_count = actuator_count;
     arbiter->timeout_ns = timeout_ns;
     for (index = 0; index < actuator_count; ++index) {
@@ -43,6 +43,17 @@ int control_arbiter_select(ControlArbiter* arbiter, ControlSource source)
     unsigned index;
     if (!arbiter || source == CONTROL_SOURCE_NONE) return 0;
     arbiter->active_source = source;
+    arbiter->last_command_ns = 0;
+    for (index = 0; index < arbiter->actuator_count; ++index)
+        arbiter->command[index] = arbiter->safe_value[index];
+    return 1;
+}
+
+int control_arbiter_clear(ControlArbiter* arbiter)
+{
+    unsigned index;
+    if (!arbiter) return 0;
+    arbiter->active_source = CONTROL_SOURCE_NONE;
     arbiter->last_command_ns = 0;
     for (index = 0; index < arbiter->actuator_count; ++index)
         arbiter->command[index] = arbiter->safe_value[index];

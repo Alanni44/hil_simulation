@@ -14,6 +14,7 @@ class QuadrotorModelContractTests(unittest.TestCase):
     def test_contract_declares_motor_mode_internal_rate_and_state_mapping(self):
         source = read('matlab_scripts/create_quadrotor_contract.m')
         self.assertIn('contract.contract_version = 2', source)
+        self.assertIn("contract.vehicle_kind = 'multirotor'", source)
         self.assertIn("contract.state.frame = 'NED'", source)
         self.assertIn("contract.state.orientation = 'FRD_TO_NED_QUATERNION'", source)
         self.assertIn("flight_control.mode = 'motor_command'", source)
@@ -28,6 +29,19 @@ class QuadrotorModelContractTests(unittest.TestCase):
         for field in ('ax_mps2', 'ay_mps2', 'az_mps2'):
             self.assertRegex(source, r"internal_acceleration\.%s\s*=\s*descriptor\('%s'" %
                              (field, field))
+
+    def test_contract_and_builder_expose_verified_initial_state_dwork_abi(self):
+        contract_source = read('matlab_scripts/create_quadrotor_contract.m')
+        builder_source = read('matlab_scripts/build_script.m')
+        self.assertIn("'storage','dwork'", contract_source)
+        for field in ('position_ned', 'velocity_ned', 'quaternion_frd_to_ned', 'body_rates'):
+            self.assertIn("'%s','%s'" % (field, field), contract_source)
+        self.assertIn('validate_initial_state_abi', builder_source)
+        self.assertIn('HIL_CONTRACT_INITIAL_STATE', builder_source)
+        self.assertIn('hil_contract_set_initial_state', builder_source)
+        self.assertIn('hil_contract_get_initial_state', builder_source)
+        self.assertIn('MODEL_DW_VAR', builder_source)
+        self.assertIn('#define HIL_MODEL_ID', builder_source)
 
     def test_contract_declares_all_generated_tunable_abi(self):
         source = read('matlab_scripts/create_quadrotor_contract.m')

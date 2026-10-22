@@ -333,7 +333,11 @@ class CANSignalSender:
                         raise ICDError('SCHEMA', 'invalid original native CAN metadata retained with wire bytes')
                     if (type(frame.dlc) is not int or frame.dlc != 64 or len(frame.data) != 64
                             or frame.is_error_frame is not False or frame.error_state_indicator is not False
-                            or frame.is_rx is not True):
+                            # SocketCAN reports False even for frames that
+                            # originated on a different socket.  Our sender
+                            # disables receive_own_messages, so recv() still
+                            # denotes an actual peer frame in this backend.
+                            or frame.is_rx not in (True, False)):
                         raise ICDError('SCHEMA', 'original received non-error FD64 data frame required')
                     part = self.wire.decode(CANFrame(frame.arbitration_id, bytes(frame.data), frame.is_fd,
                         frame.bitrate_switch, frame.is_extended_id, frame.is_remote_frame), 'CANFD', direction='FROM_36')

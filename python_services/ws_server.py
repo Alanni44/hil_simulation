@@ -30,6 +30,7 @@ from fixed_wing_v3_bridge import get_hud_state as get_v3_hud_state
 from core_client import core_request as _core_request
 import dev_runner
 from hil_adapters import virtual_quad_fc
+from model_runtime import MODEL_RUNTIME
 
 logger = get_logger('ws_v2')
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -235,6 +236,7 @@ def _build_or_deploy(request):
         elif DEPLOY_MODE == 'development':
             ACTIVE_CORE = dev_runner.start(executable, runtime_log)
             if ACTIVE_CORE.poll() is not None: raise PackageError('new core exited during deployment verification')
+            MODEL_RUNTIME.register_deployed(executable, ACTIVE_CORE)
             response['status'] = 'DEV_DEPLOYED'; transitions.extend(['READY', 'DEV_DEPLOYED'])
         else:
             raise PackageError('HIL_DEPLOY_MODE must be development or systemd')

@@ -1,0 +1,23 @@
+[Unit]
+Description=HIL input simulator management service
+After=network-online.target hil-python-services.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hil
+Group=hil
+WorkingDirectory=/opt/hil
+ExecStart=/opt/hil/.venv/bin/python -m input_simulator.manage --contract-dir /opt/hil/docs/interfaces/baseline --expected-sha256 22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27 --template /opt/hil/config/minimal-integration-template.json --runtime-config /etc/hil/minimal-integration-simulator.json --state-dir /opt/hil/runtime/input-simulator-state --bind 0.0.0.0:18080
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/hil /etc/hil
+ReadWritePaths=/opt/hil/runtime /opt/hil/artifacts /opt/hil/logs
+
+[Install]
+WantedBy=multi-user.target

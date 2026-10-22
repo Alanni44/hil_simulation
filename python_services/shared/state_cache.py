@@ -63,6 +63,14 @@ def update(data):
         _latest_received_monotonic = time.monotonic()
 
 
+def reset_for_new_run():
+    """Clear only a locally managed run before its C-core sequence restarts."""
+    global _latest_raw, _latest_received_monotonic
+    with _lock:
+        _latest_raw = None
+        _latest_received_monotonic = None
+
+
 def state_age_s():
     with _lock:
         received = _latest_received_monotonic
@@ -108,6 +116,12 @@ def get_normalized_state():
     """Return a stable copy in the C-core NED frame for HIL adapters."""
     with _lock:
         return dict(_latest_raw) if _latest_raw else None
+
+
+def last_update_monotonic():
+    """Return the receive time of the latest accepted sample, if any."""
+    with _lock:
+        return _latest_received_monotonic
 
 
 def vehicle_state_v2_from_state(state, mission_id):

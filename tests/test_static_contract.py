@@ -1,5 +1,6 @@
 import ast
 import pathlib
+import re
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -100,6 +101,54 @@ class RuntimeContractStaticTests(unittest.TestCase):
         self.assertIn('hil_contract_set_input', source)
         self.assertIn('MODEL_READ_ax_mps2', source)
         self.assertNotIn('MODEL_DEFAULT_', source)
+
+    def test_configuration_and_preparation_refresh_state132_after_reset(self):
+        source = read('c_core/src/main_rt.c')
+
+        def function_body(name):
+            match = re.search(
+                r'static void %s\(struct json_object\* root, const char\* request_id,\s*'
+                r'const struct sockaddr_in\* sender\) \{(?P<body>.*?)\n\}' % name,
+                source, re.S)
+            self.assertIsNotNone(match, name)
+            return match.group('body')
+
+        for name in ('parse_prepare_model_snapshot', 'parse_configure'):
+            body = function_body(name)
+            reset = body.index('sequence = 0;')
+            self.assertIn('have_valid_state = 0;', body[:reset])
+            self.assertIn('populate_state();', body[reset:])
+            self.assertIn('record_sensor_truth();', body[reset:])
+
+    def test_status_reply_binds_sequence_and_projection_to_one_snapshot(self):
+        source = read('c_core/src/main_rt.c')
+        status = source[source.index('static void parse_get_hil_status'):
+                        source.index('static void parse_get_configuration_snapshot')]
+
+        self.assertIn('have_projection = ccore_capture_model_state(&projection);', status)
+        self.assertIn(
+            'status_sequence = have_projection ? projection.sequence : sequence;', status)
+        self.assertIn(
+            'status_time_s = have_projection ? projection.sim_time_s : sim_time_s;', status)
+        self.assertIn(
+            'json_object_object_add(fields, "sequence", '
+            'json_object_new_int64((int64_t)status_sequence));', status)
+        self.assertIn(
+            'json_object_object_add(fields, "sim_time_s", '
+            'json_object_new_double(status_time_s));', status)
+        self.assertIn('ccore_model_state_json(&projection)', status)
+        # A RUNNING reply must never mix the live global with the projection.
+        self.assertNotIn('json_object_new_int64((int64_t)sequence)', status)
+        self.assertNotIn('json_object_new_double(sim_time_s)', status)
+
+        capture = source[source.index('static int ccore_capture_model_state'):
+                         source.index('/* This capability report')]
+        self.assertIn('memcpy(snapshot, &state, sizeof(*snapshot));', capture)
+        project = source[source.index('static struct json_object* ccore_model_state_json'):
+                         source.index('/* This capability report')]
+        self.assertIn('const FlightStateV3_t* snapshot', project)
+        self.assertNotIn('snapshot = state;', project)
+        self.assertNotIn('ccore_model_state_json()', source)
 
     def test_core_has_fixed_state_receipts_and_lifecycle(self):
         source = read('c_core/src/main_rt.c')

@@ -100,7 +100,7 @@ class SystemdDeployHelperTests(unittest.TestCase):
             with self.assertRaises(self.helper.subprocess.CalledProcessError):
                 self.helper._restart_core('current')
 
-        self.assertEqual(call.call_args_list[0].args[0],
+        self.assertEqual(call.call_args_list[0][0][0],
                          ['systemctl', 'restart', 'hil-core@current.service'])
         self.assertEqual(sleep.call_count, 2)
 
@@ -108,3 +108,81 @@ class SystemdDeployHelperTests(unittest.TestCase):
         unit = (ROOT / 'deploy' / 'systemd' / 'hil-deploy@.service').read_text(encoding='utf-8')
         self.assertNotIn('Before=hil-core@%i.service', unit)
         self.assertIn('ExecStart=/opt/hil/bin/hil-deploy %i', unit)
+
+    def test_input_simulator_unit_is_unprivileged_and_uses_fixed_runtime_configuration(self):
+        unit = (ROOT / 'deploy' / 'systemd' / 'input-simulator.service').read_text(encoding='utf-8')
+        self.assertIn('User=hil', unit)
+        self.assertIn('ExecStart=/opt/hil/.venv/bin/python -m input_simulator.manage', unit)
+        self.assertNotIn('/opt/hil/venv/bin/python3', unit)
+        self.assertIn('--runtime-config /etc/hil/minimal-integration-simulator.json', unit)
+        self.assertIn('--state-dir /opt/hil/runtime/input-simulator-state', unit)
+        self.assertIn('--bind 0.0.0.0:18080', unit)
+        self.assertIn('NoNewPrivileges=true', unit)
+        self.assertIn('ProtectSystem=strict', unit)
+
+    def test_gateway_unit_uses_the_explicit_core_and_three_vcan_configuration(self):
+        unit = (ROOT / 'deploy' / 'systemd' / 'hil-gateway.service').read_text(encoding='utf-8')
+        topology = (ROOT / 'deploy' / 'systemd' / 'hil-vcan-setup').read_text(encoding='utf-8')
+        starter = (ROOT / 'deploy' / 'systemd' / 'start-minimal-hil.sh').read_text(encoding='utf-8')
+        self.assertIn('Requires=hil-vcan.service hil-core@current.service', unit)
+        self.assertIn('--c-core-endpoint quadrotor_hil=127.0.0.1:9997', unit)
+        self.assertIn('--c-core-runtime-contract quadrotor_hil=/opt/hil/artifacts/z_mission/model/hil_contract.json', unit)
+        self.assertIn('--can', unit)
+        self.assertIn('CAP_NET_RAW', unit)
+        for interface in ('can0', 'can1', 'can2'):
+            self.assertIn(interface, topology)
+        self.assertIn('/opt/hil/bin/hil-deploy current', starter)
+        self.assertIn('systemctl restart hil-prepare.service', starter)
+        self.assertIn('systemctl restart hil-gateway.service', starter)
+
+    def test_full_flow_runner_restores_configured_readiness_after_the_smoke(self):
+        runner = (ROOT / 'deploy' / 'systemd' / 'run-minimal-full-flow.sh').read_text(encoding='utf-8')
+        self.assertIn('-m input_simulator.smoke', runner)
+        self.assertIn('systemctl restart hil-core@current.service', runner)
+        self.assertIn('systemctl restart hil-prepare.service', runner)
+        self.assertIn('systemctl stop hil-gateway.service', runner)
+        self.assertIn('systemctl start hil-gateway.service', runner)
+        self.assertIn('rm -f "$gateway_lock"', runner)
+
+    def test_preparation_unit_uses_the_same_fixed_template_as_the_simulator(self):
+        unit = (ROOT / 'deploy' / 'systemd' / 'hil-prepare.service').read_text(encoding='utf-8')
+        self.assertIn('User=hil', unit)
+        self.assertIn('-m icd_gateway.prepare_minimal', unit)
+        self.assertIn('--template /opt/hil/config/minimal-integration-template.json', unit)
+        self.assertIn('--c-core-endpoint quadrotor_hil=127.0.0.1:9997', unit)
+
+    def test_remote_preparation_and_read_only_telemetry_units_are_deployed(self):
+        preparation = (ROOT / 'deploy' / 'systemd' / 'hil-preparation.service').read_text(encoding='utf-8')
+        telemetry = (ROOT / 'deploy' / 'systemd' / 'hil-telemetry.service').read_text(encoding='utf-8')
+        installer = (ROOT / 'deploy' / 'systemd' / 'install-production.sh').read_text(encoding='utf-8')
+        starter = (ROOT / 'deploy' / 'systemd' / 'start-minimal-hil.sh').read_text(encoding='utf-8')
+        self.assertIn('-m icd_gateway.prepare_manage', preparation)
+        self.assertIn('--bind 0.0.0.0:18081', preparation)
+        self.assertIn('Requires=hil-core@current.service', preparation)
+        self.assertIn('telemetry_main.py', telemetry)
+        self.assertIn('ExecStart=/opt/hil/.venv/bin/python', telemetry)
+        self.assertNotIn('/opt/hil/venv/bin/python3', telemetry)
+        self.assertIn('Conflicts=hil-python-services.service', telemetry)
+        self.assertIn('After=network-online.target hil-core@current.service '
+                      'hil-preparation.service', telemetry)
+        self.assertIn('Wants=network-online.target hil-preparation.service', telemetry)
+        self.assertIn('hil-preparation.service', installer)
+        self.assertIn('hil-telemetry.service', installer)
+        self.assertIn('systemctl start hil-preparation.service', starter)
+        self.assertIn('systemctl start hil-telemetry.service', starter)
+
+    def test_installer_requires_the_isolated_simulator_runtime_before_installing_units(self):
+        installer = (ROOT / 'deploy' / 'systemd' / 'install-production.sh').read_text(encoding='utf-8')
+        self.assertIn('simulator_python=/opt/hil/.venv/bin/python', installer)
+        self.assertIn('missing isolated Python 3.12 simulator runtime', installer)
+        self.assertIn('simulator_base_prefix=', installer)
+        self.assertIn('simulator virtual environment was copied from outside /opt/hil', installer)
+        self.assertIn('import icd_gateway, icd_runtime, input_simulator, jsonschema, referencing', installer)
+        self.assertIn('yaml', installer)
+        self.assertIn('systemctl disable --now hil-python-services.service || true', installer)
+        self.assertIn('chown -R hil:hil /opt/hil/logs', installer)
+
+    def test_installer_does_not_register_tmpfiles_below_the_editable_checkout(self):
+        installer = (ROOT / 'deploy' / 'systemd' / 'install-production.sh').read_text(encoding='utf-8')
+        self.assertIn('rm -f /etc/tmpfiles.d/hil-runtime.conf', installer)
+        self.assertNotIn('systemd-tmpfiles --create', installer)

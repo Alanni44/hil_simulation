@@ -33,6 +33,11 @@ class ModelConfigurationContext:
     ground_down: float | None
     sampled_ns: int
     deadline_ns: int
+    # A backend may expose an already CONFIGURED target only after it has
+    # proved that the retained complete configuration equals this request.
+    # This is an explicit no-write reconciliation path for the second circle,
+    # not a permission to overwrite an arbitrary configured target.
+    idempotent_existing: bool = False
 
     def __post_init__(self):
         _sample(self.identity_json,self.view,self.sampled_ns,self.deadline_ns)
@@ -45,6 +50,8 @@ class ModelConfigurationContext:
                 valid=False
             if not valid:
                 raise ICDError('SCHEMA','actual finite terrain ground sample required')
+        if type(self.idempotent_existing) is not bool:
+            raise ICDError('SCHEMA','strict existing-configuration marker required')
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,7 +302,9 @@ class ModelConfigurationService:
                     completed=self._observe_time(now_ns)
                 self._admitted(request,completed)
                 self._context(context,identity,original,completed)
-                SemanticGuards(self._contract).run_configure(request,context.view,terrain_ground_down=context.ground_down)
+                SemanticGuards(self._contract).run_configure(
+                    request, context.view, terrain_ground_down=context.ground_down,
+                    allow_configured_existing=context.idempotent_existing)
                 self._queue(context)
                 if self._registry._sessions[key[0]].last_tx==0xffffffff:
                     raise ICDError('CAPACITY','original configuration feedback sequence exhausted before write')

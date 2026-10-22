@@ -14,7 +14,7 @@ Linux完成后在本文件追加`Linux完成证据：L-编号 -> 仓库内相对
 
 ## Linux待办
 
-- [ ] **L-001** 目标Ubuntu RT环境盘点与隔离Python3.12部署：记录Git、内核、旧Python3.6、MATLAB R2018b、模型/许可证和旧启动路径；运行独立依赖安装、`pip check`及旧目标验收，禁止覆盖系统Python。
+- [x] **L-001** 目标Ubuntu RT环境盘点与隔离Python3.12部署：记录Git、内核、旧Python3.6、MATLAB R2018b、模型/许可证和旧启动路径；运行独立依赖安装、`pip check`及旧目标验收，禁止覆盖系统Python。
 - [x] **L-002** 共用ICD库Linux资格：运行`python -X utf8 scripts/test_icd_runtime.py`、黄金向量自检及静态QA；记录解释器/依赖/组件哈希，比较当前宿主结果。不得重新实现编解码。
 - [x] **L-003** 正式发布门禁与目标启动验证：共用发布规则先在后续共用代码实现；Linux验证NOT_RELEASED拒绝正式启动、组件缺失/错哈希失败、部署回退，不把开发模式当正式发布。
 - [ ] **L-004** 真实模型映射与缺口修复：按97条绑定实施C/Simulink输入和参数、初始化端口、完整环境/系统消费者、传感失效/陈旧与真值分离、六电机5/6和固定翼故障、真实延迟/丢包；在实际目标留下E2/E3，未知字段拒绝。
@@ -88,6 +88,7 @@ W2后续：实际消费者接入契约、目标步/状态/角色/控制源门禁
 
 Linux完成证据：L-002 -> artifacts/linux_target/l002-icd-runtime-20261012.json
 Linux完成证据：L-003 -> artifacts/linux_target/l003-formal-release-systemd-20261012.json
+Linux完成证据：L-001 -> artifacts/linux_target/l001-target-environment-20261018.json
 
 ### 2026-10-12 L-001/L-002 目标机资格执行
 
@@ -620,3 +621,36 @@ Linux完成证据：L-003 -> artifacts/linux_target/l003-formal-release-systemd-
 - 共用实现：FORMAL 部署必须引用固定 SHA-256 的 `release-manifest.json`；清单绑定冻结 ICD 指纹，并完整列出网关入口、运行库、ICD 清单、模型契约和实时可执行文件五项的相对路径及 SHA-256。缺失、符号链接、清单篡改或任一组件哈希不符一律以 `NOT_RELEASED` 拒绝启动。通过本地完整性门禁仅报告 `FORMAL_RELEASE_READY`，不提升模型、实体、实时或真实3.3替换资格。
 - 部署恢复：systemd 部署助手在替换前仅为当前事务硬链接保留上一份已验证核心；新核心重启失败时恢复旧文件并重启旧核心，保留原 pending 描述符。成功后删除事务记录；不新增人工回退指针或热重载。
 - 本机验证：发布清单缺失、组件错哈希、组件缺失及 FORMAL 进程启动状态，以及部署重启失败后的文件恢复均有单元测试。目标 Linux 的实际正式启动、systemd、哈希清单、权限和回退证据仍须按 L-003 在目标机执行并另存 `LINUX_TARGET_VERIFIED` 报告；因此 L-003 保持未勾选。
+
+### 2026-10-18 三源开发模型应用链路
+
+- 本机 Linux `5.4.10-rt5` 上启动现有 `artifacts/z_mission/bin/quadrotor_hil_rt`，仅以 `HIL_ALLOW_NONRT=1` 开发模式开放本机 `127.0.0.1:9997` C 模型桥；不声明 RT 指标。
+- PROTOCOL 经原 CANT/python-can VirtualBus/CANGateway 对 ID10 发送 3 个样本，SCENARIO 经原 Scapy 二层虚拟以太网/UDPGateway 对 ID10 发送 3 个样本，HISTORY 经参考 PCAP 解码、重建及 UDP 回放对 ID7 发送 1 个样本。每条均收到 `APPLIED` 并由 C 模型在目标步读回：PROTOCOL 步47454/47534/47614、SCENARIO 步12014/12094/12174、HISTORY 步21052。
+- 为使 PROTOCOL 使用同一实际模型消费者，`scripts/run_protocol_reception_demo.py` 新增显式 `--model-endpoint` 与 `--model-contract`；仅允许 quadrotor ID10，默认无参数路径继续为 reception-only，不凭空安装模型后端。
+- 证据汇总 `artifacts/icd_gateway/three-chain-model-application-20261018T000001Z.json`，三份原始 JSONL 均以不可覆盖新文件保存；14 项三链路/消费者聚焦回归通过。
+- 此结果仅证明开发模型边界的局部 E2 应用与读回，不勾选 L-004/L-010，不替代 SocketCAN、实体以太网/tcpreplay、完整97条绑定、生命周期/安全、RT 性能或真实3.3替换验收。
+
+### 2026-10-18 L-001 目标环境与旧目标验收完成
+
+- 目标主机实测为 Ubuntu 18.04.6、`5.4.10-rt5 PREEMPT_RT`、系统 Python 3.6.9、MATLAB `9.5.0.944444 (R2018b)`；仓库内隔离 Python 3.12.12 与临时旧 Python 3.6.9 验收 venv 的 `pip check` 均通过。未替换系统 Python。
+- 在干净临时检出上完成 181 项 Python 回归和 42 项运行时断言：MATLAB ERT/GCC 构建、501 帧严格 50 Hz 状态流、唯一 `reset_scene`、重置与第二次部署单实例检查均通过。验收使用独立 UDP `19997/19998` 与 TCP `15001`，未停止或修改当前工作区常驻服务。
+- 证据固定于 `artifacts/linux_target/l001-target-environment-20261018.json`，其中记录验收结果和环境/模型哈希。`/opt/hil` 在本主机不存在，因此报告如实记录当前工作区 Python 3.6 服务入口而未声称读取或哈希不存在的旧部署。
+- 本项只关闭 L-001 的环境盘点、隔离依赖与旧目标验收；开发模式使用 `HIL_ALLOW_NONRT=1` 且豁免生产实时门禁，不关闭 L-004、L-010 或正式发布资格。
+
+### 2026-10-20 L-004 四旋翼 FaultQuad（ID11）目标步子项
+
+- 共用实现：实际 C 模型桥新增 ID11 完整 13 字段故障快照的独立 staging/result 命令。仅在请求的 1 ms 模型步通过生成的 `hil_contract_set_input` 写入全部故障 ExtU 端口后才标记 APPLIED；网关新增 `FaultModelConsumerService`、probe `1011` 和对应会话防伪完成记录。缺字段、未知字段、类型或范围不符、迟到以及生成 setter 不可用均不产生 APPLIED。
+- Linux 开发验证：重建并经 Spring STOP/START 重新启动现有 ERT 二进制；PROTOCOL 经原 CANT/python-can VirtualBus 与 CANGateway 对实际 C 模型发送 2 个 ID11 样本，均在目标步读回并获得 APPLIED。直接模型边界还验证了非零故障快照和其后的全零恢复快照，最终 13 项读回均为零/false。永久证据为 `artifacts/linux_target/l004-quadrotor-fault-boundary-20261020.json` 与其引用的原始 JSONL。
+- 未完成：这只覆盖四旋翼 ID11 的 13/97 条绑定子集；ID17 参数、完整环境/系统消费者、传感失效陈旧与真值分离、六电机/固定翼故障、真实延迟/丢包及完整 E2/E3 仍未完成。VirtualBus 和 `HIL_ALLOW_NONRT=1` 只构成开发模型边界证据，不勾选 L-004，也不替代实体 CANFD、RT 或真实3.3验收。
+
+### 2026-10-21 模拟器/HIL 两圈最小联调软件收尾
+
+- 软件实现：新增的模拟器 Run 管理、正式最小执行、停止/记录持久化和 HIL 准备/同配置核对/生命周期链路已在仓库内完成。`runtime/python3.12/bin/python3.12 -X utf8 scripts/test_icd_runtime.py` 在本次固定源码下通过 1269 项运行时/网关/HIL 测试，随后开发计划 3 项、接口汇总 4 项及单文件契约核验均通过。该结果是软件回归，不能反推 Linux 目标机、实体总线、实时网卡或外部后端联调已通过。
+- 部署收紧：`input-simulator.service` 改为只使用 `/opt/hil/.venv/bin/python` 的隔离 Python 3.12；安装脚本在复制/启用 unit 前检查解释器与本仓库、`jsonschema`、`referencing` 导入。它不再错误复用旧 HIL 服务的 `/opt/hil/venv/bin/python3`（Python 3.6）。shell 语法和 systemd 部署专项 8 项通过；当前容器不允许 `systemd-analyze verify` 创建控制组，故未把该命令的权限失败解释为目标验证。
+- Linux/实体待办保持：仍需在已批准目标机执行隔离 venv 安装、unit 安装/启动、真实 CAN FD 与网卡收发、原工具链、HIL 进程和 3.3/3.6 调用方联调，并保存真实请求/回执/状态/停止证据。上述现场条件本轮未使用，因此不勾选 L-003/L-004/L-010/L-011/L-013/L-014/L-017，也不把本机 UDP、VirtualBus 或测试结果升级为实体/RT资格。
+
+### 2026-10-21 现场验收环境检查
+
+- 当前主机内核为 `5.4.10-rt5 PREEMPT_RT`，但 `ip -details link show` 只列出 `lo` 与 `enp2s1`，未发现任何 SocketCAN/CAN FD 接口；`/dev` 下亦未发现 CAN 设备节点。因而当前环境不能执行本计划要求的实体 CAN FD 收发、bus-off 或原工具链验收。
+- `systemctl is-system-running` 返回 `running`，但 `input-simulator.service` 未安装，`hil-core@.service` 为 disabled，进程表中没有 `input_simulator.manage`、`icd_gateway`、`quadrotor_hil_rt` 或 `hil-core` 目标进程。未在本检查中安装、启用或启动服务，避免将开发工作区配置写入现有目标系统。
+- 结论：软件实现可继续移交；Task 7/8 的 Linux/实体验收缺少可用 CAN FD 设备、已批准服务部署和外部调用方，保持未执行。上述事实不改变 L-003/L-004/L-010/L-011/L-013/L-014/L-017 状态。

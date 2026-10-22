@@ -12,6 +12,39 @@ spring_boot:
   websocket_port: 8080
   path: "/ws/hil"
 
+# Business endpoint for Spring Boot.  This is intentionally separate from the
+# loopback-only package-management WebSocket above.
+spring_ws:
+  listen_host: "0.0.0.0"
+  listen_port: 8765
+  path: "/ws/hil"
+  publish_rate_hz: 50
+  state_max_age_s: 0.5
+  control_queue_size: 32
+  send_timeout_s: 5
+  request_cache_size: 256
+  # The two-circle integration publishes state to 3.6; lifecycle control is
+  # exclusively the formal simulator/HIL path, never this telemetry endpoint.
+  allow_commands: false
+
+# START/STOP controls only a pre-verified local executable; it never builds or
+# deploys a package.  Configure executable_path on the HIL target before use.
+model_runtime:
+  control_mode: builtin_mission
+  execution_mode: development
+  executable_path: "artifacts/z_mission/bin/quadrotor_hil_rt"
+  # Production deployments can instead select execution_mode: systemd and a
+  # fixed, locally authorized systemd_unit such as hil-core@current.service.
+  mission_path: "missions/z_mission.json"
+  runtime_log: "runtime/spring-model.log"
+  startup_timeout_s: 20
+  core_ready_timeout_s: 3
+  command_retry_attempts: 3
+  command_retry_delay_s: 0.1
+  stop_timeout_s: 10
+  ready_sample_count: 3
+  state_max_age_s: 0.5
+
 ue4_tcp:
   # Formal V2 bridge target.  This is the UE4/AirSimBridge host, not a
   # local test endpoint; debug_ue4_tcp below is only used by debug tooling.
@@ -66,7 +99,9 @@ px4_hil:
 virtual_quad_fc:
   # Enable the local virtual-UUT path for closed-loop and live-tuning demos.
   # It does not require a UE4 connection.
-  enabled: true
+  # Disabled for the Spring V0.3 demo_mission integration path.  Enabling it
+  # is an explicit switch to the separate virtual-UUT control path.
+  enabled: false
   hardware_id: "virtual_quad_fc_01"
   command_rate_hz: 250
   imu_rate_hz: 250
