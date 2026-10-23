@@ -16,6 +16,7 @@ from icd_runtime.errors import ICDError
 from icd_runtime.json_codec import canonicalize, loads
 from .configuration_service import (
     ModelConfigurationBackend,
+    ModelConfigurationBoundary,
     ModelConfigurationContext,
     ModelConfigurationReceipt,
 )
@@ -87,6 +88,9 @@ class PreparationService:
             raise ICDError("MODEL", "actual configuration receipt does not match preparation request")
         if not started <= receipt.sampled_ns <= now < min(receipt.deadline_ns, receipt.sampled_ns + 240_000_000):
             raise ICDError("EXPIRED", "actual configuration readback is stale")
+        expected_revision = context.model_revision if context.idempotent_existing else context.model_revision + 1
+        if (expected_revision > 0xffffffff or receipt.model_revision != expected_revision):
+            raise ICDError("STATE", "actual model revision does not match the verified configuration boundary")
         expected = loads(original)["payload"]
         configuration = loads(receipt.configuration_json)
         if (canonicalize(configuration) != canonicalize(expected)
@@ -99,66 +103,130 @@ class PreparationService:
                 or view.max_duration_steps != configuration["max_duration_steps"]):
             raise ICDError("STATE", "actual HIL is not at the configured safe boundary")
 
-    def prepare(self, prepare_id, identity, request):
-        """Prepare once; equal snapshots replay the verified original result.
+    @staticmethod
+    def _boundary_values(boundary):
+        if type(boundary) is not ModelConfigurationBoundary:
+            raise ICDError("STATE", "authoritative C-core boundary is required")
+        return (boundary.lifecycle, boundary.model_step, boundary.model_revision,
+                boundary.control_source)
 
-        ``request`` is a complete frozen ID3 RunConfigure message with a
-        nonzero session header supplied by the HIL coordinator.  It is never
-        put on the formal data transport by this service.
-        """
+    @staticmethod
+    def _context_boundary_values(context):
+        return (context.view.state, context.view.model_step, context.model_revision,
+                context.view.control_source)
+
+    def _verify_boundary_fresh(self, boundary, now):
+        if type(boundary) is not ModelConfigurationBoundary:
+            raise ICDError("STATE", "authoritative C-core boundary is required")
+        if not boundary.sampled_ns <= now < min(boundary.deadline_ns,
+                                                 boundary.sampled_ns + 240_000_000):
+            raise ICDError("EXPIRED", "authoritative C-core boundary is stale")
+
+    @staticmethod
+    def _run_configure_request(configuration, target_step):
+        return {"message_id": 3,
+                "header": {"session_id": 1, "sequence": 1, "target_step": target_step,
+                           "transaction_id": 1, "valid_for_ms": 1000},
+                "payload": loads(canonicalize(configuration))}
+
+    @staticmethod
+    def _same_verified_result(result, context, snapshot):
+        return (context.idempotent_existing and result.config_sha256 == snapshot
+                and result.model_id == context.view.model_id and result.state == context.view.state
+                and result.model_step == context.view.model_step
+                and result.model_revision == context.model_revision
+                and result.control_source == context.view.control_source)
+
+    def _prepare_locked(self, prepare_id, identity, configuration, snapshot, request_factory):
+        previous = self._by_prepare_id.get(prepare_id)
+        if previous is not None:
+            if previous.config_sha256 != snapshot:
+                raise ICDError("DUPLICATE", "prepare_id names another configuration snapshot")
+            return previous
+        previous_snapshot = self._by_snapshot.get(snapshot)
+        if len(self._by_prepare_id) >= self._max_results and previous_snapshot is None:
+            raise ICDError("CAPACITY", "preparation history capacity is exhausted")
+        started_read = self._now()
+        boundary = self.backend.read_boundary(dict(identity), now_ns=started_read)
+        sampled = self._now()
+        self._verify_boundary_fresh(boundary, sampled)
+        request = request_factory(boundary)
+        self.contract.validate_message(request, direction="TO_36")
+        if request["message_id"] != 3 or canonicalize(request["payload"]) != canonicalize(configuration):
+            raise ICDError("MODEL", "verified preparation request differs from the fixed RunConfigure")
+        original = canonicalize(request)
+        context = self.backend.read_context(dict(identity), original, now_ns=sampled)
+        completed = self._now()
+        self._verify_context(context, identity, original, completed)
+        self._verify_boundary_fresh(boundary, completed)
+        if self._context_boundary_values(context) != self._boundary_values(boundary):
+            raise ICDError("STATE", "C-core lifecycle, step, revision or control source changed during preparation validation")
+        SemanticGuards(self.contract).run_configure(
+            request, context.view, terrain_ground_down=context.ground_down,
+            allow_configured_existing=context.idempotent_existing)
+        if boundary.model_step != 0:
+            raise ICDError("STATE", "new Run preparation requires authoritative C-core model_step 0")
+        if previous_snapshot is not None and self._same_verified_result(previous_snapshot, context, snapshot):
+            return previous_snapshot
+        if len(self._by_prepare_id) >= self._max_results:
+            raise ICDError("CAPACITY", "preparation history capacity is exhausted")
+        if not context.idempotent_existing and context.model_revision == 0xffffffff:
+            raise ICDError("STATE", "C-core model revision is exhausted")
+        write_started = completed
+        receipt = self.backend.apply_configuration(original, context, now_ns=write_started)
+        completed = self._now()
+        self._verify_receipt(receipt, identity, original, context, write_started, completed)
+        result = PreparationResult(prepare_id=prepare_id, model_id=identity["model_id"], config_id=snapshot,
+            config_sha256=snapshot, baseline_sha256=self.contract.baseline_sha256,
+            configuration_json=receipt.configuration_json, initial_state_json=receipt.initial_state_json,
+            initial_inputs_json=receipt.initial_inputs_json, model_revision=receipt.model_revision,
+            model_step=receipt.view.model_step, state=receipt.view.state,
+            control_source=receipt.view.control_source, sampled_ns=receipt.sampled_ns)
+        self._by_prepare_id[prepare_id] = result
+        self._by_snapshot[snapshot] = result
+        return result
+
+    def prepare_current(self, prepare_id, identity, configuration):
+        """Build RunConfigure.target_step from a fresh authoritative C-core boundary."""
+        if type(prepare_id) is not str or not 1 <= len(prepare_id) <= 128:
+            raise ICDError("SCHEMA", "bounded preparation ID required")
+        if type(identity) is not dict:
+            raise ICDError("SCHEMA", "Run identity object required")
+        frozen_identity = loads(canonicalize(identity))
+        if frozen_identity.get("model_id") not in self.backend.model_ids:
+            raise ICDError("TARGET_MISSING", "requested model has no actual configuration backend")
+        config_json = canonicalize(configuration)
+        frozen_configuration = loads(config_json)
+        self.contract.validate_payload(3, frozen_configuration)
+        if frozen_configuration["model_id"] != frozen_identity["model_id"]:
+            raise ICDError("MODEL", "RunConfigure and preparation identity select different models")
+        snapshot = hashlib.sha256(config_json).hexdigest()
+        with self._lock:
+            return self._prepare_locked(prepare_id, frozen_identity, frozen_configuration, snapshot,
+                lambda boundary: self._run_configure_request(frozen_configuration, boundary.model_step))
+
+    def prepare(self, prepare_id, identity, request):
+        """Prepare one frozen ID3 message, preserving its original idempotency key."""
         if type(prepare_id) is not str or not 1 <= len(prepare_id) <= 128:
             raise ICDError("SCHEMA", "bounded preparation ID required")
         if type(identity) is not dict:
             raise ICDError("SCHEMA", "Run identity object required")
         self.contract.validate_message(request, direction="TO_36")
-        if request["message_id"] != 3:
+        frozen_request = loads(canonicalize(request))
+        self.contract.validate_message(frozen_request, direction="TO_36")
+        frozen_identity = loads(canonicalize(identity))
+        if frozen_request["message_id"] != 3:
             raise ICDError("UNSUPPORTED", "preparation accepts only frozen RunConfigure")
-        if identity.get("model_id") not in self.backend.model_ids:
+        if frozen_identity.get("model_id") not in self.backend.model_ids:
             raise ICDError("TARGET_MISSING", "requested model has no actual configuration backend")
-        if request["payload"]["model_id"] != identity["model_id"]:
+        if frozen_request["payload"]["model_id"] != frozen_identity["model_id"]:
             raise ICDError("MODEL", "RunConfigure and preparation identity select different models")
-        original = canonicalize(request)
-        config_json = canonicalize(request["payload"])
+        config_json = canonicalize(frozen_request["payload"])
         snapshot = hashlib.sha256(config_json).hexdigest()
         with self._lock:
-            previous = self._by_prepare_id.get(prepare_id)
-            if previous is not None:
-                if previous.config_sha256 != snapshot:
-                    raise ICDError("DUPLICATE", "prepare_id names another configuration snapshot")
-                return previous
-            previous = self._by_snapshot.get(snapshot)
-            if previous is not None:
-                return previous
-            if len(self._by_prepare_id) >= self._max_results:
-                raise ICDError("CAPACITY", "preparation history capacity is exhausted")
-            now = self._now()
-            context = self.backend.read_context(dict(identity), original, now_ns=now)
-            completed = self._now()
-            self._verify_context(context, identity, original, completed)
-            # An already CONFIGURED target is admissible only when the actual
-            # backend has just proved that its retained full snapshot is
-            # canonically equal to this request.  This makes a first-circle
-            # call after a service restart a readback-only reconciliation; it
-            # never grants permission to overwrite another configuration.
-            SemanticGuards(self.contract).run_configure(
-                request, context.view, terrain_ground_down=context.ground_down,
-                allow_configured_existing=context.idempotent_existing)
-            started = completed
-            receipt = self.backend.apply_configuration(original, context, now_ns=started)
-            completed = self._now()
-            self._verify_receipt(receipt, identity, original, context, started, completed)
-            result = PreparationResult(
-                prepare_id=prepare_id, model_id=identity["model_id"], config_id=snapshot,
-                config_sha256=snapshot, baseline_sha256=self.contract.baseline_sha256,
-                configuration_json=receipt.configuration_json,
-                initial_state_json=receipt.initial_state_json,
-                initial_inputs_json=receipt.initial_inputs_json,
-                model_revision=receipt.model_revision, model_step=receipt.view.model_step,
-                state=receipt.view.state, control_source=receipt.view.control_source,
-                sampled_ns=receipt.sampled_ns)
-            self._by_prepare_id[prepare_id] = result
-            self._by_snapshot[snapshot] = result
-            return result
+            return self._prepare_locked(
+                prepare_id, frozen_identity, frozen_request["payload"], snapshot,
+                lambda _boundary: frozen_request)
 
     @property
     def results(self):

@@ -18,6 +18,7 @@ from icd_runtime.json_codec import canonicalize
 from icd_runtime.json_codec import loads
 from .configuration_service import (
     ModelConfigurationBackend,
+    ModelConfigurationBoundary,
     ModelConfigurationContext,
     ModelConfigurationReceipt,
 )
@@ -181,15 +182,41 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
             raise ICDError("MODEL", "C-core did not return a HIL status receipt")
         return fields
 
-    def _view(self, model_id, fields, request):
-        lifecycle, source = fields.get("lifecycle"), fields.get("control_source")
+    @classmethod
+    def _boundary_values(cls, fields):
+        lifecycle = fields.get("lifecycle")
+        source = fields.get("control_source")
         sequence = fields.get("sequence")
-        payload = request["payload"]
+        revision = fields.get("model_revision")
+        model_state = fields.get("model_state")
         if (type(lifecycle) is not str or lifecycle not in ("STOPPED", "CONFIGURED", "RUNNING", "PAUSED", "FAILED")
-                or source not in self._SOURCES or type(sequence) is not int or sequence < 0):
-            raise ICDError("MODEL", "C-core status lacks a strict lifecycle/model-step view")
+                or source not in cls._SOURCES or type(sequence) is not int or not 0 <= sequence <= 0xffffffff
+                or type(revision) is not int or not 0 <= revision <= 0xffffffff
+                or type(model_state) is not dict or type(model_state.get("model_step")) is not int
+                or model_state["model_step"] != sequence):
+            raise ICDError("MODEL", "C-core status lacks coherent lifecycle/step/revision readback")
+        return lifecycle, sequence, revision, cls._SOURCES[source]
+
+    def read_boundary(self, identity, *, now_ns):
+        if type(identity) is not dict or type(now_ns) is not int:
+            raise ICDError("SCHEMA", "strict identity and C-core boundary sample time required")
+        model_id = identity.get("model_id")
+        if model_id not in self._bridges:
+            raise ICDError("MODEL", "configuration identity has no C-core endpoint")
+        fields = self._status(model_id)
+        self._require_configuration_abi(fields)
+        lifecycle, sequence, revision, source = self._boundary_values(fields)
+        sampled = self._clock()
+        if type(sampled) is not int or sampled < now_ns:
+            raise ICDError("CLOCK_UNSYNC", "C-core boundary clock regressed")
+        return ModelConfigurationBoundary(lifecycle, sequence, revision, source,
+                                          sampled, sampled + 240_000_000)
+
+    def _view(self, model_id, fields, request):
+        lifecycle, sequence, _revision, source = self._boundary_values(fields)
+        payload = request["payload"]
         return ModelView(model_id, lifecycle, sequence, payload["max_duration_steps"],
-                         self._SOURCES[source], payload["controller"] == "PHYSICAL_UUT",
+                         source, payload["controller"] == "PHYSICAL_UUT",
                          lifecycle in ("CONFIGURED", "RUNNING", "PAUSED"))
 
     def _require_configuration_abi(self, fields):
@@ -252,21 +279,23 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
             raise ICDError("MODEL", "configuration identity and C-core endpoint differ")
         fields = self._status(model_id)
         self._require_configuration_abi(fields)
+        _lifecycle, _sequence, status_revision, _source = self._boundary_values(fields)
         payload = request["payload"]
         existing = fields.get("lifecycle") == "CONFIGURED"
         if self._require_prepared_existing and not existing:
             raise ICDError("STATE", "second-circle RunConfigure requires a first-circle CONFIGURED target")
         if existing:
-            configuration, _revision = self._configuration(model_id)
-            if canonicalize(configuration) != canonicalize(payload):
-                raise ICDError("STATE", "C-core is configured with a different frozen RunConfigure")
+            configuration, revision = self._configuration(model_id)
+            if (canonicalize(configuration) != canonicalize(payload)
+                    or revision != status_revision):
+                raise ICDError("STATE", "C-core configuration or revision differs from its status boundary")
         resources = self._resources(payload)
         sampled = self._clock()
         if type(sampled) is not int or sampled < now_ns:
             raise ICDError("CLOCK_UNSYNC", "C-core context clock regressed")
         return ModelConfigurationContext(
             canonicalize(identity), request_json, self._view(model_id, fields, request),
-            resources.ground_down,
+            status_revision, resources.ground_down,
             sampled, sampled + 240_000_000, existing)
 
     def apply_configuration(self, request_json, context, *, now_ns):
@@ -277,20 +306,28 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
         model_id = identity.get("model_id")
         if model_id not in self._bridges or canonicalize(loads(context.request_json)) != canonicalize(request):
             raise ICDError("STATE", "configuration write does not name its actual context")
-        before = self._status(model_id)
-        self._require_configuration_abi(before)
         resources = self._resources(request["payload"])
         if abs(resources.ground_down - context.ground_down) > 1e-9:
             raise ICDError("RESOURCE", "configured resource ground sample changed before model write")
+
+        # Recheck the complete C-core boundary immediately before configuration;
+        # C repeats this tuple under its command lock before the model write.
+        before = self._status(model_id)
+        self._require_configuration_abi(before)
+        lifecycle, sequence, revision, source = self._boundary_values(before)
+        expected = (context.view.state, context.view.model_step, context.model_revision,
+                    context.view.control_source)
+        if (lifecycle, sequence, revision, source) != expected:
+            raise ICDError("STATE", "C-core lifecycle, step, revision or control source changed before configuration write")
         if context.idempotent_existing:
-            configuration, revision = self._configuration(model_id)
+            configuration, stored_revision = self._configuration(model_id)
             if (canonicalize(configuration) != canonicalize(request["payload"])
-                    or before.get("lifecycle") != "CONFIGURED"
-                    or before.get("sequence") != context.view.model_step):
+                    or stored_revision != context.model_revision
+                    or lifecycle != "CONFIGURED"):
                 raise ICDError("STATE", "C-core configured boundary changed before idempotent readback")
-            fields = {"configuration": configuration, "model_revision": revision}
+            fields = {"configuration": configuration, "model_revision": stored_revision}
         else:
-            reply = self._bridges[model_id]._exchange({
+            command = {
                 "request_id": "run-configure-apply", "cmd": "configure",
                 "params": {
                     "configuration": request["payload"],
@@ -299,10 +336,57 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
                         "obstacle_sha256": resources.obstacle_sha256,
                         "ground_down": resources.ground_down,
                     },
-                }})
+                    "expected_boundary": {
+                        "lifecycle": context.view.state,
+                        "model_step": context.view.model_step,
+                        "model_revision": context.model_revision,
+                        "control_source": context.view.control_source.lower(),
+                    },
+                }}
+            # Log immutable structure/digest only; never log full initial state
+            # or inputs when diagnosing a C-core ABI mismatch.
+            print(json.dumps({
+                "event": "ccore_run_configure_dispatch",
+                "model_id": model_id,
+                "configuration_sha256": hashlib.sha256(
+                    canonicalize(request["payload"])).hexdigest(),
+                "params_keys": sorted(command["params"]),
+                "configuration_keys": sorted(request["payload"]),
+                "step_us": request["payload"].get("step_us"),
+                "step_us_type": type(request["payload"].get("step_us")).__name__,
+                "initial_inputs_model_id": request["payload"].get("initial_inputs", {}).get("model_id"),
+                "initial_state_is_object": type(request["payload"].get("initial_state")) is dict,
+                "resource_context": command["params"]["resource_context"],
+                "expected_boundary": command["params"]["expected_boundary"],
+            }, sort_keys=True), flush=True)
+            reply = self._bridges[model_id]._exchange(command)
+            print(json.dumps({
+                "event": "ccore_run_configure_receipt",
+                "model_id": model_id,
+                "accepted": reply.get("accepted") if type(reply) is dict else None,
+                "reason": reply.get("reason") if type(reply) is dict else None,
+                "effective_sequence": reply.get("effective_sequence") if type(reply) is dict else None,
+                "lifecycle": reply.get("lifecycle") if type(reply) is dict else None,
+            }, sort_keys=True), flush=True)
+            if type(reply) is not dict:
+                raise ICDError("BUSINESS_FAILED", "C-core returned malformed atomic RunConfigure receipt: response must be an object")
+            accepted = reply.get("accepted")
+            if accepted is False:
+                reason = reply.get("reason")
+                if "reason" not in reply:
+                    detail = "C-core rejected atomic RunConfigure without a reason field"
+                elif type(reason) is not str:
+                    detail = "C-core rejected atomic RunConfigure with a non-string reason field"
+                elif not reason.strip():
+                    detail = "C-core rejected atomic RunConfigure with an empty reason field"
+                else:
+                    detail = "C-core refused atomic RunConfigure: {}".format(reason.strip())
+                raise ICDError("BUSINESS_FAILED", detail)
+            if accepted is not True:
+                raise ICDError("BUSINESS_FAILED", "C-core returned malformed atomic RunConfigure receipt: accepted must be a boolean")
             fields = reply.get("fields")
-            if not reply.get("accepted") or type(fields) is not dict:
-                raise ICDError("BUSINESS_FAILED", "C-core refused atomic RunConfigure")
+            if type(fields) is not dict:
+                raise ICDError("BUSINESS_FAILED", "C-core accepted atomic RunConfigure but returned malformed receipt: fields must be an object")
             if (type(fields.get("configuration")) is not dict
                     or canonicalize(fields["configuration"]) != canonicalize(request["payload"])
                     or type(fields.get("model_revision")) is not int):
@@ -311,6 +395,9 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
         if final_resources != resources:
             raise ICDError("RESOURCE", "configured resource changed during model write")
         after, state, initial_inputs = self._initial_readback(model_id, request)
+        _lifecycle, _sequence, readback_revision, _source = self._boundary_values(after)
+        if readback_revision != fields["model_revision"]:
+            raise ICDError("STATE", "C-core revision changed between configuration receipt and readback")
         sampled = self._clock()
         if type(sampled) is not int or sampled < now_ns:
             raise ICDError("CLOCK_UNSYNC", "C-core configuration clock regressed")

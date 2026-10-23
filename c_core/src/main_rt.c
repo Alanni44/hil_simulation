@@ -147,6 +147,8 @@ static unsigned applied_live_generation = 0;
 static struct json_object* configured_configuration = NULL;
 static uint32_t configured_model_revision = 0;
 static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
+/* Serializes model-boundary transitions against atomic configuration. */
+static pthread_mutex_t model_boundary_lock = PTHREAD_MUTEX_INITIALIZER;
 static ControlArbiter control_arbiter;
 
 /* The ICD consumer owns this one-slot, target-step transaction separately
@@ -1209,6 +1211,10 @@ static void parse_configure(struct json_object* root, const char* request_id,
                             const struct sockaddr_in* sender) {
     struct json_object *params = NULL, *configuration = NULL, *inputs = NULL, *state_value = NULL;
     struct json_object *model_id = NULL, *input_model_id = NULL, *step_us = NULL, *resources = NULL;
+    struct json_object *expected_boundary = NULL, *expected_lifecycle = NULL;
+    struct json_object *expected_step = NULL, *expected_revision = NULL, *expected_source = NULL;
+    uint64_t expected_step_value = 0, expected_revision_value = 0;
+    const char* expected_source_name = NULL;
     ModelU_t candidate_input;
     HilParameterValues candidate_parameters;
     HilInitialState candidate_state;
@@ -1221,9 +1227,22 @@ static void parse_configure(struct json_object* root, const char* request_id,
         return;
     }
     if (!json_object_object_get_ex(root, "params", &params) || json_object_get_type(params) != json_type_object ||
-        json_object_object_length(params) != 2 ||
+        json_object_object_length(params) != 3 ||
         !json_object_object_get_ex(params, "configuration", &configuration) ||
         !json_object_object_get_ex(params, "resource_context", &resources) ||
+        !json_object_object_get_ex(params, "expected_boundary", &expected_boundary) ||
+        json_object_get_type(expected_boundary) != json_type_object ||
+        json_object_object_length(expected_boundary) != 4 ||
+        !json_object_object_get_ex(expected_boundary, "lifecycle", &expected_lifecycle) ||
+        json_object_get_type(expected_lifecycle) != json_type_string ||
+        strcmp(json_object_get_string(expected_lifecycle), "STOPPED") ||
+        !json_object_object_get_ex(expected_boundary, "model_step", &expected_step) ||
+        !json_uint64(expected_step, &expected_step_value) || expected_step_value > UINT32_MAX ||
+        !json_object_object_get_ex(expected_boundary, "model_revision", &expected_revision) ||
+        !json_uint64(expected_revision, &expected_revision_value) || expected_revision_value > UINT32_MAX ||
+        !json_object_object_get_ex(expected_boundary, "control_source", &expected_source) ||
+        json_object_get_type(expected_source) != json_type_string ||
+        !(expected_source_name = json_object_get_string(expected_source)) ||
         json_object_get_type(configuration) != json_type_object ||
         !json_object_object_get_ex(configuration, "model_id", &model_id) ||
         json_object_get_type(model_id) != json_type_string || strcmp(json_object_get_string(model_id), HIL_MODEL_ID) ||
@@ -1235,6 +1254,11 @@ static void parse_configure(struct json_object* root, const char* request_id,
         json_object_get_type(input_model_id) != json_type_string || strcmp(json_object_get_string(input_model_id), HIL_MODEL_ID) ||
         !json_object_object_get_ex(configuration, "initial_state", &state_value)) {
         send_receipt(sender, request_id, 0, "complete matching RunConfigure and resolved resources are required", sequence, NULL);
+        return;
+    }
+    /* The confirmed Run policy requires a fresh model boundary for every configuration. */
+    if (expected_step_value != 0U) {
+        send_receipt(sender, request_id, 0, "RunConfigure requires model_step zero for a new Run", sequence, NULL);
         return;
     }
     candidate_input = initial_input;
@@ -1253,10 +1277,15 @@ static void parse_configure(struct json_object* root, const char* request_id,
         send_receipt(sender, request_id, 0, "RunConfigure initial control is unsafe or revision is exhausted", sequence, NULL);
         return;
     }
+    pthread_mutex_lock(&model_boundary_lock);
     pthread_mutex_lock(&command_lock);
-    if (lifecycle != HIL_STOPPED) {
+    if (lifecycle_request.pending || lifecycle != HIL_STOPPED || sequence != expected_step_value ||
+        configured_model_revision != expected_revision_value ||
+        strcmp(control_source_name(control_arbiter.active_source), expected_source_name)) {
         pthread_mutex_unlock(&command_lock);
-        send_receipt(sender, request_id, 0, "RunConfigure requires STOPPED", sequence, NULL);
+        pthread_mutex_unlock(&model_boundary_lock);
+        send_receipt(sender, request_id, 0,
+                     "RunConfigure actual lifecycle/step/revision/control boundary changed", sequence, NULL);
         return;
     }
     /* Do not publish a stale pre-configure state while the replacement model
@@ -1273,6 +1302,7 @@ static void parse_configure(struct json_object* root, const char* request_id,
     if (!hil_contract_set_initial_state(&candidate_state)) {
         lifecycle = HIL_FAILED;
         pthread_mutex_unlock(&command_lock);
+        pthread_mutex_unlock(&model_boundary_lock);
         send_receipt(sender, request_id, 0, "generated initial-state setter failed", sequence, NULL);
         return;
     }
@@ -1299,6 +1329,7 @@ static void parse_configure(struct json_object* root, const char* request_id,
     record_sensor_truth();
     pthread_mutex_unlock(&command_lock);
     zero_motor_command();
+    pthread_mutex_unlock(&model_boundary_lock);
     {
         struct json_object* fields = json_object_new_object();
         json_object_object_add(fields, "configuration", json_object_get(configured_configuration));
@@ -2066,10 +2097,13 @@ static void apply_lifecycle_request(void) {
     int valid = 1;
     int reset_to_stopped = 0;
     char v3_mission_id[MISSION_ID_MAX] = "";
+    pthread_mutex_lock(&model_boundary_lock);
     pthread_mutex_lock(&command_lock);
     if (!lifecycle_request.pending ||
         (lifecycle_request.target_bound && sequence < lifecycle_request.target_step)) {
-        pthread_mutex_unlock(&command_lock); return;
+        pthread_mutex_unlock(&command_lock);
+        pthread_mutex_unlock(&model_boundary_lock);
+        return;
     }
     request = lifecycle_request;
     lifecycle_request.pending = 0;
@@ -2077,6 +2111,7 @@ static void apply_lifecycle_request(void) {
 
     if (request.target_bound && sequence != request.target_step) {
         send_receipt(&request.sender, request.request_id, 0, "lifecycle target boundary was missed", sequence, NULL);
+        pthread_mutex_unlock(&model_boundary_lock);
         return;
     }
 
@@ -2175,10 +2210,12 @@ static void apply_lifecycle_request(void) {
     } else valid = 0;
     send_receipt(&request.sender, request.request_id, valid,
                  valid ? "applied" : "invalid lifecycle transition", sequence, NULL);
+    pthread_mutex_unlock(&model_boundary_lock);
 }
 
 static void apply_live_update(void) {
     InputSnapshot snapshot;
+    pthread_mutex_lock(&model_boundary_lock);
     pthread_mutex_lock(&command_lock);
     snapshot = pending_live;
     pthread_mutex_unlock(&command_lock);
@@ -2190,6 +2227,7 @@ static void apply_live_update(void) {
         applied_live_generation = snapshot.generation;
         latency_mark_applied(HIL_LATENCY_LIVE_INPUT, snapshot.generation);
     }
+    pthread_mutex_unlock(&model_boundary_lock);
 }
 
 static void reject_icd_binding_stage(IcdBindingGroup group,

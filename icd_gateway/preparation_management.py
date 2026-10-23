@@ -29,7 +29,7 @@ class PreparationCommandService:
     """
 
     def __init__(self, template, identity, preparation, *, max_requests=MAX_REQUESTS):
-        if (not callable(getattr(preparation, "prepare", None)) or type(identity) is not dict
+        if (not callable(getattr(preparation, "prepare_current", None)) or type(identity) is not dict
                 or type(getattr(template, "model_id", None)) is not str
                 or type(getattr(template, "run_configuration", None)) is not dict
                 or type(max_requests) is not int or not 1 <= max_requests <= 65536):
@@ -103,13 +103,8 @@ class PreparationCommandService:
 
     def _prepare(self, request):
         params = request["params"]
-        formal = {
-            "message_id": 3,
-            "header": {"session_id": 1, "sequence": 1, "target_step": 0,
-                       "transaction_id": 1, "valid_for_ms": 1000},
-            "payload": _copy(params["run_configuration"]),
-        }
-        result = self.preparation.prepare(params["prepare_id"], _copy(self.identity), formal)
+        result = self.preparation.prepare_current(
+            params["prepare_id"], _copy(self.identity), _copy(params["run_configuration"]))
         data = self._result_data(result, params["run_id"], params["prepare_id"])
         if not data["configured"]:
             raise ICDError("STATE", "preparation result lacks a configured safe boundary")

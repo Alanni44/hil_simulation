@@ -26,10 +26,32 @@ def _sample(identity,view,sampled,deadline):
 
 
 @dataclass(frozen=True, slots=True)
+class ModelConfigurationBoundary:
+    """One authoritative C-core lifecycle/step/revision/control snapshot."""
+
+    lifecycle: str
+    model_step: int
+    model_revision: int
+    control_source: str
+    sampled_ns: int
+    deadline_ns: int
+
+    def __post_init__(self):
+        if (self.lifecycle not in ("STOPPED", "CONFIGURED", "RUNNING", "PAUSED", "FAILED")
+                or type(self.model_step) is not int or not 0 <= self.model_step <= 0xffffffff
+                or type(self.model_revision) is not int or not 0 <= self.model_revision <= 0xffffffff
+                or self.control_source not in ("NONE", "DEMO_MISSION", "PX4_SITL", "PHYSICAL_UUT")
+                or type(self.sampled_ns) is not int or type(self.deadline_ns) is not int
+                or not 0 <= self.sampled_ns < self.deadline_ns <= MAX_TIME):
+            raise ICDError("SCHEMA", "complete authoritative lifecycle/step/revision boundary required")
+
+
+@dataclass(frozen=True, slots=True)
 class ModelConfigurationContext:
     identity_json: bytes
     request_json: bytes
     view: ModelView
+    model_revision: int
     ground_down: float | None
     sampled_ns: int
     deadline_ns: int
@@ -41,6 +63,8 @@ class ModelConfigurationContext:
 
     def __post_init__(self):
         _sample(self.identity_json,self.view,self.sampled_ns,self.deadline_ns)
+        if type(self.model_revision) is not int or not 0 <= self.model_revision <= 0xffffffff:
+            raise ICDError('SCHEMA','authoritative uint32 model revision required')
         if type(self.request_json) is not bytes or not 1<=len(self.request_json)<=MAX_BYTES+4096:
             raise ICDError('SCHEMA','immutable bounded original configuration request required')
         if self.ground_down is not None:
@@ -85,6 +109,10 @@ class ModelConfigurationBackend(ABC):
                 or len(set(model_ids))!=len(model_ids)):
             raise ICDError('MODEL','explicit distinct frozen configuration models required')
         self.contract,self.model_ids=contract,model_ids
+
+    def read_boundary(self, identity, *, now_ns):
+        """Read the authoritative model boundary or fail closed when unavailable."""
+        raise ICDError('TARGET_MISSING','authoritative model boundary reader is unavailable')
 
     @abstractmethod
     def read_context(self, identity, request_json, *, now_ns):
