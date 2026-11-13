@@ -23,6 +23,7 @@ TERMINAL_STATES = frozenset({"COMPLETED", "FAILED"})
 _STATE_VERSION = 1
 _STATE_FILE = "run-store-v1.json"
 _MAX_STATE_BYTES = 128 * 1024 * 1024
+_READ_ONLY_COMMANDS = frozenset({"simulator_run_get", "simulator_records_list"})
 
 
 def _utc_now():
@@ -88,9 +89,9 @@ class RunStore:
         self._state_dir, self._state_path = path, path / _STATE_FILE
         with self._lock:
             if self._state_path.exists() or self._state_path.is_symlink():
-                self._load_locked()
+                pruned_read_only_replays = self._load_locked()
                 recovered = self._recover_unfinished_locked()
-                if recovered:
+                if recovered or pruned_read_only_replays:
                     self._persist_locked()
             else:
                 self._persist_locked()
@@ -183,12 +184,24 @@ class RunStore:
                 runs[run_id] = StoredRun(copy.deepcopy(run), _b64_decode(item["create_snapshot_b64"]),
                                          _b64_decode(item["source_snapshot_b64"]), evidence)
                 reserved[run_id] = 0
+            pruned_read_only_replays = False
             for item in value["requests"]:
                 if type(item) is not dict or set(item) != {"request_id", "request_b64", "response"}:
                     raise ValueError("stored request differs")
                 key, request, response = item["request_id"], _b64_decode(item["request_b64"]), item["response"]
-                if type(key) is not str or key in requests or type(response) is not dict or canonicalize(loads(request)) != request:
+                decoded_request = loads(request)
+                if (type(key) is not str or key in requests or type(response) is not dict
+                        or canonicalize(decoded_request) != request):
                     raise ValueError("stored request is invalid")
+                # v0.3 originally persisted all command responses.  Query
+                # entries have no side effects to replay and made ordinary
+                # polling consume the finite mutation idempotency budget.
+                # Drop only these safe-to-recompute entries while loading;
+                # mutation evidence remains intact and is rewritten atomically
+                # by _configure_persistence.
+                if type(decoded_request) is dict and decoded_request.get("cmd") in _READ_ONLY_COMMANDS:
+                    pruned_read_only_replays = True
+                    continue
                 requests[key] = (request, copy.deepcopy(response))
             if set(value["records"]) != set(runs) or set(value["next_record_cursor"]) != set(runs) or set(value["first_retained_cursor"]) != set(runs):
                 raise ValueError("stored record owner differs")
@@ -211,6 +224,7 @@ class RunStore:
             self._runs, self._requests, self._records = runs, requests, records
             self._next_record_cursor, self._first_retained_cursor = next_cursor, first_cursor
             self._record_reserved = reserved
+            return pruned_read_only_replays
         except ICDError:
             raise
         except (TypeError, ValueError, KeyError) as error:

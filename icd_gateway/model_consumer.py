@@ -21,6 +21,8 @@ from .configuration_service import (
     ModelConfigurationBoundary,
     ModelConfigurationContext,
     ModelConfigurationReceipt,
+    ModelResetReceipt,
+    ModelRuntimeStatus,
 )
 from .lifecycle_service import ModelLifecycleBackend
 from .status_service import ModelStatusBackend, ModelStatusSample
@@ -211,6 +213,71 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
             raise ICDError("CLOCK_UNSYNC", "C-core boundary clock regressed")
         return ModelConfigurationBoundary(lifecycle, sequence, revision, source,
                                           sampled, sampled + 240_000_000)
+
+    def reset_model(self, identity, *, now_ns):
+        """Execute C-core RESET only at a stopped, uncontrolled boundary.
+
+        This is deliberately separate from RunConfigure: it creates a
+        zero-step safe boundary but does not write a new configuration.
+        """
+        if type(identity) is not dict or type(now_ns) is not int:
+            raise ICDError("SCHEMA", "strict identity and reset sample time required")
+        model_id = identity.get("model_id")
+        if model_id not in self._bridges:
+            raise ICDError("MODEL", "reset identity has no C-core endpoint")
+        before = self._status(model_id)
+        self._require_configuration_abi(before)
+        lifecycle, sequence, revision, source = self._boundary_values(before)
+        if lifecycle != "STOPPED" or source != "NONE":
+            raise ICDError("STATE", "model reset requires C-core STOPPED with control_source NONE")
+        if sequence != 0:
+            reply = self._bridges[model_id]._exchange({
+                "request_id": "hil-preparation-reset", "cmd": "reset"})
+            if not reply.get("accepted") or reply.get("lifecycle") != "STOPPED":
+                raise ICDError("STATE", "C-core rejected model reset")
+        after = self._status(model_id)
+        self._require_configuration_abi(after)
+        lifecycle, sequence, after_revision, source = self._boundary_values(after)
+        sim_time_s = after.get("sim_time_s")
+        if (lifecycle != "STOPPED" or sequence != 0 or source != "NONE"
+                or after_revision != revision or type(sim_time_s) not in (int, float)
+                or not math.isfinite(sim_time_s) or sim_time_s != 0.0):
+            raise ICDError("STATE", "C-core reset lacks STOPPED/NONE zero-step readback")
+        sampled = self._clock()
+        if type(sampled) is not int or sampled < now_ns:
+            raise ICDError("CLOCK_UNSYNC", "C-core reset clock regressed")
+        return ModelResetReceipt(lifecycle, sequence, after_revision, source,
+                                 0, sampled, sampled + 240_000_000)
+
+    def read_runtime_status(self, identity, *, now_ns):
+        if type(identity) is not dict or type(now_ns) is not int:
+            raise ICDError("SCHEMA", "strict identity and status sample time required")
+        model_id = identity.get("model_id")
+        if model_id not in self._bridges:
+            raise ICDError("MODEL", "status identity has no C-core endpoint")
+        fields = self._status(model_id)
+        lifecycle = fields.get("lifecycle")
+        source_name = fields.get("control_source")
+        sequence = fields.get("sequence")
+        revision = fields.get("model_revision")
+        model_state = fields.get("model_state")
+        sim_time_s = fields.get("sim_time_s")
+        if (lifecycle not in ("STOPPED", "CONFIGURED", "RUNNING", "PAUSED", "RESETTING", "ENDED", "FAILED")
+                or source_name not in self._SOURCES or type(sequence) is not int
+                or not 0 <= sequence <= 0xffffffff or type(revision) is not int
+                or not 0 <= revision <= 0xffffffff or type(model_state) is not dict
+                or model_state.get("model_step") != sequence
+                or type(sim_time_s) not in (int, float) or not math.isfinite(sim_time_s)
+                or sim_time_s < 0):
+            raise ICDError("MODEL", "C-core status lacks coherent lifecycle/source/step/time readback")
+        sim_time_us = round(sim_time_s * 1_000_000)
+        if type(sim_time_us) is not int or sim_time_us < 0:
+            raise ICDError("MODEL", "C-core status simulated time cannot be represented in microseconds")
+        sampled = self._clock()
+        if type(sampled) is not int or sampled < now_ns:
+            raise ICDError("CLOCK_UNSYNC", "C-core status clock regressed")
+        return ModelRuntimeStatus(lifecycle, sequence, revision, self._SOURCES[source_name],
+                                  sim_time_us, sampled, sampled + 240_000_000)
 
     def _view(self, model_id, fields, request):
         lifecycle, sequence, _revision, source = self._boundary_values(fields)
@@ -409,12 +476,11 @@ class CcoreConfigurationBackend(ModelConfigurationBackend):
 
 
 class CcoreLifecycleBackend(ModelLifecycleBackend):
-    """Actual C-core lifecycle adapter, deliberately limited to proven actions.
+    """Actual C-core lifecycle adapter with C-owned offline STEP history.
 
-    The generated C loop stages a transition at the frozen model step and
-    returns its final receipt only from the 1ms model thread.  STEP is not
-    installed because its required per-step state history has no C readback
-    owner yet; it fails before any write rather than approximating solver time.
+    STEP runs each 1ms generated solver call at the paused C boundary.  The
+    C thread retains its post-step snapshots; this adapter reads that retained
+    history in bounded UDP chunks and never derives it from a final status.
     """
 
     def __init__(self, contract, endpoints, *, timeout_s=1.0, poll_s=0.001,
@@ -487,8 +553,13 @@ class CcoreLifecycleBackend(ModelLifecycleBackend):
         return copy.deepcopy(source)
 
     @staticmethod
-    def _actuators(inputs):
-        return {"motor_command": copy.deepcopy(inputs["flight_control"]["motor_command"])}
+    def _actuators(fields, model_id):
+        output = fields.get("actuator_output") if type(fields) is dict else None
+        if (model_id != "quadrotor_hil" or type(output) is not list or len(output) != 4
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       or value < 0.0 or value > 1.0 for value in output)):
+            raise ICDError("MODEL", "C-core lacks a complete final actuator-output readback")
+        return {"motor_command": list(output)}
 
     def _sample(self, model_id, identity, request_json, *, now_ns):
         configuration, revision = self._configuration(model_id)
@@ -498,6 +569,55 @@ class CcoreLifecycleBackend(ModelLifecycleBackend):
         if type(sampled) is not int or sampled < now_ns:
             raise ICDError("CLOCK_UNSYNC", "C-core lifecycle clock regressed")
         return (configuration, revision, fields, inputs, sampled)
+
+    def _step_history(self, model_id, stage_request_id, expected_count):
+        from .lifecycle_service import ModelLifecycleStep
+        if type(stage_request_id) is not str or type(expected_count) is not int or not 1 <= expected_count <= 1000:
+            raise ICDError("SCHEMA", "strict retained C STEP history identity/count required")
+        samples = []
+        for start in range(0, expected_count, 128):
+            requested = min(128, expected_count - start)
+            reply = self._bridges[model_id]._exchange({
+                "request_id": "lifecycle-step-read-%d" % start,
+                "cmd": "get_lifecycle_step_result",
+                "params": {"stage_request_id": stage_request_id, "start_index": start,
+                           "count": requested}})
+            fields = reply.get("fields")
+            chunk = fields.get("samples") if type(fields) is dict else None
+            if (not reply.get("accepted") or type(fields) is not dict
+                    or fields.get("stage_request_id") != stage_request_id
+                    or fields.get("total_count") != expected_count
+                    or fields.get("start_index") != start
+                    or type(chunk) is not list or len(chunk) != requested):
+                raise ICDError("MODEL", "C-core STEP history chunk is incomplete")
+            for item in chunk:
+                vector = item.get("state_vector") if type(item) is dict else None
+                output = item.get("actuator_output") if type(item) is dict else None
+                sampled = item.get("sampled_ns") if type(item) is dict else None
+                if (type(vector) is not list or len(vector) != 18 or type(vector[0]) is not int
+                        or vector[0] < 0 or any(type(value) not in (int, float) or not math.isfinite(value)
+                                                for value in vector[1:14])
+                        or type(vector[14]) is not bool
+                        or any(type(value) not in (int, float) or not math.isfinite(value)
+                               for value in vector[15:])
+                        or type(output) is not list or len(output) != 4
+                        or any(type(value) not in (int, float) or not math.isfinite(value)
+                               or value < 0.0 or value > 1.0 for value in output)
+                        or type(sampled) is not int or sampled < 0):
+                    raise ICDError("MODEL", "C-core STEP observation is malformed")
+                state = {
+                    "model_step": vector[0],
+                    "position": {"north_m": vector[1], "east_m": vector[2], "down_m": vector[3]},
+                    "vn_mps": vector[4], "ve_mps": vector[5], "vd_mps": vector[6],
+                    "orientation": {"q_w": vector[7], "q_x": vector[8], "q_y": vector[9], "q_z": vector[10]},
+                    "p_radps": vector[11], "q_radps": vector[12], "r_radps": vector[13],
+                    "airborne": vector[14], "ax_mps2": vector[15], "ay_mps2": vector[16], "az_mps2": vector[17],
+                    "engine_rpm": 0.0, "fuel_remaining_kg": 0.0, "hydraulic_pressure_pa": 0.0,
+                    "electrical_voltage_v": 28.0, "avionics_state": "UNAVAILABLE"}
+                samples.append(ModelLifecycleStep(canonicalize(state),
+                                                  canonicalize({"motor_command": output}),
+                                                  sampled, 1000))
+        return tuple(samples)
 
     def read_context(self, identity, request_json, *, now_ns):
         from .lifecycle_service import ModelLifecycleContext
@@ -520,10 +640,8 @@ class CcoreLifecycleBackend(ModelLifecycleBackend):
             raise ICDError("SCHEMA", "strict C-core lifecycle write inputs required")
         request, identity = loads(request_json), loads(context.identity_json)
         action, model_id = request["payload"]["action"], identity.get("model_id")
-        if (model_id not in self._bridges or canonicalize(loads(context.request_json)) != canonicalize(request)
-                or action == "STEP"):
-            raise ICDError("UNSUPPORTED" if action == "STEP" else "STATE",
-                           "C-core lifecycle context/action is not supported")
+        if model_id not in self._bridges or canonicalize(loads(context.request_json)) != canonicalize(request):
+            raise ICDError("STATE", "C-core lifecycle context/action is not supported")
         before = self._status(model_id)
         configuration, _revision = self._configuration(model_id)
         before_view = self._view(model_id, before, configuration)
@@ -533,18 +651,26 @@ class CcoreLifecycleBackend(ModelLifecycleBackend):
                 or (before_view.state != "RUNNING" and before_view.model_step != context.view.model_step)
                 or (before_view.state == "RUNNING" and before_view.model_step >= decision.target_step)):
             raise ICDError("STATE", "C-core lifecycle context changed before write")
+        stage_request_id = "lifecycle-%s-%d-%d" % (action.lower(),
+                                                       request["header"]["session_id"],
+                                                       request["header"]["sequence"])
+        params = {"action": action, "target_step": decision.target_step}
+        if action == "STEP":
+            params["step_count"] = len(decision.steps)
         reply = self._bridges[model_id]._exchange({
-            "request_id": "lifecycle-" + action.lower(), "cmd": "stage_lifecycle",
-            "params": {"action": action, "target_step": decision.target_step}})
+            "request_id": stage_request_id, "cmd": "stage_lifecycle", "params": params})
+        expected_effective = decision.steps[-1] if decision.steps else decision.target_step
         if (not reply.get("accepted") or reply.get("lifecycle") != decision.next_state
-                or reply.get("effective_sequence") != decision.target_step):
+                or reply.get("effective_sequence") != expected_effective):
             raise ICDError("BUSINESS_FAILED", "C-core did not apply lifecycle at requested model boundary")
         # START/RESUME transition at the frozen boundary before the next solver
         # step.  Other actions leave the runtime stopped/paused, so obtain a
         # direct post-effect sample.  In both cases receipts describe actual C
         # state at the C command's returned effective sequence.
+        steps = ()
         if action in ("START", "RESUME"):
             state, inputs, view = loads(context.state_json), loads(context.inputs_json), context.view
+            fields = before
             state["model_step"] = decision.target_step
             view = ModelView(view.model_id, decision.next_state, decision.target_step,
                              view.max_duration_steps, view.control_source,
@@ -554,15 +680,17 @@ class CcoreLifecycleBackend(ModelLifecycleBackend):
             configuration, revision, fields, inputs, sampled = self._sample(
                 model_id, identity, request_json, now_ns=now_ns)
             state, view = self._state(fields), self._view(model_id, fields, configuration)
-            expected_step = 0 if decision.restore_initial else decision.target_step
+            expected_step = 0 if decision.restore_initial else expected_effective
             if view.state != decision.next_state or view.model_step != expected_step:
                 raise ICDError("MODEL", "C-core post-lifecycle readback differs from target boundary")
+            if action == "STEP":
+                steps = self._step_history(model_id, stage_request_id, len(decision.steps))
         sampled = self._clock()
         if type(sampled) is not int or sampled < now_ns:
             raise ICDError("CLOCK_UNSYNC", "C-core lifecycle completion clock regressed")
         return ModelLifecycleReceipt(
             canonicalize(identity), request_json, canonicalize(configuration), canonicalize(state),
-            canonicalize(inputs), view, canonicalize(self._actuators(inputs)), 0, 0, (), revision,
+            canonicalize(inputs), view, canonicalize(self._actuators(fields, model_id)), 0, 0, steps, revision,
             sampled, sampled + 240_000_000)
 
 

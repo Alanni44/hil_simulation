@@ -11,7 +11,15 @@ from .flight_state import FLIGHT_PHASE_NAMES, LIFECYCLE_NAMES, parse_flight_stat
 
 _latest_raw = None
 _latest_received_monotonic = None
+_telemetry_epoch = 0
+_awaiting_reset_baseline = False
+_reset_pre_sequence = None
+_reset_pre_sim_time_s = None
 _lock = threading.Lock()
+
+# UDP state packets do not carry a Run ID or model-instance ID.  A rollback is
+# safe only after the verified first-circle RESET handoff has explicitly
+# opened a new local telemetry epoch.
 
 
 def _utcnow_iso():
@@ -51,9 +59,28 @@ def ned_to_ue4(state):
 
 
 def update(data):
-    global _latest_raw, _latest_received_monotonic
+    global _latest_raw, _latest_received_monotonic, _awaiting_reset_baseline
+    global _reset_pre_sequence, _reset_pre_sim_time_s
     state = parse_flight_state(data)
     with _lock:
+        if _awaiting_reset_baseline:
+            # The C-core status sender is periodic (not reset-synchronous).
+            # A rapid RESET -> PREPARE -> START can therefore make the first
+            # observable new-epoch packet sequence 20 or later, rather than
+            # an exact zero.  The trusted local RESET handoff, plus rollback
+            # of *both* watermarks, is the admission fence.  A random low
+            # packet cannot open a new epoch because it reaches this branch
+            # only after that handoff.
+            if (_reset_pre_sequence is not None and
+                    (state['sequence'] > _reset_pre_sequence or
+                     state['sim_time_s'] > _reset_pre_sim_time_s)):
+                raise ValueError('awaiting reset baseline')
+            _awaiting_reset_baseline = False
+            _reset_pre_sequence = None
+            _reset_pre_sim_time_s = None
+            _latest_raw = state
+            _latest_received_monotonic = time.monotonic()
+            return
         previous = _latest_raw
         if previous and state['sequence'] < previous['sequence']:
             raise ValueError('state sequence regressed')
@@ -63,12 +90,33 @@ def update(data):
         _latest_received_monotonic = time.monotonic()
 
 
-def reset_for_new_run():
-    """Clear only a locally managed run before its C-core sequence restarts."""
-    global _latest_raw, _latest_received_monotonic
+def advance_epoch_after_verified_reset():
+    """Clear old watermarks after C-core RESET has been authoritatively read back."""
+    global _latest_raw, _latest_received_monotonic, _telemetry_epoch, _awaiting_reset_baseline
+    global _reset_pre_sequence, _reset_pre_sim_time_s
     with _lock:
+        previous = _latest_raw
+        _reset_pre_sequence = previous['sequence'] if previous else None
+        _reset_pre_sim_time_s = previous['sim_time_s'] if previous else None
         _latest_raw = None
         _latest_received_monotonic = None
+        _telemetry_epoch += 1
+        _awaiting_reset_baseline = True
+        return _telemetry_epoch
+
+
+def reset_for_new_run():
+    """Backward-compatible hook for legacy in-process callers."""
+    return advance_epoch_after_verified_reset()
+
+
+def telemetry_epoch_status():
+    """Return local diagnostics without changing the external telemetry schema."""
+    with _lock:
+        return {'epoch': _telemetry_epoch, 'awaiting_reset_baseline': _awaiting_reset_baseline,
+                'has_sample': _latest_raw is not None,
+                'pre_reset_sequence': _reset_pre_sequence,
+                'pre_reset_sim_time_s': _reset_pre_sim_time_s}
 
 
 def state_age_s():

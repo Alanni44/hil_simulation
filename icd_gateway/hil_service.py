@@ -87,8 +87,18 @@ class CcoreHILService:
             if clock is not None:
                 status_kwargs["clock"] = clock
             self.status_backend = CcoreStatusBackend(contract, endpoints, **status_kwargs)
+            # ``ResourceStore`` owns a deliberately closed directory format:
+            # only objects, incoming staging and its lock may live below the
+            # resource root.  Status evidence is a separate retained record,
+            # not a resource-store object.  Keeping it as a sibling prevents
+            # a successful first start from making the next start fail the
+            # store's unknown-entry guard.
+            resource_root = Path(resource_root)
+            status_archive_root = resource_root.parent / (
+                resource_root.name + "-status-evidence")
             self.status_service = ModelStatusService(
                 contract, self.registry, self.status_backend,
+                archive_root=status_archive_root,
                 **({"clock": clock} if clock is not None else {}))
             self.model_consumer = None
             if runtime_contracts is not None:

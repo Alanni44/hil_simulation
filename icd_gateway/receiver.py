@@ -2,11 +2,16 @@
 
 from collections import Counter, deque
 from dataclasses import dataclass
+import json
+import logging
 
 from icd_runtime.errors import ICDError
 from icd_runtime.json_codec import canonicalize, loads
 from icd_runtime.reassembly import Reassembler
 from icd_runtime.wire import WireCodec
+
+
+_LOG = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,6 +163,28 @@ class Receiver:
     def note_error(self, error):
         self.errors[error.code] += 1
         self.error_details.append((error.code, error.detail[:256]))
+
+    def _capacity_diagnostic(self, error, binding, message):
+        if error.code not in {'BUFFER_FULL', 'CAPACITY'}:
+            return
+        status = (None if self.status_service is None
+                  else getattr(self.status_service, 'capacity_snapshot', lambda: None)())
+        details = {
+            'event': 'HIL_RECEIVER_CAPACITY_REJECTED', 'code': error.code,
+            'detail': error.detail[:256], 'message_id': message.get('message_id'),
+            'peer': binding.peer, 'channel': binding.channel, 'transport': binding.transport,
+            'session_id': message.get('header', {}).get('session_id'),
+            'sequence': message.get('header', {}).get('sequence'),
+            'transaction_id': message.get('header', {}).get('transaction_id'),
+            'session_registry': {
+                'max_sessions': self.registry._max_sessions,
+                'active_sessions': self.registry.active_count,
+                'retry_cache_max': self.registry._policy['duplicate_cache_messages'],
+                'retry_cache_used': self.registry.cache_count,
+            },
+            'status_evidence': status,
+        }
+        _LOG.error('%s', json.dumps(details, sort_keys=True, separators=(',', ':')))
 
     def tick(self, *, now_ns):
         if self._closed or self._closing or self._run_busy or self._lifecycle_active():
@@ -316,6 +343,7 @@ class Receiver:
         self._run_busy=True
         operation=self.retire_session
         error=None
+        complete = None
         try:
             for sid in selected:
                 self._run_allowed_sid=sid
@@ -558,6 +586,8 @@ class Receiver:
             decision = self.registry.accept(complete.message, binding, now_ns=now_ns)
         except ICDError as error:
             self.note_error(error)
+            if complete is not None:
+                self._capacity_diagnostic(error, binding, complete.message)
             return (self._ack(fragment.message_id, fragment.header, stage="FAILED", error=error.code),)
         if decision.replay is not None:
             return decision.replay

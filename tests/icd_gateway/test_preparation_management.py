@@ -6,7 +6,8 @@ import unittest
 
 from icd_gateway.preparation_http import COMMAND_PATH, PreparationHTTPServer
 from icd_gateway.preparation_management import PreparationCommandService
-from icd_gateway.preparation_service import PreparationResult
+from icd_gateway.preparation_service import PreparationResult, ResetResult
+from icd_gateway.configuration_service import ModelRuntimeStatus
 
 
 CONFIGURATION = {
@@ -19,15 +20,27 @@ IDENTITY = {"model_id": "quadrotor_hil", "run_id": "item-01"}
 class FakePreparation:
     def __init__(self):
         self.calls = []
+        self.resets = []
+        self.status_calls = 0
 
-    def prepare(self, prepare_id, identity, formal):
-        self.calls.append((prepare_id, identity, formal))
+    def prepare_current(self, prepare_id, identity, configuration):
+        self.calls.append((prepare_id, identity, configuration))
         return PreparationResult(
             prepare_id=prepare_id, model_id="quadrotor_hil", config_id="config-01",
             config_sha256="a" * 64, baseline_sha256="b" * 64,
             configuration_json=b"{}", initial_state_json=b"{}", initial_inputs_json=b"{}",
             model_revision=1, model_step=0, state="CONFIGURED", control_source="NONE",
             sampled_ns=1)
+
+    def reset_current(self, reset_id, identity):
+        self.resets.append((reset_id, identity))
+        return ResetResult(reset_id=reset_id, model_id="quadrotor_hil", model_revision=1,
+                           model_step=0, sim_time_us=0, state="STOPPED",
+                           control_source="NONE", sampled_ns=1)
+
+    def status_current(self, identity):
+        self.status_calls += 1
+        return ModelRuntimeStatus("STOPPED", 17, 1, "NONE", 17000, 1, 2)
 
 
 def request(*, request_id="request-01", prepare_id="prepare-01", run_id="business-run-01"):
@@ -56,8 +69,7 @@ class PreparationManagementTests(unittest.TestCase):
         self.assertEqual(prepared, repeated)
         self.assertEqual(prepared["data"], found["data"])
         self.assertEqual(1, len(self.preparation.calls))
-        formal = self.preparation.calls[0][2]
-        self.assertEqual((3, CONFIGURATION), (formal["message_id"], formal["payload"]))
+        self.assertEqual(CONFIGURATION, self.preparation.calls[0][2])
 
     def test_rejects_configuration_drift_and_request_id_reuse(self):
         changed = request()
@@ -70,6 +82,30 @@ class PreparationManagementTests(unittest.TestCase):
         self.assertEqual(("REJECTED", "IDEMPOTENCY_CONFLICT"),
                          (conflict["status"], conflict["code"]))
         self.assertEqual(1, len(self.preparation.calls))
+
+    def test_reset_has_its_own_idempotent_zero_step_response(self):
+        reset = {"cmd": "hil_reset", "params": {
+            "api_version": "1.0", "request_id": "reset-request-01",
+            "reset_id": "reset-01", "run_id": "business-run-01",
+        }}
+        first = self.service.handle(reset)
+        second = self.service.handle(reset)
+        self.assertEqual(("SUCCESS", "OK"), (first["status"], first["code"]))
+        self.assertEqual("STOPPED", first["data"]["state"])
+        self.assertEqual("0", first["data"]["model_step"])
+        self.assertEqual("0", first["data"]["sim_time_us"])
+        self.assertEqual(first, second)
+        self.assertEqual(1, len(self.preparation.resets))
+
+    def test_status_get_is_a_fresh_runtime_readback(self):
+        response = self.service.handle({"cmd": "hil_status_get", "params": {
+            "api_version": "1.0", "request_id": "status-request-01",
+        }})
+        self.assertEqual(("SUCCESS", "OK"), (response["status"], response["code"]))
+        self.assertEqual("17", response["data"]["model_step"])
+        self.assertEqual("17000", response["data"]["sim_time_us"])
+        self.assertTrue(response["data"]["fresh"])
+        self.assertEqual(1, self.preparation.status_calls)
 
 
 class PreparationHTTPTests(unittest.TestCase):

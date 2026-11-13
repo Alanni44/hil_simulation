@@ -27,7 +27,7 @@ function contract_path = create_generic_vehicle_contract(output_dir, vehicle_kin
         'control_sources', {sources}, ...
         'sensors', struct('imu', struct('rate_hz',250), 'gps', struct('rate_hz',20), ...
                           'magnetometer', struct('rate_hz',50), 'barometer', struct('rate_hz',50)));
-    contract.state = standard_state();
+    contract.state = standard_state(vehicle_kind);
     if strcmp(vehicle_kind, 'fixed_wing')
         contract.inputs.flight_control = axis_inputs();
         names = {'throttle','roll_cmd','pitch_cmd','yaw_cmd'};
@@ -94,11 +94,23 @@ function profile = virtual_fc_profile(vehicle_kind, channels)
     profile.rotors = rotors;
 end
 
-function state = standard_state()
+function state = standard_state(vehicle_kind)
     names = {'north_m','east_m','down_m','vn_mps','ve_mps','vd_mps','q_w','q_x','q_y','q_z','p_radps','q_radps','r_radps','airborne'};
     units = {'m','m','m','m/s','m/s','m/s','1','1','1','1','rad/s','rad/s','rad/s','bool'};
     for i = 1:length(names), state.outputs.(names{i}) = names{i}; state.units.(names{i}) = units{i}; end
     state.frame = 'NED'; state.orientation = 'FRD_TO_NED_QUATERNION';
+    % The generated template plants retain translational state and body rates
+    % in DWork.  Their public initial orientation is the model's identity
+    % attitude, so configuration can atomically restore the complete state
+    % that this template actually represents without inventing a quaternion
+    % storage field.
+    if strcmp(vehicle_kind, 'multirotor')
+        state.initialization = struct('storage','dwork','position_ned','x', ...
+            'velocity_ned','v','body_rates','a','quaternion_identity_only',true);
+    else
+        state.initialization = struct('storage','dwork','position_ned','pos', ...
+            'velocity_ned','vel','body_rates','rates','quaternion_identity_only',true);
+    end
 end
 function flight = axis_inputs()
     flight.mode = 'axis_command'; names = {'throttle','roll_cmd','pitch_cmd','yaw_cmd'};

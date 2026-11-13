@@ -17,6 +17,16 @@ static struct sockaddr_in status_addr;
 static struct sockaddr_in monitor_addr;
 static struct sockaddr_in sensor_addr;
 
+static int environment_port_or_default(const char* name, int fallback) {
+    const char* raw = getenv(name);
+    char* end = NULL;
+    long value;
+    if (!raw || !*raw) return fallback;
+    value = strtol(raw, &end, 10);
+    if (!end || *end || value < 1 || value > 65535) return fallback;
+    return (int)value;
+}
+
 static int set_close_on_exec(int fd) {
     int flags = fcntl(fd, F_GETFD);
     if (flags < 0) return -1;
@@ -38,7 +48,8 @@ int udp_init(int command_port, int status_port) {
         sensor_sock = -1;
     } else {
         memset(&sensor_addr, 0, sizeof(sensor_addr)); sensor_addr.sin_family = AF_INET;
-        sensor_addr.sin_port = htons(UDP_SENSOR_PORT); sensor_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        sensor_addr.sin_port = htons(environment_port_or_default("HIL_UDP_SENSOR_PORT", UDP_SENSOR_PORT));
+        sensor_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     }
 
     struct timeval tv = {0, 100000};

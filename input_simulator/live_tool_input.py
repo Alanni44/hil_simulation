@@ -113,7 +113,7 @@ class LiveToolInputBuilder:
 
     def _binding(self, token, binding):
         self.book.validate(token)
-        if token.mode != 'SEND' or token.branch_id not in ('CANT', 'CUTIL', 'ETHGEN'):
+        if token.mode != 'SEND' or token.branch_id not in ('CANT', 'CUTIL', 'SAVVY', 'ETHGEN'):
             raise ICDError('AUTHORIZATION', 'original live branch sender reservation required; not a wire grant')
         transport = 'UDP' if token.branch_id == 'ETHGEN' else 'CANFD'
         if (type(binding) is not ExportBinding or type(binding.channel_id) is not str
@@ -151,9 +151,17 @@ class LiveToolInputBuilder:
             if original != frames:
                 raise ICDError('RESOURCE', 'original cantools and source wire group differ')
             self._can_messages(frames, binding.interface)
-            commands = () if token.branch_id == 'CANT' else tuple(
-                ToolCommand(('cansend', binding.interface, f'{f.arbitration_id:03X}##1{f.data.hex().upper()}'), binding.channel_id)
-                for f in frames)
+            if token.branch_id == 'CANT':
+                commands = ()
+            elif token.branch_id == 'CUTIL':
+                commands = tuple(
+                    ToolCommand(('cansend', binding.interface, f'{f.arbitration_id:03X}##1{f.data.hex().upper()}'), binding.channel_id)
+                    for f in frames)
+            else:
+                # SavvyCAN must receive the exact current-session fragments
+                # through its constrained process adapter.  Do not serialize a
+                # shell command or let the GUI invent a session/header.
+                commands = (ToolCommand(('SavvyCAN', '--hil-authorized-send'), binding.channel_id),)
             return commands, ()
         source, receiver = endpoints
         ethernet = tuple(bytes(Ether(src=binding.source_mac, dst=binding.destination_mac) /
@@ -214,6 +222,11 @@ class LiveToolInputBuilder:
     def _claim_can_attempt(self, plan):
         self._owned(plan)
         self.session._claim_can_attempt(plan.source_input)
+
+    def claim_can_attempt(self, plan):
+        """在当前会话操作所有权内认领一次原始 CAN 发送尝试。"""
+        with self._operation(), self._source_operation():
+            self._claim_can_attempt(plan)
 
     def validate(self, plan):
         with self._operation(), self._source_operation():

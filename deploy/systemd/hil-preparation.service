@@ -18,6 +18,8 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 ReadOnlyPaths=/opt/hil /etc/hil
+RuntimeDirectory=hil
+RuntimeDirectoryMode=0750
 
 [Install]
 WantedBy=multi-user.target

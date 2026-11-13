@@ -2,6 +2,8 @@
 
 import importlib.util
 from dataclasses import FrozenInstanceError, replace
+from pathlib import Path
+import tempfile
 import threading
 
 from common import GatewayTest, message
@@ -340,6 +342,18 @@ class StatusServiceTests(GatewayTest):
         self.assertEqual(self.registry.session_ids,())
         self.assertEqual(self.backend.calls,0)
         self.assertEqual(self.service.records,())
+
+    def test_owned_archive_releases_working_status_evidence_after_durable_write(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.create(max_records=1, archive_root=Path(temporary))
+            for sequence in range(2, 10):
+                self.assertEqual(self.deliver(self.heartbeat(sequence))[0]['message_id'],131)
+            self.assertEqual(self.service.records,())
+            snapshot=self.service.capacity_snapshot()
+            self.assertEqual((snapshot['used_records'], snapshot['used_bytes'], snapshot['archive_failed']),
+                             (0, 0, False))
+            rows=(Path(temporary) / 'status-evidence.jsonl').read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(rows), 9)  # opening plus eight Heartbeats
 
     def test_backend_error_and_untyped_sample_never_create_status_or_application(self):
         self.create()

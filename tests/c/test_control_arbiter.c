@@ -11,7 +11,7 @@ int main(void)
     ControlArbiter arbiter;
 
     assert(control_arbiter_init(&arbiter, 4U, safe, 100000000ULL));
-    assert(arbiter.active_source == CONTROL_SOURCE_DEMO_MISSION);
+    assert(arbiter.active_source == CONTROL_SOURCE_NONE);
     assert(control_arbiter_select(&arbiter, CONTROL_SOURCE_PX4_SITL));
     assert(!control_arbiter_submit(&arbiter, CONTROL_SOURCE_PHYSICAL_UUT,
                                    px4, 4U, 1000U));
@@ -21,6 +21,7 @@ int main(void)
     assert(output[0] == px4[0] && output[3] == px4[3]);
     assert(!control_arbiter_get(&arbiter, 100002000ULL, output, 4U));
     assert(output[0] == 0.0f && output[3] == 0.0f);
+    assert(arbiter.active_source == CONTROL_SOURCE_NONE);
     puts("control_arbiter: all tests passed");
     return 0;
 }

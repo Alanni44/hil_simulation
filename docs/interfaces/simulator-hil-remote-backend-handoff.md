@@ -38,7 +38,7 @@ model_id        = quadrotor_hil
 4. 3.3 用当前固定 CANT CreateParams 调用 `simulator_run_create`，保存模拟器 `run_id`、`revision`、后端命令 ID 和管理 `request_id`，并向 3.6 登记同一业务 Run 的执行关联。
 5. 登记成功后，3.3 调用 `simulator_run_control/START`。模拟器对 HIL 只核对第一圈已准备的同一配置，再发送正式 Lifecycle START 和固定场景输入。
 6. 3.3 每秒调用 `simulator_run_get` 与 `simulator_records_list`；3.6 同时订阅 8765 的新鲜 `STATE_TELEMETRY`，并用已登记关联归入同一业务 `runId`。
-7. 前端 STOP 经 3.3 调用 `simulator_run_control/STOP`。模拟器停止本 Run 的场景调度后，对仍在运行的 HIL 发送 Lifecycle `STOP`，并在同一会话读回 `STOPPED`、`control_source=NONE`。3.3 轮询到该真实停止证据后回传给 3.6；3.6 统一发布业务终态。随后 HIL 侧再次执行第一圈准备，恢复 `CONFIGURED`，供下一次业务 Run 使用。
+7. 前端 STOP 经 3.3 调用 `simulator_run_control/STOP`。模拟器停止本 Run 的场景调度后，对仍在运行的 HIL 发送 Lifecycle `STOP`，并在同一会话读回 `STOPPED`、`control_source=NONE`。若正式会话因自身证据容量或传输故障不能确认 STOP，模拟器只在本机调用 C-core safety STOP，并再次读回 `STOPPED`、`control_source=NONE`；它记录 `HIL_EMERGENCY_STOP_APPLIED`，不得伪称为正式 Lifecycle STOP。两种路径均无停止读回时，必须报告停止未确认，不能把 Run 解释为模型已停止。3.3 轮询到该真实停止证据后回传给 3.6；3.6 统一发布业务终态。若停止步数非零，3.6 必须先调用第一圈 `hil_reset`，并确认 `STOPPED/NONE/model_step=0/sim_time_us=0`，再执行下一次 `hil_prepare` 恢复 `CONFIGURED`。
 
 不把 HTTP 202/`ACCEPTED`、报文 `RECEIVED`、WebSocket 已连接或单帧旧遥测当作实际运行成功。实际 START 以 HIL Lifecycle 应用回执或同次运行的新鲜推进状态确认；实际 STOP 以 `HIL_STOP_APPLIED` 和安全状态读回确认。
 

@@ -130,9 +130,15 @@ rejection is `REJECTED/HIL_*`; and a local executor failure is
 must not be collapsed into a synthetic PASS or a stopped-target claim.
 
 When `input_simulator.manage` is given `--state-dir`, its bounded RunStore
-atomically persists the immutable CREATE snapshots, idempotency responses and
-Record cursor history.  On a later process start it does not reconstruct an
-old `SourceSession` or worker.  A previously active Run is instead changed to
-`COMPLETED/INCOMPLETE` with `last_error.code=EVIDENCE_INCOMPLETE` and one
-schema-valid `RECOVERY_INCOMPLETE` terminal record.  READY runs have never
+atomically persists the immutable CREATE snapshots, state-changing
+(`simulator_run_create` and `simulator_run_control`) idempotency responses and
+Record cursor history. `simulator_run_get` and `simulator_records_list` are
+read-only observations: every request is evaluated against current state and
+is not added to the durable request-id replay registry. Their `request_id` is
+therefore a response-correlation value, not a cache key. This keeps ordinary
+polling from exhausting control-plane capacity and prevents a repeated query
+from returning stale state. On a later process start it does not reconstruct
+an old `SourceSession` or worker. A previously active Run is instead changed
+to `COMPLETED/INCOMPLETE` with `last_error.code=EVIDENCE_INCOMPLETE` and one
+schema-valid `RECOVERY_INCOMPLETE` terminal record. READY runs have never
 caused HIL traffic and remain READY.

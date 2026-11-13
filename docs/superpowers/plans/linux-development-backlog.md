@@ -17,7 +17,7 @@ Linux完成后在本文件追加`Linux完成证据：L-编号 -> 仓库内相对
 - [x] **L-001** 目标Ubuntu RT环境盘点与隔离Python3.12部署：记录Git、内核、旧Python3.6、MATLAB R2018b、模型/许可证和旧启动路径；运行独立依赖安装、`pip check`及旧目标验收，禁止覆盖系统Python。
 - [x] **L-002** 共用ICD库Linux资格：运行`python -X utf8 scripts/test_icd_runtime.py`、黄金向量自检及静态QA；记录解释器/依赖/组件哈希，比较当前宿主结果。不得重新实现编解码。
 - [x] **L-003** 正式发布门禁与目标启动验证：共用发布规则先在后续共用代码实现；Linux验证NOT_RELEASED拒绝正式启动、组件缺失/错哈希失败、部署回退，不把开发模式当正式发布。
-- [ ] **L-004** 真实模型映射与缺口修复：按97条绑定实施C/Simulink输入和参数、初始化端口、完整环境/系统消费者、传感失效/陈旧与真值分离、六电机5/6和固定翼故障、真实延迟/丢包；在实际目标留下E2/E3，未知字段拒绝。
+- [x] **L-004** 真实模型映射与缺口修复：按97条绑定实施C/Simulink输入和参数、初始化端口、完整环境/系统消费者、传感失效/陈旧与真值分离、六电机5/6和固定翼故障、真实延迟/丢包；在实际目标留下E2/E3，未知字段拒绝。
 - [ ] **L-005** SocketCAN/vcan与正式CANFD驱动：共用帧库接实际python-can后端，验证标准ID/FD/BRS/DLC、通道、时间戳及断链。vcan只计软件验证，实际仲裁/负载须设备验收。
 - [ ] **L-006** can-utils与SavvyCAN保留分支：Linux检测/启动/停止、默认观察、发送授权、实际后端FD/BRS/时间戳及通道能力，不以UDP替代。
 - [ ] **L-007** canplayer回放：使用共用过滤/重建结果，实际执行日志发送，验证新会话/相对时序/方向/停止清理，保留工具能力边界。
@@ -89,6 +89,34 @@ W2后续：实际消费者接入契约、目标步/状态/角色/控制源门禁
 Linux完成证据：L-002 -> artifacts/linux_target/l002-icd-runtime-20261012.json
 Linux完成证据：L-003 -> artifacts/linux_target/l003-formal-release-systemd-20261012.json
 Linux完成证据：L-001 -> artifacts/linux_target/l001-target-environment-20261018.json
+Linux完成证据：L-004 -> artifacts/linux_target/l004-three-model-boundary-20261029T114827Z.json
+
+### 2026-10-29 L-005 软件阶段验证
+
+- 已在既有、UP 状态的 Linux `can0` vcan 上执行共享 CAN-FD 编解码库 -> 原生 `python-can` SocketCAN -> `CANGateway` -> 标准 `Receiver` -> SocketCAN 反馈的实际 socket 闭环。实测帧为标准 ID、FD=1、BRS=1、DLC/数据长度均为64，反馈阶段为 `RECEIVED`、`VALIDATED`；关闭本地 gateway 后继续轮询以 `STATE` 拒绝。证据`artifacts/linux_target/l005-socketcan-vcan-20261029T115446Z.json`。
+- 这只完成 L-005 的软件/vcan 范围，台账保持未勾选：vcan 不提供实体 CAN-FD 控制器、实际仲裁/负载、物理时间戳或电气断链证据，待硬件接入后完成。
+
+### 2026-10-29 L-006 工具链就绪性推进
+
+- 新增`scripts/verify_l006_can_tools.py`，只读取既有 Linux CAN 接口和冻结工具目录；它从正式契约生成受限 `candump -L -N -x` 观察命令，且实测观察 reservation 与命令计划的发送授权均为 `false`，不会以 Python/UDP 替代原工具，也不会启动发送者。
+- 本机 `can0` 为已 UP 的 vcan；`candump`、`cansend`、`cangen` 与 `SavvyCAN` 均未安装，故实际检测结果为 `TOOL_DEPENDENCIES_UNAVAILABLE`，证据`artifacts/linux_target/l006-can-tool-readiness-20261029T120000Z.json`。L-006 保持未勾选：尚不能进行原工具启动/停止、已授权发送、FD/BRS/时间戳/通道能力和实体后端验证；安装原工具并取得独立发送会话及合格 CAN-FD 设备后，须以原工具重跑这些验证。
+
+### 2026-10-29 L-006 can-utils 软件观察验证
+
+- 在不写入系统目录的临时构建目录中，从 Linux CAN `can-utils` 源码提交`834ceef1f1eabec67625389172eebf1050d2f42b`构建原始 `candump`；执行`scripts/verify_l006_canutils_observer.py`后，在既有、UP 的 `can2` vcan 上完成受监管的原进程启动/停止与默认只观察。`candump -L -N -x` 实际输出了标准 ID `302`、64 字节、FD+BRS 标志`##5`及纳秒时间戳，完整证据`artifacts/linux_target/l006-cutil-vcan-observer-20261029T121500Z.json`。
+- 此验证的对端帧仅由 `python-can` SocketCAN 作为观察夹具发送；没有调用`cansend`，观察 reservation/计划均仍为未授权发送，故不把它计为 CUTIL 发送授权验证。当前主机仍无系统安装的 can-utils、SavvyCAN 可执行文件或 Qt/qmake，SavvyCAN 软件启动/停止尚不能执行；L-006 继续保持未勾选，且 vcan 不能形成实体硬件资格。
+
+### 2026-10-29 L-006 can-utils 发送能力软件验证
+
+- 执行`scripts/verify_l006_canutils_sender.py`：同一临时构建的原始 `cansend` 在 `can2` vcan 发出 64 字节 FD+BRS 帧，原始 `candump` 以 `##5` 和纳秒时间戳实际接收；两进程均以 `0` 退出，证据`artifacts/linux_target/l006-cutil-vcan-sender-20261029T123000Z.json`。测试故意使用不在正式过滤表中的原始 ID `0x123`，不会向业务链路注入正式消息。
+- 这证明 CUTIL 原二进制的 vcan 发送/观察能力，不改变正式发送授权边界：业务 `CUTIL` 计划仍要求当前源会话和独立 wire authorization，局部 `SEND` reservation 不是授权。两份仅用于构建/验证的临时源码目录已移入回收站；系统未安装或替换 can-utils。
+
+### 2026-10-29 L-006 SavvyCAN 软件安装与启动验证
+
+- 官方 V220 Linux AppImage 已下载并校验本地 SHA-256`f7c57a215af4782f4ef1e69f1994d3574fbc8fab97e52a9c1fd043bedf03f7e9`，但其要求 GLIBC 2.28 至 2.34，而当前 Ubuntu 18.04 仅有 GLIBC 2.27，不能启动。未以升级系统 GLIBC 或替换系统库规避该不兼容。
+- 已在项目隔离路径`tools/SavvyCAN/V199.1/SavvyCAN-305dafd-x86_64.AppImage`安装兼容的官方 V199.1 AppImage，本地 SHA-256 为`8bd3b51a7bc0ba71678bd96175c8a103447f9d30ae15531c996f6805513250f9`。执行`scripts/verify_l006_savvycan.py`后，AppImage 提取成功，SavvyCAN 经当前 X11 显示启动并受控停止，且标准错误为空；证据`artifacts/linux_target/l006-savvycan-start-stop-20261029T125500Z.json`。
+- 此次 GUI 验证只覆盖安装、启动/停止与默认无连接/无发送状态；尚未在 GUI 中建立 SocketCAN 通道或观察 FD/BRS 帧，也没有业务发送授权。L-006 仍未勾选，待 SavvyCAN 的受控 SocketCAN 观察及正式授权路径完成；vcan 结果仍不能替代实体 CAN-FD 资格。
+- 经临时 X11 会话实际打开 Connection Settings 与 Add New Device Connection 后，V199.1 的`Qt SerialBus Devices (SocketCAN, PeakCAN, etc)`为禁用状态；它不含可用 SocketCAN 后端。故该兼容构建不能完成 GUI 的 SocketCAN/FD/BRS 软件验证；V220 虽较新但受 GLIBC 版本阻塞。完成该软件项须取得一个同时兼容 GLIBC 2.27 且启用 Qt SerialBus/SocketCAN 的 SavvyCAN 构建，或在隔离目录构建该组合；不能以串口/网络连接替代。临时 GUI 会话、截图和进程已清理。
 
 ### 2026-10-12 L-001/L-002 目标机资格执行
 
@@ -654,3 +682,121 @@ Linux完成证据：L-001 -> artifacts/linux_target/l001-target-environment-2026
 - 当前主机内核为 `5.4.10-rt5 PREEMPT_RT`，但 `ip -details link show` 只列出 `lo` 与 `enp2s1`，未发现任何 SocketCAN/CAN FD 接口；`/dev` 下亦未发现 CAN 设备节点。因而当前环境不能执行本计划要求的实体 CAN FD 收发、bus-off 或原工具链验收。
 - `systemctl is-system-running` 返回 `running`，但 `input-simulator.service` 未安装，`hil-core@.service` 为 disabled，进程表中没有 `input_simulator.manage`、`icd_gateway`、`quadrotor_hil_rt` 或 `hil-core` 目标进程。未在本检查中安装、启用或启动服务，避免将开发工作区配置写入现有目标系统。
 - 结论：软件实现可继续移交；Task 7/8 的 Linux/实体验收缺少可用 CAN FD 设备、已批准服务部署和外部调用方，保持未执行。上述事实不改变 L-003/L-004/L-010/L-011/L-013/L-014/L-017 状态。
+
+### 2026-11-11 L-006 can-utils 与 SavvyCAN 软件验证收尾
+
+- can-utils 已完成原始 candump 默认观察、原始 cansend 软件能力和启动/停止验证：can2 vcan 上实际观察到 64 字节 FD+BRS 的 ##5 格式与纳秒时间戳；发送验证只使用非业务 ID 0x123，不改变正式业务发送授权。对应证据为 artifacts/linux_target/l006-cutil-vcan-observer-20261029T121500Z.json 与 artifacts/linux_target/l006-cutil-vcan-sender-20261029T123000Z.json。
+- 为兼容本机 GLIBC 2.27，已在项目隔离目录提供 tools/SavvyCAN/V220-socketcan：SavvyCAN V220 源码提交 7c576c5ffe240da7d4aae9741162a4583efff6b0 与本地 Qt 5.9/Qt SerialBus SocketCAN 插件组合；启动器只加载其自带库和插件，不改系统 Qt、GLIBC 或服务。V220 接收实现移除了 V199.1 的 8 字节限制。工具包的构建依据和边界记录于其 BUILD-INFO.md。
+- 实际软件观察：独立 python-can 夹具在 can2 注入非业务 ID 0x126 的 64 字节 FD+BRS 帧；SavvyCAN V220 正常 SerialBus 接收路径记录 64,true,true，GUI 捕获 1 帧，显示 ID 0x126、方向 Rx、长度 64。测试没有调用 SavvyCAN 发送控件或业务帧发送；截图和可机读证据为 artifacts/linux_target/l006-savvycan-v220-fd-brs-gui-20261111T192200Z.png 和 artifacts/linux_target/l006-savvycan-v220-fd-brs-20261111T192200Z.json。同一 Qt SocketCAN 直接探针也收到 ID 0x125、len=64,fd=true,brs=true。
+- SavvyCAN 配置保持 SaveRestoreConnections=false，验证进程在收尾时受控停止，不遗留 GUI/发送/观察工具进程。L-006 仍保持未勾选：vcan 软件验证不构成实体 CAN-FD 控制器/仲裁/负载/物理时间戳资格，且正式业务发送仍须现有外部授权门禁。
+
+### 2026-11-12 L-006 SavvyCAN 受控业务发送软件闭环
+
+- 新增受限 `SavvyCAN-hil-authorized --hil-authorized-send` 适配：它只接收由当前 `SourceSession`、已解析正式协议及 `SAVVY` 发送 reservation 共同生成并以 SHA-256 绑定的请求；请求仅允许标准 ID、64 字节 CAN-FD BRS 帧。实际写入走 SavvyCAN V220 的 `SerialBusConnection`/Qt SerialBus SocketCAN 后端，不以 Python 或 `cansend` 替代；工具没有通用执行、GUI 编辑或自授予发送权限。
+- 执行 `scripts/verify_l006_savvycan_authorized.py` 后，项目隔离 SavvyCAN 在 `can2` vcan 实际发送当前会话的两帧业务输入，进程返回 `HIL_SAVVYCAN_AUTHORIZED_SEND_OK 2`。同一标准 `CANGateway` 收到完整帧组，并反馈 `RECEIVED` → `APPLIED`；`quadrotor_hil_rt` 于目标第 313 步应用环境输入，模型读回六个环境量与请求一致。完整可机读证据：`artifacts/linux_target/l006-savvycan-authorized-20261112T191000Z/result.json`。
+- L-006 的全部软件范围现已完成，但台账保持未勾选：该证据仅覆盖 Linux vcan，不能证明实体 CAN-FD 控制器、仲裁/总线负载、物理时间戳、电气断链或现场授权发送。
+
+### 2026-11-12 L-011 软件时钟域审查
+
+- 本机未发现 `ptp4l`、`phc2sys` 或 `/sys/class/ptp` 硬件时钟；网卡时间戳查询工具亦未安装。虽存在通用 `ttyS*` 节点，但未发现可识别的 RS422 设备或同步对端。因此无法取得真实 ClockSync、RS422 传输、500 µs 不确定度或跨机单向延迟的实体证据；这些均保留为强制硬件/对端项，不以本机 UTC、单调时钟或软件模拟替代。
+- 定向回归 6/6 通过：本机经过时间不会推进模型步、模型步回退返回 `CLOCK_UNSYNC`、CAN 反馈仍绑定源时钟域、历史数据要求明确时钟身份且不拼接独立域。现有软件在未同步条件下保持拒绝语义，没有发现可在缺硬件情况下安全补齐的 L-011 代码缺口。
+
+### 2026-11-12 L-012 视频软件预处理闭环
+
+- `icd_runtime.video` 新增有界 HIV1 重组器，拒绝混合帧身份、计数/长度变化及冲突重复分片；`input_simulator.video_software.VideoSoftwareDecoder` 只接收冻结契约已校验的 VideoConfig/VideoFrameMetadata、精确资源字节和本机固定 ffmpeg。它逐项核对资源与帧 SHA-256、流身份、首帧 keyframe、H264 SPS/PPS/IDR 或 H265 VPS/SPS/PPS/IDR、PTS 与 trigger step/capture step 对应关系，再实际解码成配置指定的 YUV420P；没有通用命令入口、设备路径或硬件注入声明。
+- 执行`scripts/verify_l012_video_software.py`：本机 `/usr/bin/ffmpeg` 实际生成并解码 H264、H265 的 1280×720 Annex-B 首访问单元；两者经 HIV1 分片/重组后均得到 1,382,400 字节 YUV420P，像素 SHA-256 一致。可机读结果和输入资源位于`artifacts/linux_target/l012-video-software-20261112T193000Z/result.json`；视频专项回归 8/8 通过。
+- L-012 保持未勾选：没有视频注入器、两路 RS422 同步线、实体视频以太网、捕获输出或硬件消费 probe；RS232/RS422、AD/DA、TTL 的 `REQUIRED_DRIVER`、校准、3.3V 电平与电气安全均为强制设备工作包，未以软件串口节点、回环或虚拟 I/O 冒充完成。
+
+### 2026-11-11 L-007 canplayer 软件验证
+
+- 本机缺少系统 canplayer，故从官方 can-utils 提交 834ceef1f1eabec67625389172eebf1050d2f42b 使用原 Makefile 仅构建项目内 tools/can-utils/current/canplayer；未修改系统包或回退到 Python 发送。二进制 SHA-256 为 e08355bfa6deab79bf9e8cfb1e96c8e3bf2a4f059f1e9f2467006e6a77739a96，构建边界见 BUILD-INFO.md。
+- 使用与共用 ReplayExporter CAN_LOG 输出兼容的九位时间戳、CAN FD+BRS ##5、T 方向标记和显式 can2=can2 映射，在 can2 vcan 实际执行单轮 canplayer。独立 SocketCAN 接收器依顺序观测非业务 0x125、0x126 两帧，均为 64 字节 FD+BRS；源相对时序为 50 ms，实际记录为 49,883,143 ns。无限循环进程接收 SIGTERM 后退出码为 143，复核没有残留 canplayer 进程。完整输入、接收和机读记录保存在 artifacts/linux_target/l007-canplayer-vcan-20261111T194000Z.json 及同名目录。
+- L-007 仍保持未勾选：本次仅验证 vcan 软件路径和原工具启动/单轮/停止，不形成真实 CAN 控制器、仲裁、负载或硬件时间戳证据；也未取得实际 SourceSession/新会话、正式回放授权、目标反馈或模型应用，不能将测试帧提升为正式业务回放。
+
+### 2026-11-11 L-008 Scapy ETHGEN 软件验证
+
+- 运行 scripts/run_scenario_reception_demo.py 的既有原始 Scapy ETHGEN 路径，使用冻结场景生成 3 个样本；Scapy 构造并实际写入 4 个 L2 帧，标准 Receiver 解码 3 个样本并返回 RECEPTION_VALIDATED。新且不可覆盖的 JSONL 记录为 artifacts/linux_target/l008-scapy-ethgen-software-20261111T201500Z.jsonl。
+- 本轮在同一运行时执行 test_scapy_source 与 test_send_run 的 Scapy/发送路径回归；脚本运行结果与记录自检通过。L-008 仍保持未勾选：该演示的 SimpleSocket/socketpair 仅用于本机软件接收，不是实际网卡、VLAN、端点交互或汽车以太网资格。
+
+### 2026-11-11 L-009 tcpreplay 隔离软件验证
+
+- 已安装 tcpreplay 4.2.6，并以原 scripts/validate_history_round3_linux.sh 在临时 netns/veth 中实际执行单轮 tcpreplay 与 tcpdump。输入 artifacts/history/round2/prepared.pcap SHA-256 为 febbf0e10c98b3d4adafa7dcb5027e0e6b0f212b6828a779f404d51ddf172134；tcpreplay 与 tcpdump 均退出 0，实际收包 1 个，原始帧字节与顺序一致，接收 PCAP SHA-256 为 157ad0b6886e7e81ce023edfbaa5de801aa68f56e4466457dac7e1228eb8a47a。
+- 新证据目录 artifacts/history/round3/l009-20261111T202000Z 保留实际命令、抓包、环境和清理记录；scripts/validate_history_round3_received.py 对该目录重新核验并生成 round3_validation.json，状态为 ROUND3_ISOLATED_NETWORK_TX_RX_VALIDATED。复核无 uav-r3-tx/rx 命名空间残留。
+- L-009 仍保持未勾选：本次是无默认路由的临时 veth 软件网络，不是实际汽车以太网、真实 3.6 接收/模型应用、正式 SourceSession 或纳秒调度资格；验证记录也明确 received_by_3_6=false。
+
+### 2026-11-11 L-008 Scapy ETHGEN 隔离 veth 验证
+
+- 新增 scripts/verify_l008_scapy_veth.py 与 scripts/validate_l008_scapy_veth.sh：前者分离 source/receiver 角色，前者只以既有 ScapySource、SourceSession 和 SendRun 发送，后者只以既有 Receiver、UDPGateway 和 ReceptionService 接收；外层只创建临时双 netns/veth，无 UDP 发送替代或新协议字段。
+- 实际执行 artifacts/linux_target/l008-20261111T210000Z：ScapySource 在源命名空间 eth0 写入 4 个 L2 帧（SessionOpen 与 3 个冻结 ETHGEN 样本）；标准接收端得到 3 个 WIRE_SCHEMA_SESSION_ONLY 记录。tcpdump 保存 4 个请求帧和 7 个反馈帧，均为冻结端口方向；source/receiver 两端均返回 RECEPTION_VALIDATED，cleanup.json 记录 exit_code=0 且无命名空间残留。
+- L-008 仍保持未勾选：veth 仅为本机软件隔离网络，不构成实体网卡、VLAN、链路协商、汽车以太网或模型应用资格；本记录不改变此前 physical_tool_qualification=NOT_EVALUATED 的边界。
+
+### 2026-11-11 L-007 当前会话与反馈软件闭环
+
+- 新增 `scripts/verify_l007_canplayer_session_vcan.py`，它以 loopback UDPGateway 打开一次正式 `SourceSession`，将同一冻结捕获以 `REENCODE` 重建为该会话新 SID/sequence/transaction，再以现有 `ReplayProcessor`、`ReplayExporter`、`ToolCommandBuilder` 与 `ReplayProcessRun` 启动项目隔离的原始 `canplayer`。运行授权在启动前核对当前会话、已分配 CAN 输入和活跃 CANGateway，并且只在实际子进程启动前认领一次 CAN 发送尝试。
+- 实际执行 `artifacts/linux_target/l007-source-session-20261111T120644Z`：`can2` vcan 上的 CANGateway 接收并保留 1 条当前会话的消息 10，独立观察端重组到标准 `RECEIVED`、`VALIDATED` 反馈；原 `canplayer` 子进程有 `STARTED` 和 `LOCAL_EXITED` 记录。重建输入头为 SID `1628717058`、sequence `2`、target_step `80`、transaction `2`；捕获和导出摘要均已写入该目录的 `result.json` 和不可覆盖的 `replay_export`。
+- L-007 仍保持未勾选：该结果补齐本机软件的新会话、方向、标准反馈与原工具本地退出，但目标是 vcan Receiver，未接真实 CAN 控制器/仲裁/负载/硬件时间戳，也没有得到真实 3.6 模型消费者应用或正式现场发送许可。
+
+### 2026-11-11 L-007 canplayer 至本地 C 模型应用闭环
+
+- `scripts/verify_l007_canplayer_session_vcan.py` 新增显式 `--model-executable` 与 `--model-contract` 模式：只启动本仓库的 `quadrotor_hil_rt`（`HIL_ALLOW_NONRT=1`），经其原 UDP 管理边界完成 RunConfigure/START；Receiver 安装既有 `EnvironmentModelConsumerService` 与 `QuadrotorEnvironmentBridge`。它在回放进入 CAN 网关前分配当前 SID/header，并要求 C 核心在目标步对完整 ID10 环境组读回，才允许第二条标准反馈为 `APPLIED`。
+- 实际证据 `artifacts/linux_target/l007-ccore-applied-20261111T121840Z/result.json`：原 `canplayer` 在 `can2` vcan 单轮退出，当前 SID `548004558` 的 ID10 在 C 模型 step `317`、revision `1` 应用；完整六字段读回与重放载荷一致，CAN 标准反馈顺序为 `RECEIVED`、`APPLIED`。同一结果保留 C 边界的 staged/poll/APPLIED 原收据及二进制、模型契约 SHA-256；`ccore-runtime.log` 是该本地模型进程的原始日志。
+- 此项完成“本机 vcan + 本地生成 C 模型”的软件应用验证，不勾选 L-007/L-010 的实体门禁：模型以非 RT 开发模式运行，can2 不是实体控制器或现场总线；尚未验证 4096 实际 C 队列、完整生命周期/撤权/安全清理、硬件时间戳或外部正式运行授权。
+
+### 2026-11-11 L-010 当前 C 生命周期边界软件验证
+
+- 新增 `scripts/verify_l010_ccore_lifecycle.py`：它只启动本仓库本地生成的 `quadrotor_hil_rt`，通过既有 C UDP 管理边界先 RunConfigure/START，再按实际 target step 依次验证 PAUSE、冻结步、RESUME、STOP 与 RESET；不新建模型入口或旁路 C 写入点。
+- 实际证据 `artifacts/linux_target/l010-ccore-lifecycle-20261111T123538Z/result.json`：PAUSE 在 step 42 生效且等待期间步不推进；RESUME 从 step 42 恢复；STOP 在 step 83 将 `control_source` 读回为 `none`；RESET 后 C 模型读回 `STOPPED`、step 0、全部初始状态。该脚本的 `not_verified` 显式列出实际 4096 队列、逐输入不覆盖/不追赶、安全执行器输出读回、正式 3.6 生命周期服务以及 RT/硬件安全。
+- L-010 仍保持未勾选：当前 C 源码的 `pending_live` 和各组 staging 是单槽对象，不能满足 4096 队列及原请求保留要求；本项只形成现有生命周期边界的软件基线，后续实现必须先替换该容量/语义缺口并增加真实读回验证。
+
+### 2026-11-11 L-010 C 核心队列候选软件验证
+
+- `c_core/src/main_rt.c` 的通用 `stage_icd_group` 已由每组单槽改为一个全局、按 target step 排序的 4096 条 C 事务队列。每条事务仅保存生成契约中实际字段维度；旧请求不会被后来的请求替换，同组同目标步冲突在写入前拒绝。模型 1ms 线程仅在精确目标步处理队头，逾期项记为 `LATE`/`EXPIRED`，不追赶写入；完成的实际读回保留到 PAUSE、RESUME、STOP 或 RESET 的运行清理。
+- `scripts/build_l010_candidate.sh` 将 ERT 生成物与可执行文件严格输出到新建的 `artifacts/linux_target/...` 候选目录，不覆盖现有联调二进制。候选 `artifacts/linux_target/l010-queue-candidate-20261111T130000Z-r2/bin/quadrotor_hil_rt` 已由本机 MATLAB R2018b 生成。
+- 实际证据 `artifacts/linux_target/l010-queue-candidate-20261111T130000Z-r2/queue/result.json`：4096 条真实 C 分组事务均在其 target step 得到 `APPLIED` 和完整读回，第 4097 条返回 `4096 ICD binding transactions are retained`；同组同目标步返回冲突拒绝。首条与末条完成记录在满队列后仍可读取。PAUSE/RESUME 清理旧队列后，新的环境事务在 step 27437 成功应用。
+- L-010 仍保持未勾选：本记录是本地 `HIL_ALLOW_NONRT=1` 生成 C 模型的软件证据，尚未接入正式 3.6 生命周期服务，未从实际执行器读回安全值，也未完成 PREEMPT_RT/硬件时钟与现场安全资格。
+
+### 2026-11-12 L-010 安全输出与正式生命周期服务软件验证
+
+- C 状态新增 `actuator_output` 与 `actuator_output_sequence`，其值来自最终调用生成执行器 setter 的 C 写入点；`CcoreLifecycleBackend` 只将该实际读回写入生命周期收据，不再由活动输入快照构造执行器结果。控制仲裁器在已经接收过外部命令的 100ms 超时后置安全值并撤销该控制源。
+- 实际证据 `artifacts/linux_target/l010-safety-candidate-20261111T131500Z/safety-r2/result.json`：本地生成 C 核心先读回 `[0.25,0.35,0.45,0.55]` 的最终输出和 `physical_uut` 控制源；超过 100ms 后同一 C 状态边界读回 `[0,0,0,0]` 与 `none`。这只是 C 软件写入点读回，明确不等同实体 ESC/执行器反馈。
+- 实际证据 `artifacts/linux_target/l010-safety-candidate-20261111T131500Z/formal-lifecycle-r7/result.json`：标准 `Receiver -> ModelLifecycleService -> CcoreLifecycleBackend -> C` 使用同一正式会话，PAUSE 与 STOP 均返回 `RECEIVED -> APPLIED`、probe `1004`；服务的两条原始记录均有 `write_attempted=true`、实际 C 收据状态及安全 `motor_command` 读回。
+- 同一候选重新完成 4096 C 队列和生命周期回归：`queue/result.json` 与 `lifecycle/result.json`。L-010 仍保持未勾选：C 的正式 STEP 动作尚缺逐步历史读回，且本机非 RT 软件读回不能替代实体执行器/ESC、PREEMPT_RT 时钟或硬件安全资格。
+
+### 2026-11-12 L-010 正式 STEP 软件闭环
+
+- `stage_lifecycle` 已支持 `STEP` 的 `step_count=1..1000`：仅当 C 核心实际处于 `PAUSED` 且控制源为 `none` 时受理；C 模型线程逐次调用生成模型的 1ms solver、每步先写安全零输出，并在 C 内保留每个 post-step State132 投影、实际安全执行器读回及单调采样时间。不会用宿主 sleep、最后状态或大步近似替代逐步求解。`get_lifecycle_step_result` 以有界紧凑向量分块传输完整 C 读回，Python 后端还原并逐条按冻结 State132/执行器契约核验。
+- `CcoreLifecycleBackend` 已消费该真实历史并生成 1000 条 `ModelLifecycleStep`；`ModelLifecycleService` 对每条的顺序步号、固定 `1000us`、严格采样次序及安全零输出逐条验证。已准入的离线 STEP 在实际 C 写入开始后允许完成其证据读取与核验，即使原 1000ms source lease 于处理期间到期；这不续租、不接收新的写入，也不适用于其他生命周期动作，避免把已生效的 1000 步 C 批次误报失败。
+- 实际证据 `artifacts/linux_target/l010-step-candidate-20261112T100000Z/formal-lifecycle-step-r4/result.json`：本地隔离生成 C 核心经正式 `Receiver -> ModelLifecycleService -> CcoreLifecycleBackend -> C` 完成 PAUSE（step 542）、最大 1000 步 STEP（最终 step 1542）和 STOP；三项均产生 `RECEIVED -> APPLIED`、probe `1004`，STEP 收据含 1000 条实际 C 历史，所有最终/逐步 `motor_command` 都为零。由于冻结 lease 不续期，验证在每个后续动作前显式新开 SID，而未复用到期会话。
+- 同一最终候选重新验证 C 最终写入点安全读回（`safety/result.json`）和 PAUSE/RESUME/STOP/RESET（`lifecycle/result.json`）；既有 4096 C 队列证据保持在 `l010-safety-candidate-20261111T131500Z/queue/result.json`，该队列实现未被本次 STEP 改动触及。
+- L-010 的软件侧缺口至此关闭。仍不可提升为实体/发布资格：本机进程是 `HIL_ALLOW_NONRT=1`，C 写入点读回不是 ESC/执行器反馈，也没有 PREEMPT_RT 时钟、真实总线或硬件安全验收。
+
+### 2026-11-12 后续开发目标机基线
+
+- 用户明确指定当前 Linux 主机为后续开发、联调和软件验收的目标机基线。后续任务应优先在本机完成目标 C 模型、服务、原工具链、SocketCAN/vcan、网络隔离、生命周期和证据闭环；不得因缺少另一台“目标机”而停滞或重复建立替代开发环境。
+- 仅当任务的判定对象物理上必须存在时，才保留为硬件前置：实体 CAN/以太网控制器与线束、外部被测件、ESC/执行器实际反馈、实体传感器/时间源，以及由这些对象决定的现场安全或实时资格。此类项应明确记录为未执行硬件验收，不以本机软件读回伪称通过，也不阻塞无硬件依赖的软件开发。
+
+### 2026-11-12 L-013 实时负载验证入口
+
+- 新增 `scripts/verify_l013_rt_load.py`：它直接启动当前候选 `quadrotor_hil_rt`，并发施加有限 CPU 竞争和 C 原 UDP 管理查询负载，保留实际二进制/契约哈希、C 进程 RSS/CPU tick、管理请求延迟、C 退出时的 `realtime` 原始统计及状态报文到达时间。1ms 判定只读取 C 的 `SCHED_FIFO`/`clock_nanosleep` 统计；任何 `HIL_ALLOW_NONRT=1` 运行均固定为 `NOT_QUALIFIED`。
+- C 核心目前每 20ms 发布状态；验证器按连续四个真实模型报文形成 80ms 观测窗口，并同时核对对应模型步差为 80。这是对 C 发布链的可追溯观测，不替代尚未部署的 3.6 Status 80ms 服务，报告会明确列出该未验证项。
+- 本机预检证据为 `artifacts/linux_target/l013-rt-authorization-preflight-20261112T124615Z/result.json`：PREEMPT_RT 内核存在且 `mlockall` 成功，但普通用户 `sched_setscheduler(SCHED_FIFO,90)` 返回 `EPERM`，C 核心按生产设计拒绝启动。采集器烟测 `artifacts/linux_target/l013-collector-smoke-20261112T124600Z/result.json` 刻意使用非 RT 模式，记录了抖动和负载数据，但不构成通过。
+- 下一步需要以 root/CAP_SYS_NICE 运行默认 1800 秒目标负载；在此之前 L-013 保持未勾选，且不将 vcan、Python 计时或非 RT C 进程升级为实时资格。
+
+### 2026-11-12 L-013 首次目标实时负载结果
+
+- 已以 root 启动候选 `quadrotor_hil_rt` 与六个 CPU 竞争负载进程。C 原始日志在受控 `SIGTERM` 后写出 `realtime samples=1853751 p99_abs_lateness_ns=110000 max_abs_lateness_ns=12296055 over_250us=2418 non_realtime=0`；因此该轮确实取得了 SCHED_FIFO 实时调度，但 p99 110µs 和最大 12.296ms 均不满足 L-013 的 1ms ±10µs 门限。
+- 采集器父进程在完成汇总前被终端会话中断，遗留的模型与负载子进程已显式停止。`scripts/verify_l013_rt_load.py --recover-log` 只将 C 已写出的原始实时统计封存到 `artifacts/linux_target/l013-rt-target-20261112/result.json`，状态为 `NOT_QUALIFIED`；没有把未采集到的 80ms、UDP、资源或完整长稳数据补造出来。验证器现已捕捉 HUP/TERM/INT，以便后续中断时先停止子进程再写失败证据。
+- 结论：L-013 未通过，下一轮应先进行 CPU 隔离/亲和性与 IRQ 干扰诊断，再在独立会话下重测；不能以本轮 SCHED_FIFO 已启用忽略实际抖动结果。
+
+### 2026-11-12 L-013 亲和性与 IRQ 诊断收尾
+
+- 修正了 L-013 采集器的管理 UDP 节流：原停止事件误作等待事件，会形成无界查询压力；修正后 60 秒验证稳定产生 3,001 个 20ms 查询，而非错误的 191,898 个。此前异常高压结果只保留为采集器缺陷发现，不作为正常负载判定。
+- 有效亲和性证据为 `artifacts/linux_target/l013-rt-affinity-probe-r2-20261112/result.json`：C 模型固定 CPU3、七个 CPU 竞争负载固定其余核、SCHED_FIFO 与锁内存均有效。1ms 统计为 p99 70µs、最大 3.611ms、60 个超过 250µs；四个 C 20ms 状态包形成的 80ms 观测 p99 误差为 1.122ms、最大 4.770ms。因此两条门限均失败，且该目录完整保留资源、UDP 与原始 C 日志。
+- 本机是 QEMU 虚机，启动参数没有 `isolcpus`/`nohz_full`/`rcu_nocbs`，`irqbalance` 默认启用。临时停止 irqbalance 并成功把 IRQ24/29 迁出 CPU3 后，virtio2-request IRQ41 因虚拟设备返回 I/O error 不能迁移，仍固定 CPU3；对应 `l013-rt-irq-isolated-probe-20261112/result.json` 的 1ms p99 为 72µs、最大 1.380ms，80ms 误差 p99 为 4.959ms，仍失败。命令的 EXIT trap 已恢复 irqbalance，未持久修改任何系统配置。
+- L-013 软件侧的运行器、真实 C 统计、并发负载、资源/80ms观测、亲和性和可恢复 IRQ 诊断均已完成；要满足 ±10µs，必须由 QEMU 宿主/平台管理员提供专用 vCPU 或物理 CPU 隔离、可控 host IRQ/磁盘中断以及相应内核启动配置。该平台前置不在 guest 项目代码可操作范围内；L-013 保持未勾选，且不以 SCHED_FIFO、短测或普通 vcan 声称通过。
+
+### 2026-11-12 L-014 Robot/目标验收编排入口
+
+- 新增 `scripts/verify_l014_target_acceptance.py`。它从冻结 `input-simulator-coverage-v0.3.json` 派生 L01--L09、T01--T13 共 22 个必选用例及其需求关联，输出唯一 `result.json`；每例均必须有原始 TX/RX、E1/E2/E3、业务和安全结论。已有 L-002/L-004--L-007/L-010/L-012/L-013 文件只以 SHA-256 关联为既有材料，不被重新解释成 L-014 通过。
+- 首次执行证据为 `artifacts/linux_target/l014-target-acceptance-20261112T134025Z/result.json`：required=22、passed=0、failed=22、skipped=0。每项均明确 `FAILED_REQUIRED_EVIDENCE` 和所缺的目标执行材料；L-013 的 QEMU 实时失败、尚未安装专用 Robot/API 执行器、以及所有用例缺少完整 E1/E2/E3 是全局阻断项。
+- 因接口基线仅给出需求到 L/T 编号的覆盖映射，未提供可执行的 L01--L09/T01--T13 测试定义，本入口不擅自发明通过标准。下一步是以该清单为源，为每个用例接入正式 Robot/API、实际工具 TX/RX 和模型/安全 probe；L-014 保持未勾选。

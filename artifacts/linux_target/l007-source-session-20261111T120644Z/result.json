@@ -1,0 +1,36 @@
+{
+  "format": "HIL_L007_CANPLAYER_SESSION_VCAN_1",
+  "status": "SOFTWARE_CLOSED_LOOP_VALIDATED",
+  "interface": "can2",
+  "session_id": 1628717058,
+  "source_capture_sha256": "9ce8e2fc862e95a6554575565066aa5b43ed905537d373474fbd40fed2cfb3df",
+  "export_sha256": "b072fbd6a561881893721f1a31c64f35a85a7ddbaff5e0464bb6d07b2c343593",
+  "current_header": {
+    "session_id": 1628717058,
+    "sequence": 2,
+    "target_step": 80,
+    "transaction_id": 2,
+    "valid_for_ms": 240
+  },
+  "received_records": 1,
+  "feedback_stages": [
+    "RECEIVED",
+    "VALIDATED"
+  ],
+  "process_records": [
+    {
+      "kind": "STARTED",
+      "at_ns": 178980335322574,
+      "scheduled_ns": 178980318290338,
+      "error": null
+    },
+    {
+      "kind": "LOCAL_EXITED",
+      "at_ns": 178980358128022,
+      "scheduled_ns": 178980318290338,
+      "error": null
+    }
+  ],
+  "physical_hardware_qualified": false,
+  "model_consumer_verified": false
+}

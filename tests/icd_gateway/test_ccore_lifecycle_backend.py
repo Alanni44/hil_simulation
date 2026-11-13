@@ -1,6 +1,6 @@
 from common import GatewayTest, message
 
-from icd_runtime.json_codec import canonicalize
+from icd_runtime.json_codec import canonicalize, loads
 from icd_gateway.semantic_guards import SemanticGuards
 
 
@@ -30,6 +30,7 @@ class CcoreLifecycleBackendTests(GatewayTest):
                 return {"accepted": True, "fields": {
                     "lifecycle": self.lifecycle, "sequence": self.sequence,
                     "control_source": "none", "model_loaded": True,
+                    "actuator_output": [0.0, 0.0, 0.0, 0.0],
                     "initial_state_abi": True, "full_configuration_abi": True,
                     "model_revision": 1,
                     "initial_state": self.configuration["initial_state"],
@@ -44,10 +45,31 @@ class CcoreLifecycleBackendTests(GatewayTest):
             if command["cmd"] == "stage_lifecycle":
                 action = command["params"]["action"]
                 self.lifecycle = {"START": "RUNNING", "PAUSE": "PAUSED", "RESUME": "RUNNING",
-                                  "STOP": "STOPPED", "RESET": "CONFIGURED"}[action]
-                self.sequence = command["params"]["target_step"]
+                                  "STOP": "STOPPED", "RESET": "CONFIGURED", "STEP": "PAUSED"}[action]
+                self.sequence = (command["params"]["target_step"] + command["params"].get("step_count", 0))
                 return {"accepted": True, "lifecycle": self.lifecycle,
                         "effective_sequence": self.sequence}
+            if command["cmd"] == "get_lifecycle_step_result":
+                params = command["params"]
+                samples = []
+                for number in range(params["start_index"] + 1,
+                                    params["start_index"] + params["count"] + 1):
+                    state = message(132)["payload"]
+                    state["model_step"] = number
+                    state["position"] = self.configuration["initial_state"]["position"]
+                    state["orientation"] = self.configuration["initial_state"]["orientation"]
+                    samples.append({"state_vector": [number, state["position"]["north_m"],
+                                    state["position"]["east_m"], state["position"]["down_m"],
+                                    state["vn_mps"], state["ve_mps"], state["vd_mps"],
+                                    state["orientation"]["q_w"], state["orientation"]["q_x"],
+                                    state["orientation"]["q_y"], state["orientation"]["q_z"],
+                                    state["p_radps"], state["q_radps"], state["r_radps"],
+                                    state["airborne"], state["ax_mps2"], state["ay_mps2"], state["az_mps2"]],
+                                    "actuator_output": [0.0] * 4,
+                                    "sampled_ns": number})
+                return {"accepted": True, "fields": {
+                    "stage_request_id": params["stage_request_id"], "total_count": 2,
+                    "start_index": params["start_index"], "samples": samples}}
             raise AssertionError(command)
 
         self.backend._bridges["quadrotor_hil"]._exchange = exchange
@@ -66,7 +88,7 @@ class CcoreLifecycleBackendTests(GatewayTest):
         self.assertEqual(staged[0]["params"], {"action": "START", "target_step": 0})
         self.assertEqual(receipt.steps, ())
 
-    def test_step_is_rejected_before_a_c_model_write(self):
+    def test_step_reads_each_retained_c_model_observation(self):
         self.lifecycle = "PAUSED"
         request = message(4)
         request["header"].update(session_id=1, sequence=2, transaction_id=2, target_step=0)
@@ -75,8 +97,13 @@ class CcoreLifecycleBackendTests(GatewayTest):
         raw = canonicalize(request)
         context = self.backend.read_context(self.identity, raw, now_ns=0)
         decision = SemanticGuards(self.contract).lifecycle(request, context.view)
-        self.rejects("UNSUPPORTED", lambda: self.backend.apply_lifecycle(raw, context, decision, now_ns=0))
-        self.assertNotIn("stage_lifecycle", [command["cmd"] for command in self.commands])
+        receipt = self.backend.apply_lifecycle(raw, context, decision, now_ns=0)
+        self.assertEqual((receipt.view.state, receipt.view.model_step), ("PAUSED", 2))
+        self.assertEqual([loads(sample.state_json)["model_step"] for sample in receipt.steps], [1, 2])
+        self.assertEqual([loads(sample.actuators_json) for sample in receipt.steps],
+                         [{"motor_command": [0.0] * 4}] * 2)
+        staged = [command for command in self.commands if command["cmd"] == "stage_lifecycle"]
+        self.assertEqual(staged[0]["params"], {"action": "STEP", "target_step": 0, "step_count": 2})
 
     def test_status_backend_projects_direct_c_status_for_standard_heartbeat(self):
         from icd_gateway.model_consumer import CcoreStatusBackend

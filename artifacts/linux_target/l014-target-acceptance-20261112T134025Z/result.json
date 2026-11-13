@@ -1,0 +1,729 @@
+{
+  "format": "HIL_L014_TARGET_ACCEPTANCE_1",
+  "status": "FAILED_REQUIRED_EVIDENCE",
+  "execution_host": "Linux 5.4.10-rt5 (x86_64)",
+  "completed_utc": "2026-11-12T13:40:25.607592+00:00",
+  "coverage": {
+    "path": "docs/interfaces/baseline/input-simulator-coverage-v0.3.json",
+    "sha256": "8d8ddb7fc4705801d269fa244e269e2995c8bd515f35400e516577a15a003d5c"
+  },
+  "cases": [
+    {
+      "case_id": "L01",
+      "required": true,
+      "requirements": [
+        "R02",
+        "R05"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l002-icd-runtime-20261012.json",
+          "sha256": "eb187eefa4c8afa51e1a30a3f2adbccfb97b38f9ea7fddc3a1e1c30b34fa25a9"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L02",
+      "required": true,
+      "requirements": [
+        "R05"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l006-savvycan-authorized-20261112T191000Z/result.json",
+          "sha256": "85fcd1667c534d89a169e5ccbe4b76bdc88c2d2609cee69dc98f2dfeb87328cf"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L03",
+      "required": true,
+      "requirements": [
+        "R05",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l005-socketcan-vcan-20261029T115446Z.json",
+          "sha256": "2480d2dd1c0fc5a38b283ff8c52640a709153017ab1279310f495a68eb5a3aa6"
+        },
+        {
+          "path": "artifacts/linux_target/l012-video-software-20261112T193000Z/result.json",
+          "sha256": "dd43e5a2bbb8a345fd252099a68e4dabc7fb3ec9bea2b3b67bcdb2cedffb4af1"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L04",
+      "required": true,
+      "requirements": [
+        "R05",
+        "R17",
+        "R22"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l007-ccore-applied-20261111T121840Z/result.json",
+          "sha256": "afb4f876dd22b6d3cbfd12bd5f2cd8dbbb5c36ef7b581bab16720cd769de7d27"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L05",
+      "required": true,
+      "requirements": [
+        "R03",
+        "R07"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l010-ccore-lifecycle-20261111T123538Z/result.json",
+          "sha256": "6e9cda49cb9884b0545d5e8fdcd5e6d9d61de8d31153a155ebdfcbb7f8d97d2d"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L06",
+      "required": true,
+      "requirements": [
+        "R04",
+        "R05",
+        "R24"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L07",
+      "required": true,
+      "requirements": [
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R20"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l004-three-model-boundary-20261029T114827Z.json",
+          "sha256": "2fb3d8ad7965a229791ce702161cde8e3b39aa39a6bfe8f17533e9c5ec006543"
+        },
+        {
+          "path": "artifacts/linux_target/l012-video-software-20261112T193000Z/result.json",
+          "sha256": "dd43e5a2bbb8a345fd252099a68e4dabc7fb3ec9bea2b3b67bcdb2cedffb4af1"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L08",
+      "required": true,
+      "requirements": [
+        "R07",
+        "R16",
+        "R22"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l010-step-candidate-20261112T100000Z/lifecycle/result.json",
+          "sha256": "2547e639d8c9073462c31364ec8c7714ea23c95e140d541867b45e072b54d698"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "L09",
+      "required": true,
+      "requirements": [
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l007-ccore-applied-20261111T121840Z/result.json",
+          "sha256": "afb4f876dd22b6d3cbfd12bd5f2cd8dbbb5c36ef7b581bab16720cd769de7d27"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T01",
+      "required": true,
+      "requirements": [
+        "R02",
+        "R06",
+        "R08",
+        "R22",
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l013-rt-affinity-probe-r2-20261112/result.json",
+          "sha256": "c453287cdf1228574a5f5899d1a00786fe5bcb56f82b5377bfd321f394487580"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T02",
+      "required": true,
+      "requirements": [
+        "R07",
+        "R08",
+        "R16",
+        "R22"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l010-step-candidate-20261112T100000Z/lifecycle/result.json",
+          "sha256": "2547e639d8c9073462c31364ec8c7714ea23c95e140d541867b45e072b54d698"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T03",
+      "required": true,
+      "requirements": [
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R14",
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l004-three-model-boundary-20261029T114827Z.json",
+          "sha256": "2fb3d8ad7965a229791ce702161cde8e3b39aa39a6bfe8f17533e9c5ec006543"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T04",
+      "required": true,
+      "requirements": [
+        "R03",
+        "R07"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T05",
+      "required": true,
+      "requirements": [
+        "R04",
+        "R16",
+        "R24"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T06",
+      "required": true,
+      "requirements": [
+        "R07",
+        "R16"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T07",
+      "required": true,
+      "requirements": [
+        "R08",
+        "R13"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T08",
+      "required": true,
+      "requirements": [
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R14",
+        "R15",
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T09",
+      "required": true,
+      "requirements": [
+        "R03",
+        "R07"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T10",
+      "required": true,
+      "requirements": [
+        "R04",
+        "R24"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T11",
+      "required": true,
+      "requirements": [
+        "R20",
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l012-video-software-20261112T193000Z/result.json",
+          "sha256": "dd43e5a2bbb8a345fd252099a68e4dabc7fb3ec9bea2b3b67bcdb2cedffb4af1"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T12",
+      "required": true,
+      "requirements": [
+        "R06",
+        "R17",
+        "R18",
+        "R19",
+        "R21",
+        "R23"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l013-rt-affinity-probe-r2-20261112/result.json",
+          "sha256": "c453287cdf1228574a5f5899d1a00786fe5bcb56f82b5377bfd321f394487580"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    },
+    {
+      "case_id": "T13",
+      "required": true,
+      "requirements": [
+        "R06",
+        "R17",
+        "R18",
+        "R19",
+        "R21"
+      ],
+      "status": "FAILED_REQUIRED_EVIDENCE",
+      "related_prior_evidence": [
+        {
+          "path": "artifacts/linux_target/l013-rt-affinity-probe-r2-20261112/result.json",
+          "sha256": "c453287cdf1228574a5f5899d1a00786fe5bcb56f82b5377bfd321f394487580"
+        }
+      ],
+      "evidence_stage": {
+        "E1": "NOT_EVALUATED",
+        "E2": "NOT_EVALUATED",
+        "E3": "NOT_EVALUATED"
+      },
+      "business": "NOT_EVALUATED",
+      "safety": "NOT_EVALUATED",
+      "missing": [
+        "raw_tx",
+        "raw_rx",
+        "E1_RECEIVE_OR_VALIDATION",
+        "E2_REAL_CONSUMER_OR_MODEL_EFFECT",
+        "E3_BUSINESS_OR_SAFETY_RESPONSE",
+        "business_assertion",
+        "safety_assertion"
+      ],
+      "reason": "L-014 has no dedicated Robot/API execution with complete target TX/RX and E1/E2/E3 evidence"
+    }
+  ],
+  "summary": {
+    "required": 22,
+    "passed": 0,
+    "failed": 22,
+    "skipped": 0
+  },
+  "global_blockers": [
+    "L-013 realtime gate failed on the current QEMU target",
+    "no dedicated Robot/API target execution is installed",
+    "complete raw TX/RX and E1/E2/E3 evidence is absent for every required case"
+  ]
+}

@@ -219,8 +219,8 @@ end
 function validate_initial_state_abi(contract, dw_fields)
     if ~isfield(contract.state, 'initialization'), return; end
     declaration = contract.state.initialization;
-    names = {'position_ned','velocity_ned','quaternion_frd_to_ned','body_rates'};
-    dimensions = [3,3,4,3];
+    names = {'position_ned','velocity_ned','body_rates'};
+    dimensions = [3,3,3];
     if ~isstruct(declaration) || ~isfield(declaration, 'storage') || ...
             ~strcmp(declaration.storage, 'dwork')
         error('Initial state ABI must explicitly declare DWork storage');
@@ -234,6 +234,17 @@ function validate_initial_state_abi(contract, dw_fields)
         if isempty(field) || field.dimension ~= dimensions(i) || ~is_numeric_type(field.type)
             error('Initial state DWork field is absent or incompatible: %s', declaration.(key));
         end
+    end
+    if isfield(declaration, 'quaternion_identity_only') && declaration.quaternion_identity_only
+        return;
+    end
+    if ~isfield(declaration, 'quaternion_frd_to_ned') || ...
+            ~ischar(declaration.quaternion_frd_to_ned) || isempty(declaration.quaternion_frd_to_ned)
+        error('Initial state ABI lacks DWork field quaternion_frd_to_ned');
+    end
+    field = lookup_field(dw_fields, declaration.quaternion_frd_to_ned);
+    if isempty(field) || field.dimension ~= 4 || ~is_numeric_type(field.type)
+        error('Initial state DWork quaternion is absent or incompatible: %s', declaration.quaternion_frd_to_ned);
     end
 end
 
@@ -526,12 +537,20 @@ function generate_initial_state_abi(fid, contract)
     fprintf(fid, 'static int hil_contract_set_initial_state(const HilInitialState* s) { if (!s) return 0; ');
     fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->north_m; MODEL_DW_VAR.%s[1]=s->east_m; MODEL_DW_VAR.%s[2]=s->down_m; ', d.position_ned, d.position_ned, d.position_ned);
     fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->vn_mps; MODEL_DW_VAR.%s[1]=s->ve_mps; MODEL_DW_VAR.%s[2]=s->vd_mps; ', d.velocity_ned, d.velocity_ned, d.velocity_ned);
-    fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->q_w; MODEL_DW_VAR.%s[1]=s->q_x; MODEL_DW_VAR.%s[2]=s->q_y; MODEL_DW_VAR.%s[3]=s->q_z; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    if isfield(d, 'quaternion_identity_only') && d.quaternion_identity_only
+        fprintf(fid, 'if (fabs(s->q_w-1.0)>1e-9 || fabs(s->q_x)>1e-9 || fabs(s->q_y)>1e-9 || fabs(s->q_z)>1e-9) return 0; ');
+    else
+        fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->q_w; MODEL_DW_VAR.%s[1]=s->q_x; MODEL_DW_VAR.%s[2]=s->q_y; MODEL_DW_VAR.%s[3]=s->q_z; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    end
     fprintf(fid, 'MODEL_DW_VAR.%s[0]=s->p_radps; MODEL_DW_VAR.%s[1]=s->q_radps; MODEL_DW_VAR.%s[2]=s->r_radps; return 1; }\n', d.body_rates, d.body_rates, d.body_rates);
     fprintf(fid, 'static int hil_contract_get_initial_state(HilInitialState* s, double ground_height_m) { if (!s) return 0; ');
     fprintf(fid, 's->north_m=MODEL_DW_VAR.%s[0]; s->east_m=MODEL_DW_VAR.%s[1]; s->down_m=MODEL_DW_VAR.%s[2]; ', d.position_ned, d.position_ned, d.position_ned);
     fprintf(fid, 's->vn_mps=MODEL_DW_VAR.%s[0]; s->ve_mps=MODEL_DW_VAR.%s[1]; s->vd_mps=MODEL_DW_VAR.%s[2]; ', d.velocity_ned, d.velocity_ned, d.velocity_ned);
-    fprintf(fid, 's->q_w=MODEL_DW_VAR.%s[0]; s->q_x=MODEL_DW_VAR.%s[1]; s->q_y=MODEL_DW_VAR.%s[2]; s->q_z=MODEL_DW_VAR.%s[3]; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    if isfield(d, 'quaternion_identity_only') && d.quaternion_identity_only
+        fprintf(fid, 's->q_w=1.0; s->q_x=0.0; s->q_y=0.0; s->q_z=0.0; ');
+    else
+        fprintf(fid, 's->q_w=MODEL_DW_VAR.%s[0]; s->q_x=MODEL_DW_VAR.%s[1]; s->q_y=MODEL_DW_VAR.%s[2]; s->q_z=MODEL_DW_VAR.%s[3]; ', d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned, d.quaternion_frd_to_ned);
+    end
     fprintf(fid, 's->p_radps=MODEL_DW_VAR.%s[0]; s->q_radps=MODEL_DW_VAR.%s[1]; s->r_radps=MODEL_DW_VAR.%s[2]; s->airborne=s->down_m < -ground_height_m; return 1; }\n', d.body_rates, d.body_rates, d.body_rates);
 end
 

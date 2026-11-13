@@ -27,7 +27,7 @@
 
 | 圈次 | 调用方 | 地址 | 允许操作 |
 |---|---|---|---|
-| 第一圈 | 3.6 | `POST http://192.168.100.165:18081/api/hil/preparation/commands` | `hil_prepare`、`hil_prepare_get` |
+| 第一圈 | 3.6 | `POST http://192.168.100.165:18081/api/hil/preparation/commands` | `hil_reset`、`hil_prepare`、`hil_prepare_get` |
 | 第二圈 | 3.3 | `POST http://192.168.100.165:18080/api/simulator/commands` | `simulator_run_create`、`simulator_run_get`、`simulator_run_control`、`simulator_records_list` |
 | 遥测 | 3.6 | `ws://192.168.100.165:8765/ws/hil` | 只读 `STATE_TELEMETRY` |
 
@@ -35,11 +35,12 @@
 
 ## 三、调用顺序
 
-1. 3.6 从 JSON 读取完整 `run_configuration`，用同一业务 `run_id` 调用 `hil_prepare`。
-2. 只在响应中 `configured=true`、`state="CONFIGURED"`、`control_source="NONE"`、模型/基线/快照哈希全部一致时，允许第二圈。
-3. 3.3 使用 JSON 的全部八个字段创建 `simulator_run_create`；每次管理调用生成新的 `request_id`。
-4. 3.3 使用返回的 `run_id` 和当前 `revision` 发一次 `START`。未完成第一圈时，HIL 会拒绝第二圈且不会发送 TX。
-5. 记录中出现 `APPLIED/SCENARIO_INPUT_APPLIED/message_id="10"` 后，以最新 revision 发 `STOP`；须观察 `RESPONSE/HIL_STOP_APPLIED`，并确认最终 HIL 状态为 `STOPPED`、`control_source="NONE"`。
+1. 上一 Run 已 STOP 且 `model_step` 非零时，3.6 先调用 `hil_reset`，只在读回 `STOPPED`、`control_source=NONE`、`model_step="0"`、`sim_time_us="0"` 后继续。
+2. 3.6 从 JSON 读取完整 `run_configuration`，用同一业务 `run_id` 调用 `hil_prepare`。
+3. 只在响应中 `configured=true`、`state="CONFIGURED"`、`control_source="NONE"`、模型/基线/快照哈希全部一致时，允许第二圈。
+4. 3.3 使用 JSON 的全部八个字段创建 `simulator_run_create`；每次调用使用新的 `request_id`。CREATE、START、STOP 超时重试必须复用原始请求体和 `request_id`；`simulator_run_get`、`simulator_records_list` 是实时只读查询，每次轮询使用新的 `request_id`。
+5. 3.3 使用返回的 `run_id` 和当前 `revision` 发一次 `START`。未完成第一圈时，HIL 会拒绝第二圈且不会发送 TX。
+6. 记录中出现 `APPLIED/SCENARIO_INPUT_APPLIED/message_id="10"` 后，以最新 revision 发 `STOP`；须观察 `RESPONSE/HIL_STOP_APPLIED`，并确认最终 HIL 状态为 `STOPPED`、`control_source="NONE"`。
 
 `ACCEPTED`、HTTP 成功、WebSocket 已连接和 `RECEIVED` 都不是实际运行/停止依据。
 

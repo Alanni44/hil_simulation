@@ -21,7 +21,7 @@ def _copy(value):
 
 
 class PreparationCommandService:
-    """Expose only the first-circle prepare/query operations.
+    """Expose the first-circle prepare/query/reset/status operations.
 
     The caller supplies an orchestration ``run_id`` so 3.6 can retain the
     result against its business Run.  That identifier is correlation metadata;
@@ -29,7 +29,9 @@ class PreparationCommandService:
     """
 
     def __init__(self, template, identity, preparation, *, max_requests=MAX_REQUESTS):
-        if (not callable(getattr(preparation, "prepare_current", None)) or type(identity) is not dict
+        if (not callable(getattr(preparation, "prepare_current", None))
+                or not callable(getattr(preparation, "reset_current", None))
+                or not callable(getattr(preparation, "status_current", None)) or type(identity) is not dict
                 or type(getattr(template, "model_id", None)) is not str
                 or type(getattr(template, "run_configuration", None)) is not dict
                 or type(max_requests) is not int or not 1 <= max_requests <= 65536):
@@ -42,6 +44,7 @@ class PreparationCommandService:
         self.max_requests = max_requests
         self._requests = OrderedDict()
         self._results = {}
+        self._reset_runs = {}
 
     @staticmethod
     def _identifier(value, label):
@@ -60,18 +63,25 @@ class PreparationCommandService:
     def _validate_envelope(self, request):
         if type(request) is not dict or set(request) != {"cmd", "params"}:
             raise ICDError("SCHEMA", "closed preparation command envelope required")
-        if request["cmd"] not in {"hil_prepare", "hil_prepare_get"}:
+        if request["cmd"] not in {"hil_prepare", "hil_prepare_get", "hil_reset", "hil_status_get"}:
             raise ICDError("UNSUPPORTED", "unsupported HIL preparation command")
         params = request["params"]
         if type(params) is not dict or params.get("api_version") != API_VERSION:
             raise ICDError("SCHEMA", "HIL preparation API version 1.0 required")
         self._identifier(params.get("request_id"), "request ID")
         required = ({"api_version", "request_id", "prepare_id", "run_id", "run_configuration"}
-                    if request["cmd"] == "hil_prepare"
-                    else {"api_version", "request_id", "prepare_id"})
+                    if request["cmd"] == "hil_prepare" else
+                    {"api_version", "request_id", "prepare_id"}
+                    if request["cmd"] == "hil_prepare_get" else
+                    {"api_version", "request_id", "reset_id", "run_id"}
+                    if request["cmd"] == "hil_reset" else
+                    {"api_version", "request_id"})
         if set(params) != required:
             raise ICDError("SCHEMA", "preparation command fields differ from the fixed contract")
-        self._identifier(params.get("prepare_id"), "prepare ID")
+        if request["cmd"] == "hil_reset":
+            self._identifier(params.get("reset_id"), "reset ID")
+        elif request["cmd"] != "hil_status_get":
+            self._identifier(params.get("prepare_id"), "prepare ID")
         if request["cmd"] == "hil_prepare":
             self._identifier(params.get("run_id"), "Run ID")
             if canonicalize(params["run_configuration"]) != canonicalize(self.template.run_configuration):
@@ -117,6 +127,34 @@ class PreparationCommandService:
             raise ICDError("NOT_FOUND", "preparation result is not retained by this service instance")
         return self._response(request, status="SUCCESS", code="OK", message="HIL preparation result", data=_copy(data))
 
+    def _reset(self, request):
+        params = request["params"]
+        existing_run = self._reset_runs.get(params["reset_id"])
+        if existing_run is not None and existing_run != params["run_id"]:
+            raise ICDError("DUPLICATE", "reset_id names another business Run")
+        reset_identity = _copy(self.identity)
+        reset_identity["run_id"] = params["run_id"]
+        result = self.preparation.reset_current(params["reset_id"], reset_identity)
+        self._reset_runs[params["reset_id"]] = params["run_id"]
+        data = {
+            "run_id": params["run_id"], "reset_id": params["reset_id"],
+            "model_id": result.model_id, "model_revision": str(result.model_revision),
+            "model_step": str(result.model_step), "sim_time_us": str(result.sim_time_us),
+            "state": result.state, "control_source": result.control_source,
+            "reset": True,
+        }
+        return self._response(request, status="SUCCESS", code="OK", message="HIL reset confirmed", data=data)
+
+    def _status_get(self, request):
+        status = self.preparation.status_current(_copy(self.identity))
+        data = {
+            "model_id": self.identity["model_id"], "model_revision": str(status.model_revision),
+            "state": status.lifecycle, "control_source": status.control_source,
+            "model_step": str(status.model_step), "sim_time_us": str(status.sim_time_us),
+            "fresh": True,
+        }
+        return self._response(request, status="SUCCESS", code="OK", message="HIL current status", data=data)
+
     def handle(self, request):
         """Run a bounded command and retain byte-identical idempotent replies."""
         try:
@@ -128,12 +166,15 @@ class PreparationCommandService:
                 if existing[0] != encoded:
                     raise ICDError("IDEMPOTENCY_CONFLICT", "request ID names another preparation command")
                 return _copy(existing[1])
-            response = self._prepare(request) if request["cmd"] == "hil_prepare" else self._get(request)
+            response = (self._prepare(request) if request["cmd"] == "hil_prepare" else
+                        self._get(request) if request["cmd"] == "hil_prepare_get" else
+                        self._reset(request) if request["cmd"] == "hil_reset" else
+                        self._status_get(request))
             return self._remember(request, response)
         except ICDError as error:
             # A malformed envelope may not carry a valid request ID, in which
             # case the HTTP owner produces its small transport-level error.
-            if (type(request) is not dict or request.get("cmd") not in {"hil_prepare", "hil_prepare_get"}
+            if (type(request) is not dict or request.get("cmd") not in {"hil_prepare", "hil_prepare_get", "hil_reset", "hil_status_get"}
                     or type(request.get("params")) is not dict
                     or type(request["params"].get("request_id")) is not str):
                 raise

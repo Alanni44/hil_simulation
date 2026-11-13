@@ -1,0 +1,197 @@
+{
+  "format": "HIL_L007_CANPLAYER_SESSION_VCAN_1",
+  "status": "SOFTWARE_CLOSED_LOOP_VALIDATED",
+  "interface": "can2",
+  "session_id": 548004558,
+  "source_capture_sha256": "9ce8e2fc862e95a6554575565066aa5b43ed905537d373474fbd40fed2cfb3df",
+  "export_sha256": "15bc37ef87e827f207c0ba0d2f47297b4a68cefab45549d15fc956b78e39bab8",
+  "current_header": {
+    "session_id": 548004558,
+    "sequence": 2,
+    "target_step": 317,
+    "transaction_id": 2,
+    "valid_for_ms": 240
+  },
+  "received_records": 1,
+  "feedback_stages": [
+    "RECEIVED",
+    "APPLIED"
+  ],
+  "process_records": [
+    {
+      "kind": "STARTED",
+      "at_ns": 179697875645351,
+      "scheduled_ns": 179697861956302,
+      "error": null
+    },
+    {
+      "kind": "LOCAL_EXITED",
+      "at_ns": 179697893987071,
+      "scheduled_ns": 179697861956302,
+      "error": null
+    }
+  ],
+  "physical_hardware_qualified": false,
+  "model_consumer_verified": true,
+  "model_application": {
+    "applied_step": 317,
+    "model_revision": 1,
+    "readback": {
+      "ground_height_m": 2850,
+      "pressure_pa": 30750,
+      "temperature_k": 210,
+      "wind_d_mps": -30,
+      "wind_e_mps": -35,
+      "wind_n_mps": -40
+    },
+    "ccore_exchanges": [
+      {
+        "command": {
+          "request_id": "icd10-step-probe",
+          "cmd": "get_icd_environment_result",
+          "params": {
+            "stage_request_id": "__step_probe__"
+          }
+        },
+        "reply": {
+          "request_id": "icd10-step-probe",
+          "accepted": false,
+          "reason": "unknown ICD environment transaction",
+          "effective_sequence": 77,
+          "lifecycle": "RUNNING"
+        }
+      },
+      {
+        "command": {
+          "request_id": "icd10-548004558-2-2",
+          "cmd": "stage_icd_environment",
+          "params": {
+            "target_step": 317,
+            "deadline_ns": 179698129315100,
+            "environment": {
+              "wind_n_mps": -40.0,
+              "wind_e_mps": -35.0,
+              "wind_d_mps": -30.0,
+              "pressure_pa": 30750.0,
+              "temperature_k": 210.0,
+              "ground_height_m": 2850.0
+            }
+          }
+        },
+        "reply": {
+          "request_id": "icd10-548004558-2-2",
+          "accepted": true,
+          "reason": "staged",
+          "effective_sequence": 317,
+          "lifecycle": "RUNNING"
+        }
+      },
+      {
+        "command": {
+          "request_id": "icd10-548004558-2-2-result",
+          "cmd": "get_icd_environment_result",
+          "params": {
+            "stage_request_id": "icd10-548004558-2-2"
+          }
+        },
+        "reply": {
+          "request_id": "icd10-548004558-2-2-result",
+          "accepted": true,
+          "reason": "awaiting target boundary",
+          "effective_sequence": 296,
+          "lifecycle": "RUNNING",
+          "fields": {
+            "state": "STAGED",
+            "stage_request_id": "icd10-548004558-2-2",
+            "target_step": 317,
+            "applied_step": 0,
+            "model_revision": 0,
+            "reason": "awaiting target boundary"
+          }
+        }
+      },
+      {
+        "command": {
+          "request_id": "icd10-548004558-2-2-result",
+          "cmd": "get_icd_environment_result",
+          "params": {
+            "stage_request_id": "icd10-548004558-2-2"
+          }
+        },
+        "reply": {
+          "request_id": "icd10-548004558-2-2-result",
+          "accepted": true,
+          "reason": "awaiting target boundary",
+          "effective_sequence": 298,
+          "lifecycle": "RUNNING",
+          "fields": {
+            "state": "STAGED",
+            "stage_request_id": "icd10-548004558-2-2",
+            "target_step": 317,
+            "applied_step": 0,
+            "model_revision": 0,
+            "reason": "awaiting target boundary"
+          }
+        }
+      },
+      {
+        "command": {
+          "request_id": "icd10-548004558-2-2-result",
+          "cmd": "get_icd_environment_result",
+          "params": {
+            "stage_request_id": "icd10-548004558-2-2"
+          }
+        },
+        "reply": {
+          "request_id": "icd10-548004558-2-2-result",
+          "accepted": true,
+          "reason": "awaiting target boundary",
+          "effective_sequence": 307,
+          "lifecycle": "RUNNING",
+          "fields": {
+            "state": "STAGED",
+            "stage_request_id": "icd10-548004558-2-2",
+            "target_step": 317,
+            "applied_step": 0,
+            "model_revision": 0,
+            "reason": "awaiting target boundary"
+          }
+        }
+      },
+      {
+        "command": {
+          "request_id": "icd10-548004558-2-2-result",
+          "cmd": "get_icd_environment_result",
+          "params": {
+            "stage_request_id": "icd10-548004558-2-2"
+          }
+        },
+        "reply": {
+          "request_id": "icd10-548004558-2-2-result",
+          "accepted": true,
+          "reason": "APPLIED",
+          "effective_sequence": 317,
+          "lifecycle": "RUNNING",
+          "fields": {
+            "state": "APPLIED",
+            "stage_request_id": "icd10-548004558-2-2",
+            "target_step": 317,
+            "applied_step": 317,
+            "model_revision": 1,
+            "reason": "APPLIED",
+            "readback": {
+              "wind_n_mps": -40,
+              "wind_e_mps": -35,
+              "wind_d_mps": -30,
+              "pressure_pa": 30750,
+              "temperature_k": 210,
+              "ground_height_m": 2850
+            }
+          }
+        }
+      }
+    ],
+    "ccore_binary_sha256": "1ba4acf68370fd08384badc60a18b07adcd8df0d734def3345a2a6ce24722d4d",
+    "ccore_contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317"
+  }
+}

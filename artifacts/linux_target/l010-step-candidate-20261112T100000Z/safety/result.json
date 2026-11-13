@@ -1,0 +1,171 @@
+{
+  "format": "HIL_L010_CCORE_SAFETY_1",
+  "status": "SOFTWARE_CCORE_FINAL_ACTUATOR_READBACK_VALIDATED",
+  "execution_scope": "LOCAL_GENERATED_CCORE_NON_RT",
+  "selected": {
+    "request_id": "l010-safety-source",
+    "accepted": true,
+    "reason": "physical_uut",
+    "effective_sequence": 4,
+    "lifecycle": "RUNNING"
+  },
+  "submitted": {
+    "request_id": "l010-safety-command",
+    "accepted": true,
+    "reason": "actuator command accepted",
+    "effective_sequence": 4,
+    "lifecycle": "RUNNING"
+  },
+  "active_status": {
+    "request_id": "l004-status",
+    "accepted": true,
+    "reason": "HIL capability/status",
+    "effective_sequence": 5,
+    "lifecycle": "RUNNING",
+    "fields": {
+      "lifecycle": "RUNNING",
+      "sequence": 5,
+      "sim_time_s": 0.005,
+      "control_source": "physical_uut",
+      "actuator_output": [
+        0.25,
+        0.3499999940395355,
+        0.44999998807907104,
+        0.550000011920929
+      ],
+      "actuator_output_sequence": 5,
+      "model_loaded": true,
+      "initial_state_abi": true,
+      "full_configuration_abi": true,
+      "model_revision": 1,
+      "initial_state": {
+        "position": {
+          "north_m": 3.7715498420500124e-17,
+          "east_m": 4.714440511384228e-18,
+          "down_m": 0
+        },
+        "velocity_n_mps": 3.771549842050012e-14,
+        "velocity_e_mps": 4.714440511384228e-15,
+        "velocity_d_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 2.2634516048908123e-09,
+          "q_y": -1.8107600524137444e-08,
+          "q_z": 5.591313287831729e-10
+        },
+        "p_radps": 3.757785722280861e-06,
+        "q_radps": -3.006226533143574e-05,
+        "r_radps": 9.282811870867521e-07,
+        "airborne": false
+      },
+      "model_state": {
+        "model_step": 5,
+        "position": {
+          "north_m": 3.7715498420500124e-17,
+          "east_m": 4.714440511384228e-18,
+          "down_m": 0
+        },
+        "vn_mps": 3.771549722921333e-14,
+        "ve_mps": 4.714440541783455e-15,
+        "vd_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 2.263451648332193e-09,
+          "q_y": -1.810760075215967e-08,
+          "q_z": 5.591313523289898e-10
+        },
+        "p_radps": 3.757785634661559e-06,
+        "q_radps": -3.0062265068409033e-05,
+        "r_radps": 9.28281167489331e-07,
+        "airborne": false,
+        "ax_mps2": 3.7715497391843655e-11,
+        "ay_mps2": 4.714440643427409e-12,
+        "az_mps2": 9.800519943237305,
+        "engine_rpm": 0,
+        "fuel_remaining_kg": 0,
+        "hydraulic_pressure_pa": 0,
+        "electrical_voltage_v": 28,
+        "avionics_state": "UNAVAILABLE"
+      }
+    }
+  },
+  "timeout_safe_status": {
+    "request_id": "l004-status",
+    "accepted": true,
+    "reason": "HIL capability/status",
+    "effective_sequence": 136,
+    "lifecycle": "RUNNING",
+    "fields": {
+      "lifecycle": "RUNNING",
+      "sequence": 136,
+      "sim_time_s": 0.1360000000000001,
+      "control_source": "none",
+      "actuator_output": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "actuator_output_sequence": 136,
+      "model_loaded": true,
+      "initial_state_abi": true,
+      "full_configuration_abi": true,
+      "model_revision": 1,
+      "initial_state": {
+        "position": {
+          "north_m": 3.5085384065296886e-05,
+          "east_m": 4.394015389236262e-06,
+          "down_m": 0
+        },
+        "velocity_n_mps": 0.0009574228769293748,
+        "velocity_e_mps": 0.00011998810414224434,
+        "velocity_d_mps": 0,
+        "orientation": {
+          "q_w": 0.9998985449911684,
+          "q_x": 0.0017695494042331756,
+          "q_y": -0.014127056221778627,
+          "q_z": 0.00044125044702671097
+        },
+        "p_radps": 0.05929902856297066,
+        "q_radps": -0.4722366631076878,
+        "r_radps": 0.014858196133713883,
+        "airborne": false
+      },
+      "model_state": {
+        "model_step": 136,
+        "position": {
+          "north_m": 3.5085384065296886e-05,
+          "east_m": 4.394015389236262e-06,
+          "down_m": 0
+        },
+        "vn_mps": 0.0009574228897690773,
+        "ve_mps": 0.00011998810077784583,
+        "vd_mps": 0,
+        "orientation": {
+          "q_w": 0.9998985528945923,
+          "q_x": 0.0017695494461804628,
+          "q_y": -0.014127056114375591,
+          "q_z": 0.00044125044951215386
+        },
+        "p_radps": 0.059299029409885406,
+        "q_radps": -0.47223666310310364,
+        "r_radps": 0.01485819648951292,
+        "airborne": false,
+        "ax_mps2": 0.006914593279361725,
+        "ay_mps2": 0.0008691895054653287,
+        "az_mps2": 9.552120208740234,
+        "engine_rpm": 0,
+        "fuel_remaining_kg": 0,
+        "hydraulic_pressure_pa": 0,
+        "electrical_voltage_v": 28,
+        "avionics_state": "UNAVAILABLE"
+      }
+    }
+  },
+  "binary_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+  "model_contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317",
+  "not_verified": [
+    "PHYSICAL_ACTUATOR_OR_ESC_READBACK",
+    "RT_DEADLINE_AND_HARDWARE_SAFETY"
+  ]
+}

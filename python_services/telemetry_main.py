@@ -6,6 +6,7 @@ import sys
 
 from shared.logger import get_logger
 from spring_ws_server import start_spring_ws_server
+from telemetry_epoch_control import TelemetryEpochServer
 from udp_forwarder import start_udp_forwarder, stop_udp_forwarder
 
 
@@ -13,6 +14,7 @@ logger = get_logger('telemetry_main')
 
 
 def main():
+    epoch_server = TelemetryEpochServer().start()
     start_udp_forwarder()
     logger.info('HIL telemetry service started')
     try:
@@ -21,6 +23,7 @@ def main():
         logger.info('HIL telemetry service stopping')
     finally:
         stop_udp_forwarder()
+        epoch_server.close()
     return 0
 
 

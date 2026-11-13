@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 
 from icd_gateway.config import parse_endpoint
+from icd_gateway.model_consumer import QuadrotorEnvironmentBridge
 from icd_runtime.errors import ICDError
 from icd_runtime.json_codec import loads
 
@@ -18,7 +19,7 @@ class FormalRuntimeFactory:
     _LEGACY_FIELDS = frozenset({"identity", "roles", "channel", "source_bind", "feedback_bind",
                                 "receiver_endpoint", "stop_lead_steps", "status_poll_ms",
                                 "can_channel", "can_interface", "resource_root"})
-    _FIELDS = _LEGACY_FIELDS | frozenset({"session_max_records"})
+    _OPTIONAL_FIELDS = frozenset({"session_max_records", "c_core_endpoint"})
 
     @classmethod
     def load(cls, contract, path):
@@ -32,7 +33,8 @@ class FormalRuntimeFactory:
         return cls(contract, loads(raw))
 
     def __init__(self, contract, value):
-        if type(value) is not dict or set(value) not in {self._LEGACY_FIELDS, self._FIELDS}:
+        if (type(value) is not dict or not self._LEGACY_FIELDS <= set(value)
+                or not set(value) <= self._LEGACY_FIELDS | self._OPTIONAL_FIELDS):
             raise ICDError("SCHEMA", "complete fixed formal runtime configuration required")
         if type(value["roles"]) is not list or not value["roles"] or type(value["channel"]) is not str:
             raise ICDError("SCHEMA", "formal runtime roles/channel required")
@@ -75,6 +77,32 @@ class FormalRuntimeFactory:
             probe_transport.close()
         self.stop_lead_steps, self.status_poll_s = lead, poll / 1000.0
         self.session_max_records = session_max_records
+        self.c_core_endpoint = parse_endpoint(value.get("c_core_endpoint", "127.0.0.1:9997"))
+
+    def _emergency_stop(self):
+        """Last-resort local safety stop, with direct C-core readback.
+
+        This is used only when the formal lifecycle session itself cannot
+        confirm STOP.  It deliberately returns distinct evidence references
+        so callers cannot present it as a formal Lifecycle receipt.
+        """
+        bridge = QuadrotorEnvironmentBridge(self.c_core_endpoint, timeout_s=1.0, poll_s=0.001)
+        status = bridge._exchange({"request_id": "simulator-emergency-stop-status-before",
+                                   "cmd": "get_hil_status"})
+        fields = status.get("fields")
+        if not status.get("accepted") or type(fields) is not dict:
+            raise ICDError("EVIDENCE_INCOMPLETE", "C-core emergency stop has no initial status")
+        if fields.get("lifecycle") != "STOPPED":
+            receipt = bridge._exchange({"request_id": "simulator-emergency-stop", "cmd": "stop"})
+            if not receipt.get("accepted") or receipt.get("lifecycle") != "STOPPED":
+                raise ICDError("EVIDENCE_INCOMPLETE", "C-core emergency stop was not accepted")
+        stopped = bridge._exchange({"request_id": "simulator-emergency-stop-status-after",
+                                    "cmd": "get_hil_status"})
+        fields = stopped.get("fields")
+        if (not stopped.get("accepted") or type(fields) is not dict
+                or fields.get("lifecycle") != "STOPPED" or fields.get("control_source") != "none"):
+            raise ICDError("EVIDENCE_INCOMPLETE", "C-core emergency stop lacks STOPPED/NONE readback")
+        return ("emergency-ccore-stop-applied", "status-stopped-safe")
 
     def _can_sender(self, session, request):
         """Create the original CANT sender from the Run's frozen resources."""
@@ -128,5 +156,6 @@ class FormalRuntimeFactory:
             return SourceSession(transport, self.identity, self.roles,
                                  max_records=self.session_max_records)
         return FormalHILExecutionBackend(session_factory, can_sender_factory=self._can_sender,
+                                         emergency_stop=self._emergency_stop,
                                          stop_lead_steps=self.stop_lead_steps,
                                          status_poll_s=self.status_poll_s)

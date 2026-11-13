@@ -1,0 +1,56 @@
+{
+  "format": "HIL_L004_PARTIAL_MODEL_BOUNDARY_EVIDENCE_1",
+  "status": "PARTIAL_MODEL_BOUNDARY_VERIFIED",
+  "execution_host": "Linux 5.4.10-rt5 x86_64",
+  "executed_at_utc": "2026-10-20T08:36:17Z",
+  "scope": {
+    "model_id": "quadrotor_hil",
+    "message_id": 11,
+    "binding_paths": 13,
+    "boundary": "C generated-model ExtU target-step write and readback",
+    "transport": "PROTOCOL -> virtual CANFD -> CANGateway -> model UDP bridge",
+    "qualification": "development only; virtual CANFD is not physical CANFD qualification"
+  },
+  "artifacts": {
+    "model_executable": {
+      "path": "artifacts/z_mission/bin/quadrotor_hil_rt",
+      "sha256": "490227dd9445b31c8c6caa7ee8604a47c30699fe45834d811410a5375dd4b58b"
+    },
+    "model_contract": {
+      "path": "artifacts/z_mission/model/hil_contract.json",
+      "sha256": "f1487b9223023cee46d795e346c63add18689fdad3707f3db2d7d41f3085e4ef"
+    },
+    "protocol_evidence": {
+      "path": "artifacts/icd_gateway/protocol-fault-model-20261020T083000Z.jsonl",
+      "sha256": "028f4f2fb3d8e5b88743b2d5807020796b34d7148ce5a79534fecb90a8ecd0a9",
+      "samples": 2,
+      "terminal_stage": "APPLIED",
+      "probe_id": 1011
+    }
+  },
+  "verification": {
+    "c_build": "GCC rebuilt the deployed quadrotor_hil_rt against the generated R2018b ERT source and contract header",
+    "unit_tests": {
+      "test_model_bindings": 10,
+      "test_model_consumer": 4,
+      "test_protocol_reception_demo": 6
+    },
+    "direct_model_boundary": {
+      "nonzero_fault_target_step": 24428,
+      "nonzero_fault_model_revision": 1,
+      "clear_fault_target_step": 143370,
+      "clear_fault_model_revision": 5,
+      "clear_fault_readback": "all 13 fault fields were zero or false"
+    }
+  },
+  "not_completed": [
+    "ID17 parameter target-step consumer",
+    "full 97 binding coverage across quadrotor, hexarotor, and fixed-wing models",
+    "sensor stale/validity versus truth separation",
+    "six-motor and fixed-wing fault bindings",
+    "real delay and packet-loss behavior",
+    "E2/E3 evidence for the complete L-004 scope",
+    "physical CANFD and real-time qualification"
+  ],
+  "does_not_close_linux_item": "L-004"
+}

@@ -1,8 +1,8 @@
 # HIL 第一圈准备管理接口 v1
 
-这是 3.6 后端调用 HIL 的第一圈 HTTP 接口。它只负责把已冻结的
-`quadrotor_hil` 配置写入 HIL 并验证读回；不启动模型、不推进模型步、不发送
-场景输入，也不替代 3.3 到输入模拟器的第二圈接口。
+这是 3.6 后端调用 HIL 的第一圈 HTTP 接口。它负责以可审计方式复位已停止模型，
+以及把已冻结的 `quadrotor_hil` 配置写入 HIL 并验证读回；不启动模型、不推进模型步、
+不发送场景输入，也不替代 3.3 到输入模拟器的第二圈接口。
 
 当前目标机：
 
@@ -84,12 +84,89 @@ assert hashlib.sha256(snapshot).hexdigest() == (
 
 | 字段 | 类型 / 约束 | 含义 |
 |---|---|---|
-| `cmd` | string | 仅 `hil_prepare` 或 `hil_prepare_get` |
+| `cmd` | string | `hil_status_get`、`hil_reset`、`hil_prepare` 或 `hil_prepare_get` |
 | `params.api_version` | string，固定 `"1.0"` | 接口版本 |
 | `params.request_id` | 1–128 字符 string | HTTP 幂等键；一次逻辑请求固定不变 |
 | `params.prepare_id` | 1–128 字符 string | 第一圈准备结果标识，由 3.6 持久化 |
 | `params.run_id` | 1–128 字符 string | 仅 `hil_prepare` 必填；3.6 的业务关联 ID，原样回显 |
 | `params.run_configuration` | object | 仅 `hil_prepare` 必填；上述冻结完整对象 |
+
+`hil_reset` 的参数为 `api_version`、`request_id`、`reset_id`、`run_id`；其中
+`reset_id` 与 `request_id` 均为 1–128 字符 string。它只能在权威 C-core 状态为
+`STOPPED`、`control_source="NONE"` 时调用。接口实际执行 C-core RESET 后必须读回
+`STOPPED`、`NONE`、`model_step="0"` 和 `sim_time_us="0"`；任一事实不成立均拒绝，
+不能仅伪造零值响应。
+
+## `hil_reset`
+
+新业务 Run 开始前，若上一 Run 已 STOP 但 `model_step` 非零，3.6 必须先调用 RESET：
+
+```json
+{
+  "cmd": "hil_reset",
+  "params": {
+    "api_version": "1.0",
+    "request_id": "3.6-reset-request-001",
+    "reset_id": "3.6-reset-001",
+    "run_id": "3.6-finished-business-run-001"
+  }
+}
+```
+
+成功时 HTTP `200`；`data` 至少包含 `run_id`、`reset_id`、`model_id`、
+`model_revision`、`state="STOPPED"`、`control_source="NONE"`、
+`model_step="0"`、`sim_time_us="0"` 和 `reset=true`。C-core 恢复最近一次成功
+RunConfigure 冻结的 initial inputs、参数与 initial state，清除控制权、任务和待执行输入；
+旧 Run 的 STOP 证据、记录和遥测不会删除。RESET 本身不写入新 RunConfigure，也不启动模型。
+顶层响应必回显本次 `request_id`，`data` 必回显本次 `reset_id` 与 `run_id`；调用方必须三者
+同时匹配才可把 SUCCESS 视为本次复位的完成事实。
+
+模型仍为 `RUNNING`、`PAUSED`、`RESETTING`、控制权未释放、读回不完整或 C-core 复位失败时，
+返回 HTTP `409`、`code="STATE"` 与明确原因。`request_id` 重试沿用常规幂等规则。
+
+## `hil_status_get`
+
+此命令读取当次 C-core 实时状态，**不得**以 `hil_prepare_get` 的冻结准备快照替代。它没有
+`prepare_id`、`run_id` 或其他参数：
+
+```json
+{
+  "cmd": "hil_status_get",
+  "params": {
+    "api_version": "1.0",
+    "request_id": "3.6-status-request-001"
+  }
+}
+```
+
+成功时 HTTP `200`，响应顶层回显本次 `request_id`；`data` 是本次 C-core 状态读回：
+
+```json
+{
+  "kind": "HIL_PREPARATION_RESPONSE",
+  "api_version": "1.0",
+  "request_id": "3.6-status-request-001",
+  "cmd": "hil_status_get",
+  "status": "SUCCESS",
+  "code": "OK",
+  "message": "HIL current status",
+  "timestamp": "2026-10-25T08:21:21.000Z",
+  "data": {
+    "model_id": "quadrotor_hil",
+    "model_revision": "2",
+    "state": "STOPPED",
+    "control_source": "NONE",
+    "model_step": "21739",
+    "sim_time_us": "21739000",
+    "fresh": true
+  },
+  "error": null
+}
+```
+
+`state`、`control_source`、`model_step` 和 `sim_time_us` 均来自同一 C-core 状态读回；
+`model_step`、`sim_time_us`、`model_revision` 是 JSON string。状态读回不完整、模型桥不可达
+或值不一致时不返回 SUCCESS。
 
 同一 `request_id` 重传必须是字节语义相同的同一 JSON 请求（字段顺序无关，JSON
 值必须相同），服务会返回首次保存的原响应；以同一 ID 改变任一字段会得到

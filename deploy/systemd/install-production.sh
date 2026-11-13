@@ -37,7 +37,8 @@ fi
 
 install -d -o hil -g hil -m 0750 /opt/hil/runtime /opt/hil/runtime/work \
     /opt/hil/runtime/pending /opt/hil/artifacts /opt/hil/artifacts/acceptance \
-    /opt/hil/logs /opt/hil/runtime/input-simulator-state /opt/hil/runtime/hil-gateway-resources
+    /opt/hil/logs /opt/hil/runtime/input-simulator-state /opt/hil/runtime/hil-gateway-resources \
+    /opt/hil/runtime/hil-gateway-resources-status-evidence
 install -d -o root -g hil -m 0750 /opt/hil/runtime/verified
 install -d -o root -g root -m 0755 /opt/hil/bin
 install -d -o root -g hil -m 0750 /etc/hil

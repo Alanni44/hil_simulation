@@ -8,10 +8,14 @@ successful HIL execution.
 
 from abc import ABC, abstractmethod
 import copy
+import logging
 import threading
 
 from icd_runtime.errors import ICDError
 from icd_runtime.json_codec import loads
+
+
+_LOG = logging.getLogger(__name__)
 
 
 class RunExecutionBackend(ABC):
@@ -108,6 +112,11 @@ class RunExecutor:
                     if not reporter.terminal:
                         reporter.failed(error.code, error.detail)
                 except Exception:
+                    # This is a last-resort guard.  FormalHILExecutionBackend
+                    # performs target cleanup itself, but retain the traceback
+                    # for every other backend instead of turning it into an
+                    # unactionable INTERNAL_ERROR without diagnostics.
+                    _LOG.exception("simulator execution backend raised unexpectedly")
                     if not reporter.terminal:
                         reporter.failed("INTERNAL_ERROR", "execution backend raised unexpectedly")
                 finally:
@@ -126,6 +135,20 @@ class RunExecutor:
             active[1].set()
         self.backend.request_stop(operation_id)
 
+    def emergency_stop(self):
+        """Stop a target after its original execution worker has failed.
+
+        This deliberately does not pretend to resume the failed worker.  A
+        backend must expose a separately verified local safety stop.
+        """
+        method = getattr(self.backend, "emergency_stop", None)
+        if not callable(method):
+            raise ICDError("TARGET_MISSING", "execution backend has no independent emergency STOP")
+        refs = method()
+        if type(refs) not in (tuple, list) or not refs:
+            raise ICDError("EVIDENCE_INCOMPLETE", "emergency STOP returned no evidence")
+        return tuple(refs)
+
     @property
     def active_operation_id(self):
         with self._lock:
@@ -143,7 +166,8 @@ class FormalHILExecutionBackend(RunExecutionBackend):
     ``INCOMPLETE`` rather than claiming an assertion-derived PASS.
     """
 
-    def __init__(self, session_factory, *, can_sender_factory=None, stop_lead_steps=100, status_poll_s=0.05):
+    def __init__(self, session_factory, *, can_sender_factory=None, emergency_stop=None,
+                 stop_lead_steps=100, status_poll_s=0.05):
         if (not callable(session_factory) or type(stop_lead_steps) is not int
                 or not 1 <= stop_lead_steps <= 1000
                 or type(status_poll_s) not in (int, float) or not 0.001 <= status_poll_s <= 1):
@@ -151,7 +175,10 @@ class FormalHILExecutionBackend(RunExecutionBackend):
         self._session_factory = session_factory
         if can_sender_factory is not None and not callable(can_sender_factory):
             raise ICDError("SCHEMA", "formal CANT sender factory must be callable")
+        if emergency_stop is not None and not callable(emergency_stop):
+            raise ICDError("SCHEMA", "local C-core emergency stop must be callable")
         self._can_sender_factory = can_sender_factory
+        self._emergency_stop = emergency_stop
         self._stop_lead_steps = stop_lead_steps
         self._status_poll_s = status_poll_s
         self._active = {}
@@ -229,23 +256,53 @@ class FormalHILExecutionBackend(RunExecutionBackend):
 
     def _stop_hil(self, source, started, session_id, reporter):
         """Apply and read back a real safe STOP for a started execution."""
-        status = source.heartbeat(started["applied_step"], target_step=started["applied_step"])
+        status = source.heartbeat(started["applied_step"], target_step=started["applied_step"], emergency=True)
         payload = status["payload"]
         if payload["state"] != "RUNNING":
             raise ICDError("STATE", "actual HIL is not RUNNING at STOP request")
         stop_step = payload["model_step"] + self._stop_lead_steps
         stop_reply = source.request({"message_id": 4, "payload": {
             "action": "STOP", "expected_state": "RUNNING", "reset_policy": "NOT_APPLICABLE"}},
-            target_step=stop_step)
+            target_step=stop_step, emergency=True)
         self._applied(stop_reply, 4)
         stop_refs = self._correlation_refs(stop_reply, session_id, "lifecycle-stop-applied")
         reporter.record("RESPONSE", "HIL_STOP_APPLIED", message_id="4", evidence_refs=stop_refs)
-        stopped = source.heartbeat(stop_step, target_step=stop_step)
+        stopped = source.heartbeat(stop_step, target_step=stop_step, emergency=True)
         if (stopped["payload"]["state"] != "STOPPED"
                 or stopped["payload"]["control_source"] != "NONE"
                 or stopped["payload"]["model_step"] != stop_step):
             raise ICDError("BUSINESS_FAILED", "HIL STOP lacks direct stopped/safe status evidence")
-        return stop_refs
+        return (*stop_refs, "status-stopped-safe")
+
+    def _compensate_stop(self, source, started, session_id, reporter, original_failure):
+        """Stop an already-started model before publishing execution failure."""
+        try:
+            return self._stop_hil(source, started, session_id, reporter)
+        except Exception as stop_failure:
+            if self._emergency_stop is not None:
+                try:
+                    refs = tuple(self._emergency_stop())
+                    reporter.record("RESPONSE", "HIL_EMERGENCY_STOP_APPLIED", evidence_refs=refs)
+                    return refs
+                except Exception as emergency_failure:
+                    _LOG.exception("HIL emergency STOP failed after execution failure")
+                    reporter.record("TOOL_ERROR", "HIL_STOP_UNCONFIRMED",
+                                    evidence_refs=("hil-stop-unconfirmed", type(original_failure).__name__,
+                                                   type(stop_failure).__name__, type(emergency_failure).__name__))
+                    raise ICDError("EVIDENCE_INCOMPLETE", "execution failed and neither formal nor emergency HIL STOP was confirmed") from original_failure
+            reporter.record("TOOL_ERROR", "HIL_STOP_UNCONFIRMED",
+                            evidence_refs=("hil-stop-unconfirmed", type(original_failure).__name__,
+                                           type(stop_failure).__name__))
+            raise ICDError("EVIDENCE_INCOMPLETE", "execution failed and formal HIL STOP was not confirmed") from original_failure
+
+    def emergency_stop(self):
+        """Independent recovery path used only after a failed Run lost STOP."""
+        if self._emergency_stop is None:
+            raise ICDError("TARGET_MISSING", "local C-core emergency STOP is unavailable")
+        refs = tuple(self._emergency_stop())
+        if "status-stopped-safe" not in refs:
+            raise ICDError("EVIDENCE_INCOMPLETE", "emergency STOP lacks safe status readback")
+        return refs
 
     def execute(self, snapshot, reporter, stop_requested):
         if not hasattr(snapshot, "create_snapshot") or type(snapshot.create_snapshot) is not bytes:
@@ -362,7 +419,6 @@ class FormalHILExecutionBackend(RunExecutionBackend):
                     evidence.extend(applied_refs)
             stop_refs = self._stop_hil(source, started, session_id, reporter)
             evidence.extend(stop_refs)
-            evidence.append("status-stopped-safe")
             reporter.completed("INCOMPLETE", tuple(evidence))
         except ICDError as failure:
             # A failed CANT input (including local capacity exhaustion) occurs
@@ -371,12 +427,30 @@ class FormalHILExecutionBackend(RunExecutionBackend):
             # The failure is still reported to management only after a direct
             # STOPPED/NONE readback, or with the original failure if the
             # compensating STOP itself cannot be confirmed.
-            if started is not None:
-                try:
-                    self._stop_hil(source, started, session_id, reporter)
-                except ICDError:
-                    pass
-            raise failure
+            if started is None:
+                reporter.failed(failure.code, failure.detail)
+                return
+            try:
+                refs = self._compensate_stop(source, started, session_id, reporter, failure)
+            except ICDError as stop_failure:
+                reporter.failed(stop_failure.code, stop_failure.detail)
+            else:
+                reporter.failed(failure.code, failure.detail, refs)
+        except Exception as failure:
+            # A programming/transport exception after Lifecycle.START is a
+            # safety event too.  Do not let the outer generic guard publish
+            # INTERNAL_ERROR before the target is stopped or declared
+            # explicitly unconfirmed.
+            _LOG.exception("unexpected simulator failure after HIL execution began")
+            if started is None:
+                reporter.failed("INTERNAL_ERROR", "execution backend raised unexpectedly")
+                return
+            try:
+                refs = self._compensate_stop(source, started, session_id, reporter, failure)
+            except ICDError as stop_failure:
+                reporter.failed(stop_failure.code, stop_failure.detail)
+            else:
+                reporter.failed("INTERNAL_ERROR", "execution backend raised unexpectedly", refs)
         finally:
             with self._lock:
                 for key, value in tuple(self._active.items()):

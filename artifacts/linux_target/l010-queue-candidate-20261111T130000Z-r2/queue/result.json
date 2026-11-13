@@ -1,0 +1,142 @@
+{
+  "format": "HIL_L010_CCORE_QUEUE_1",
+  "status": "SOFTWARE_CCORE_QUEUE_VALIDATED",
+  "execution_scope": "LOCAL_GENERATED_CCORE_NON_RT",
+  "capacity": 4096,
+  "ordered_applied": [
+    {
+      "request_id": "l010-order-flight_control-result",
+      "effective_sequence": 37
+    },
+    {
+      "request_id": "l010-order-environment-result",
+      "effective_sequence": 37
+    },
+    {
+      "request_id": "l010-order-fault-result",
+      "effective_sequence": 37
+    },
+    {
+      "request_id": "l010-order-parameters-result",
+      "effective_sequence": 37
+    },
+    {
+      "request_id": "l010-order-environment-2-result",
+      "effective_sequence": 57
+    }
+  ],
+  "overlap_rejection": {
+    "request_id": "l010-overlap",
+    "accepted": false,
+    "reason": "same group already owns the requested target boundary",
+    "effective_sequence": 5,
+    "lifecycle": "RUNNING"
+  },
+  "capacity_rejection": {
+    "request_id": "l010-capacity-full",
+    "accepted": false,
+    "reason": "4096 ICD binding transactions are retained",
+    "effective_sequence": 27383,
+    "lifecycle": "RUNNING"
+  },
+  "retained_first": {
+    "request_id": "l010-cap-0000-environment-result",
+    "accepted": true,
+    "reason": "APPLIED",
+    "effective_sequence": 88,
+    "lifecycle": "RUNNING",
+    "fields": {
+      "state": "APPLIED",
+      "stage_request_id": "l010-cap-0000-environment",
+      "group": "environment",
+      "target_step": 88,
+      "applied_step": 88,
+      "model_revision": 3,
+      "reason": "APPLIED",
+      "readback": {
+        "wind_n_mps": 0,
+        "wind_e_mps": 0,
+        "wind_d_mps": 0,
+        "pressure_pa": 101325,
+        "temperature_k": 288.15,
+        "ground_height_m": 0
+      }
+    }
+  },
+  "retained_last": {
+    "request_id": "l010-cap-1022-fault-result",
+    "accepted": true,
+    "reason": "APPLIED",
+    "effective_sequence": 27380,
+    "lifecycle": "RUNNING",
+    "fields": {
+      "state": "APPLIED",
+      "stage_request_id": "l010-cap-1022-fault",
+      "group": "fault",
+      "target_step": 27380,
+      "applied_step": 27380,
+      "model_revision": 1024,
+      "reason": "APPLIED",
+      "readback": {
+        "gps_bias_n_m": 0,
+        "gps_bias_e_m": 0,
+        "gps_bias_d_m": 0,
+        "imu_bias_p_radps": 0,
+        "imu_bias_q_radps": 0,
+        "imu_bias_r_radps": 0,
+        "motor_1_failed": false,
+        "motor_2_failed": false,
+        "motor_3_failed": false,
+        "motor_4_failed": false,
+        "command_delay_ms": 0,
+        "sensor_delay_ms": 0,
+        "packet_loss_ratio": 0
+      }
+    }
+  },
+  "pause": {
+    "request_id": "l010-queue-pause",
+    "accepted": true,
+    "reason": "applied",
+    "effective_sequence": 27410,
+    "lifecycle": "PAUSED"
+  },
+  "resume": {
+    "request_id": "l010-queue-resume",
+    "accepted": true,
+    "reason": "applied",
+    "effective_sequence": 27410,
+    "lifecycle": "RUNNING"
+  },
+  "post_resume_application": {
+    "request_id": "l010-after-resume-result",
+    "accepted": true,
+    "reason": "APPLIED",
+    "effective_sequence": 27437,
+    "lifecycle": "RUNNING",
+    "fields": {
+      "state": "APPLIED",
+      "stage_request_id": "l010-after-resume",
+      "group": "environment",
+      "target_step": 27437,
+      "applied_step": 27437,
+      "model_revision": 1026,
+      "reason": "APPLIED",
+      "readback": {
+        "wind_n_mps": 0,
+        "wind_e_mps": 0,
+        "wind_d_mps": 0,
+        "pressure_pa": 101325,
+        "temperature_k": 288.15,
+        "ground_height_m": 0
+      }
+    }
+  },
+  "binary_sha256": "c1f2bc24e37310f891b297651d294585d08769a685ac6a1e7d3ce1faab3a483e",
+  "model_contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317",
+  "not_verified": [
+    "FORMAL_3_6_LIFECYCLE_SERVICE",
+    "SAFE_ACTUATOR_OUTPUT_READBACK",
+    "RT_DEADLINE_AND_HARDWARE_SAFETY"
+  ]
+}

@@ -15,6 +15,7 @@
   "source_bind": "127.0.0.1:36102",
   "feedback_bind": "127.0.0.1:36101",
   "receiver_endpoint": "127.0.0.1:36100",
+  "c_core_endpoint": "127.0.0.1:9997",
   "stop_lead_steps": 180,
   "status_poll_ms": 20,
   "session_max_records": 4096

@@ -1,4 +1,5 @@
 import tempfile
+from pathlib import Path
 
 from common import GatewayTest, message
 
@@ -36,3 +37,21 @@ class CcoreHILServiceTests(GatewayTest):
         from icd_gateway.hil_service import CcoreHILService
         self.rejects("SCHEMA", lambda: CcoreHILService(
             self.contract, self.grants, {"quadrotor_hil": ("127.0.0.1", 9997)}, None))
+
+    def test_status_archive_is_outside_resource_store_and_restart_is_allowed(self):
+        from icd_gateway.hil_service import CcoreHILService
+        with tempfile.TemporaryDirectory() as parent:
+            resource_root = Path(parent) / "resources"
+            service = CcoreHILService(
+                self.contract, self.grants, {"quadrotor_hil": ("127.0.0.1", 9997)},
+                resource_root, clock=lambda: 100)
+            archive_root = Path(parent) / "resources-status-evidence"
+            self.assertEqual(service.status_service._archive_root, archive_root)
+            self.assertTrue(archive_root.is_dir())
+            self.assertFalse((resource_root / "status-evidence").exists())
+            service.close()
+
+            restarted = CcoreHILService(
+                self.contract, self.grants, {"quadrotor_hil": ("127.0.0.1", 9997)},
+                resource_root, clock=lambda: 200)
+            self.addCleanup(restarted.close)

@@ -1,0 +1,61 @@
+{
+  "format": "HIL_L007_CANPLAYER_VCAN_SOFTWARE_1",
+  "status": "SOFTWARE_CANPLAYER_VCAN_VERIFIED",
+  "executed_at_utc": "2026-11-11T19:40:00Z",
+  "tool": {
+    "name": "canplayer",
+    "upstream_repository": "https://github.com/linux-can/can-utils.git",
+    "source_commit": "834ceef1f1eabec67625389172eebf1050d2f42b",
+    "path": "tools/can-utils/current/canplayer",
+    "sha256": "e08355bfa6deab79bf9e8cfb1e96c8e3bf2a4f059f1e9f2467006e6a77739a96"
+  },
+  "environment": {
+    "backend": "SocketCAN vcan",
+    "interface": "can2",
+    "physical_hardware_used": false
+  },
+  "input": {
+    "path": "artifacts/linux_target/l007-canplayer-vcan-20261111T194000Z/CANFD_0.log",
+    "sha256": "6cc08d9128c208cf35aa229e35a57d4291985f0ff5e1d2e72076b418486a10f9",
+    "format": "CAN_LOG",
+    "exporter_compatible_fields": [
+      "nine-digit timestamp",
+      "mapped SocketCAN interface",
+      "CAN FD BRS ##5 frame syntax",
+      "T direction marker"
+    ],
+    "command": [
+      "tools/can-utils/current/canplayer",
+      "-I",
+      "CANFD_0.log",
+      "-l",
+      "1",
+      "can2=can2"
+    ],
+    "loop_count": 1
+  },
+  "observed_receive": {
+    "path": "artifacts/linux_target/l007-canplayer-vcan-20261111T194000Z/received.json",
+    "sha256": "3dd0fded38a6b86b7ba1a37212ae63bd941cf63147cf254e046a5fd16fb20a0a",
+    "ids_in_order": ["0x125", "0x126"],
+    "frame_lengths": [64, 64],
+    "can_fd": [true, true],
+    "bitrate_switch": [true, true],
+    "recorded_relative_interval_ns": 49883143,
+    "source_relative_interval_ns": 50000000,
+    "exit_code": 0
+  },
+  "stop_cleanup": {
+    "command_mode": "infinite loop followed by SIGTERM",
+    "exit_code": 143,
+    "remaining_canplayer_processes": 0,
+    "result": "STOPPED_AND_CLEAN"
+  },
+  "boundaries": {
+    "non_business_test_frames_only": true,
+    "formal_source_session_or_new_session_not_exercised": true,
+    "model_application_not_exercised": true,
+    "hardware_controller_arbitration_load_and_timestamp_not_evaluated": true,
+    "L007_complete": false
+  }
+}

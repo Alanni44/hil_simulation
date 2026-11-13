@@ -13,9 +13,11 @@ from .preparation_http import PreparationHTTPServer
 from .preparation_management import PreparationCommandService
 from .preparation_service import PreparationService
 from input_simulator.run_template import FixedRunTemplate
+from .telemetry_epoch_client import TelemetryEpochClient
 
 
-def build_service(*, contract_directory, expected_sha256, template_path, deployment_path, c_core_endpoint):
+def build_service(*, contract_directory, expected_sha256, template_path, deployment_path, c_core_endpoint,
+                  telemetry_control_socket='/run/hil/telemetry-control.sock'):
     try:
         model_id, endpoint_text = c_core_endpoint.split("=", 1)
         contract = Contract.load(contract_directory, expected_sha256=expected_sha256)
@@ -28,7 +30,8 @@ def build_service(*, contract_directory, expected_sha256, template_path, deploym
         if identity is None:
             raise ICDError("AUTHORIZATION", "deployment grants no fixed preparation identity")
         backend = CcoreConfigurationBackend(contract, {model_id: parse_endpoint(endpoint_text)})
-        return PreparationCommandService(template, identity, PreparationService(contract, backend))
+        return PreparationCommandService(template, identity, PreparationService(
+            contract, backend, telemetry_epoch_client=TelemetryEpochClient(telemetry_control_socket)))
     except (ICDError, OSError, ValueError):
         raise
 
@@ -41,13 +44,15 @@ def main():
     parser.add_argument("--deployment", required=True, type=Path)
     parser.add_argument("--c-core-endpoint", required=True, metavar="MODEL=IP:PORT")
     parser.add_argument("--bind", required=True)
+    parser.add_argument("--telemetry-control-socket", default='/run/hil/telemetry-control.sock')
     args = parser.parse_args()
     try:
         service = build_service(contract_directory=args.contract_dir,
                                 expected_sha256=args.expected_sha256,
                                 template_path=args.template,
                                 deployment_path=args.deployment,
-                                c_core_endpoint=args.c_core_endpoint)
+                                c_core_endpoint=args.c_core_endpoint,
+                                telemetry_control_socket=args.telemetry_control_socket)
         with PreparationHTTPServer(service, bind=parse_endpoint(args.bind)) as server:
             print(json.dumps({"status": "HIL_PREPARATION_MANAGEMENT_READY",
                               "bind": list(server.address), "model_id": service.template.model_id,

@@ -79,8 +79,13 @@ int control_arbiter_get(ControlArbiter* arbiter, uint64_t now_ns,
     int valid = 1;
     if (!arbiter || !command || count != arbiter->actuator_count) return 0;
     if (arbiter->active_source != CONTROL_SOURCE_DEMO_MISSION &&
-        (!arbiter->last_command_ns || now_ns - arbiter->last_command_ns > arbiter->timeout_ns))
+        (!arbiter->last_command_ns || now_ns - arbiter->last_command_ns > arbiter->timeout_ns)) {
         valid = 0;
+        /* A source which has actually supplied a command loses its lease when
+         * that command reaches 100ms.  A newly selected source without any
+         * command remains selectable, but never receives a non-safe output. */
+        if (arbiter->last_command_ns) control_arbiter_clear(arbiter);
+    }
     for (index = 0; index < count; ++index)
         command[index] = valid ? arbiter->command[index] : arbiter->safe_value[index];
     return valid;

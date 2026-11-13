@@ -150,6 +150,31 @@ class CcoreConfigurationBackendTests(GatewayTest):
             {"model_id": "quadrotor_hil"}, canonicalize(self._request()), now_ns=0))
         self.assertEqual(commands, ["get_hil_status"])
 
+    def test_reset_requires_and_reads_back_stopped_zero_boundary(self):
+        backend = self._backend()
+        sequence = [17]
+        commands = []
+
+        def exchange(command):
+            commands.append(command["cmd"])
+            if command["cmd"] == "get_hil_status":
+                reply = self._status(initial_state_abi=True, full_configuration_abi=True)
+                reply["fields"].update(sequence=sequence[0], model_revision=4,
+                                       sim_time_s=sequence[0] / 1000.0,
+                                       model_state={"model_step": sequence[0]})
+                return reply
+            if command["cmd"] == "reset":
+                sequence[0] = 0
+                return {"accepted": True, "lifecycle": "STOPPED"}
+            raise AssertionError(command)
+
+        backend._bridges["quadrotor_hil"]._exchange = exchange
+        receipt = backend.reset_model({"model_id": "quadrotor_hil"}, now_ns=0)
+        self.assertEqual(("STOPPED", "NONE", 0, 0, 4),
+                         (receipt.lifecycle, receipt.control_source, receipt.model_step,
+                          receipt.sim_time_us, receipt.model_revision))
+        self.assertEqual(["get_hil_status", "reset", "get_hil_status"], commands)
+
     def test_existing_different_configuration_is_rejected_before_write(self):
         backend = self._backend()
         request = self._request()

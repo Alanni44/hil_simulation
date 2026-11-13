@@ -106,7 +106,11 @@ static int hil_contract_get_input(const ModelU_t* input, const char* name,
 #define ICD_ENVIRONMENT_FIELD_COUNT 6U
 #define ICD_FAULT_FIELD_COUNT 13U
 #define ICD_ENVIRONMENT_MAX_LOOKAHEAD_STEPS 1000U
+#define ICD_BINDING_QUEUE_CAPACITY 4096U
 #define SENSOR_HISTORY_STEPS 1001U
+#define LIFECYCLE_STEP_HISTORY_CAPACITY 1000U
+#define LIFECYCLE_STEP_RESULT_CHUNK_MAX 128U
+#define HIL_LIFECYCLE_STEP_EVENT 100
 
 static int control_source_allowed(ControlSource source) {
     return source != CONTROL_SOURCE_NONE &&
@@ -143,6 +147,10 @@ static ModelU_t active_input;
 static ModelU_t initial_input;
 static HilParameterValues active_parameters;
 static HilParameterValues initial_parameters;
+/* RESET must restore the frozen RunConfigure state, not merely the generated
+ * model's build-time defaults. */
+static HilInitialState initial_state;
+static int initial_state_valid = 0;
 static unsigned applied_live_generation = 0;
 static struct json_object* configured_configuration = NULL;
 static uint32_t configured_model_revision = 0;
@@ -150,6 +158,28 @@ static pthread_mutex_t command_lock = PTHREAD_MUTEX_INITIALIZER;
 /* Serializes model-boundary transitions against atomic configuration. */
 static pthread_mutex_t model_boundary_lock = PTHREAD_MUTEX_INITIALIZER;
 static ControlArbiter control_arbiter;
+/* Final values accepted by the generated actuator setter.  This is a C-core
+ * software readback, not a claim about a physical actuator or ESC. */
+static float applied_actuator_output[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+static uint64_t applied_actuator_output_sequence = 0;
+
+/* STEP is an offline operation: the paused C model executes the requested
+ * number of separate generated solver calls without advancing wall time.
+ * Retain each real post-step projection until the next STEP so the formal
+ * lifecycle owner can verify the entire sequence, rather than inventing
+ * history from the final state. */
+typedef struct {
+    FlightStateV3_t state;
+    float actuator_output[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+    uint64_t sampled_ns;
+} LifecycleStepSample;
+typedef struct {
+    int valid;
+    unsigned count;
+    char stage_request_id[REQUEST_ID_MAX];
+    LifecycleStepSample samples[LIFECYCLE_STEP_HISTORY_CAPACITY];
+} LifecycleStepHistory;
+static LifecycleStepHistory lifecycle_step_history;
 
 /* The ICD consumer owns this one-slot, target-step transaction separately
  * from the legacy live-input command.  A terminal result is retained until a
@@ -252,6 +282,32 @@ typedef struct {
 static IcdBindingStage icd_binding_groups[ICD_GROUP_COUNT];
 static uint64_t icd_binding_revisions[ICD_GROUP_COUNT];
 
+/* The generic contract bridge owns one process-wide queue.  Unlike the
+ * former per-group staging slots, an accepted request is never replaced by a
+ * later request.  Entry values are flexibly allocated by the command thread:
+ * a complete 4096-entry queue therefore consumes only the dimensions present
+ * in the generated contract, rather than 4096 copies of the largest possible
+ * generated snapshot.  Entries remain queryable until lifecycle cleanup. */
+typedef struct {
+    IcdEnvironmentState state;
+    IcdBindingGroup group;
+    char stage_request_id[REQUEST_ID_MAX];
+    char reason[64];
+    uint64_t target_step;
+    uint64_t deadline_ns;
+    uint64_t applied_step;
+    uint64_t model_revision;
+    unsigned field_count;
+    unsigned spec_indices[HIL_INPUT_COUNT + HIL_PARAMETER_COUNT + 1U];
+    unsigned dimensions[HIL_INPUT_COUNT + HIL_PARAMETER_COUNT + 1U];
+    /* Sum(dimensions) doubles follow this header. */
+    double values[];
+} IcdBindingQueueEntry;
+
+static IcdBindingQueueEntry* icd_binding_queue[ICD_BINDING_QUEUE_CAPACITY];
+static unsigned icd_binding_queue_count = 0;
+static unsigned icd_binding_queue_next = 0;
+
 /* This measures process-local command-to-status latency with CLOCK_MONOTONIC:
  * UDP command receipt -> command effective at a model boundary -> completion
  * of the first UDP state send that contains that boundary.  Commands replaced
@@ -306,6 +362,7 @@ typedef struct {
     int event;
     int target_bound;
     uint64_t target_step;
+    unsigned step_count;
     char request_id[REQUEST_ID_MAX];
     struct sockaddr_in sender;
 } LifecycleRequest;
@@ -581,6 +638,67 @@ static struct json_object* icd_binding_stage_fields(IcdBindingGroup group,
     return fields;
 }
 
+static double* icd_binding_queue_values(IcdBindingQueueEntry* entry, unsigned item) {
+    unsigned index;
+    double* value = entry->values;
+    for (index = 0; index < item; ++index) value += entry->dimensions[index];
+    return value;
+}
+
+static const double* icd_binding_queue_values_const(const IcdBindingQueueEntry* entry,
+                                                     unsigned item) {
+    return icd_binding_queue_values((IcdBindingQueueEntry*)entry, item);
+}
+
+/* command_lock must be held.  A lifecycle transition owns removal rather
+ * than silently overwriting a prior request with a new one. */
+static void clear_icd_binding_queue_locked(void) {
+    unsigned index;
+    for (index = 0; index < icd_binding_queue_count; ++index) {
+        free(icd_binding_queue[index]);
+        icd_binding_queue[index] = NULL;
+    }
+    icd_binding_queue_count = 0;
+    icd_binding_queue_next = 0;
+    memset(icd_binding_groups, 0, sizeof(icd_binding_groups));
+}
+
+static void icd_binding_queue_snapshot(const IcdBindingQueueEntry* entry,
+                                       IcdBindingStage* snapshot) {
+    unsigned item;
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->state = entry->state;
+    strncpy(snapshot->stage_request_id, entry->stage_request_id,
+            sizeof(snapshot->stage_request_id) - 1U);
+    strncpy(snapshot->reason, entry->reason, sizeof(snapshot->reason) - 1U);
+    snapshot->target_step = entry->target_step;
+    snapshot->deadline_ns = entry->deadline_ns;
+    snapshot->applied_step = entry->applied_step;
+    snapshot->model_revision = entry->model_revision;
+    snapshot->field_count = entry->field_count;
+    for (item = 0; item < entry->field_count; ++item) {
+        snapshot->spec_indices[item] = entry->spec_indices[item];
+        snapshot->dimensions[item] = entry->dimensions[item];
+        if (entry->state == ICD_ENVIRONMENT_APPLIED)
+            memcpy(snapshot->readback[item], icd_binding_queue_values_const(entry, item),
+                   entry->dimensions[item] * sizeof(double));
+        else
+            memcpy(snapshot->values[item], icd_binding_queue_values_const(entry, item),
+                   entry->dimensions[item] * sizeof(double));
+    }
+}
+
+static int icd_binding_queue_has_pending_conflict_locked(IcdBindingGroup group,
+                                                         uint64_t target_step) {
+    unsigned index;
+    for (index = icd_binding_queue_next; index < icd_binding_queue_count; ++index) {
+        const IcdBindingQueueEntry* entry = icd_binding_queue[index];
+        if (entry->state == ICD_ENVIRONMENT_STAGED && entry->group == group &&
+            entry->target_step == target_step) return 1;
+    }
+    return 0;
+}
+
 /* Generic target-step staging for the complete frozen binding group.  It is
  * intentionally additive to the original ID7/10/11 commands so deployed
  * quadrotor clients remain compatible while the 97-binding path is shared by
@@ -590,9 +708,12 @@ static void parse_stage_icd_group(struct json_object* root, const char* request_
     struct json_object *params = NULL, *target = NULL, *deadline = NULL;
     struct json_object *group_value = NULL, *values = NULL;
     IcdBindingStage staged;
+    IcdBindingQueueEntry* entry;
     IcdBindingGroup group;
     uint64_t target_step, deadline_ns;
-    unsigned expected, item = 0, index;
+    unsigned expected, item = 0, index, scalar_count = 0, insertion;
+    int queue_full;
+    size_t entry_bytes;
     uint64_t now_ns = monotonic_time_ns();
     if (!json_object_object_get_ex(root, "params", &params) ||
         json_object_get_type(params) != json_type_object ||
@@ -665,13 +786,46 @@ static void parse_stage_icd_group(struct json_object* root, const char* request_
     staged.state = ICD_ENVIRONMENT_STAGED;
     strncpy(staged.stage_request_id, request_id, sizeof(staged.stage_request_id) - 1U);
     strncpy(staged.reason, "awaiting target boundary", sizeof(staged.reason) - 1U);
-    pthread_mutex_lock(&command_lock);
-    if (icd_binding_groups[group].state == ICD_ENVIRONMENT_STAGED) {
-        pthread_mutex_unlock(&command_lock);
-        send_receipt(sender, request_id, 0, "previous ICD binding transaction is pending", sequence, NULL);
+    for (index = 0; index < staged.field_count; ++index) scalar_count += staged.dimensions[index];
+    entry_bytes = sizeof(*entry) + (size_t)scalar_count * sizeof(double);
+    entry = (IcdBindingQueueEntry*)calloc(1U, entry_bytes);
+    if (!entry) {
+        send_receipt(sender, request_id, 0, "ICD binding queue storage is unavailable", sequence, NULL);
         return;
     }
-    icd_binding_groups[group] = staged;
+    entry->state = staged.state;
+    entry->group = group;
+    entry->target_step = staged.target_step;
+    entry->deadline_ns = staged.deadline_ns;
+    entry->field_count = staged.field_count;
+    strncpy(entry->stage_request_id, staged.stage_request_id, sizeof(entry->stage_request_id) - 1U);
+    strncpy(entry->reason, staged.reason, sizeof(entry->reason) - 1U);
+    for (index = 0; index < staged.field_count; ++index) {
+        entry->spec_indices[index] = staged.spec_indices[index];
+        entry->dimensions[index] = staged.dimensions[index];
+        memcpy(icd_binding_queue_values(entry, index), staged.values[index],
+               staged.dimensions[index] * sizeof(double));
+    }
+    pthread_mutex_lock(&command_lock);
+    queue_full = icd_binding_queue_count >= ICD_BINDING_QUEUE_CAPACITY;
+    if (queue_full ||
+        icd_binding_queue_has_pending_conflict_locked(group, target_step)) {
+        pthread_mutex_unlock(&command_lock);
+        free(entry);
+        send_receipt(sender, request_id, 0,
+                     queue_full ?
+                     "4096 ICD binding transactions are retained" :
+                     "same group already owns the requested target boundary",
+                     sequence, NULL);
+        return;
+    }
+    insertion = icd_binding_queue_next;
+    while (insertion < icd_binding_queue_count &&
+           icd_binding_queue[insertion]->target_step <= target_step) insertion++;
+    memmove(&icd_binding_queue[insertion + 1U], &icd_binding_queue[insertion],
+            (icd_binding_queue_count - insertion) * sizeof(icd_binding_queue[0]));
+    icd_binding_queue[insertion] = entry;
+    icd_binding_queue_count++;
     pthread_mutex_unlock(&command_lock);
     send_receipt(sender, request_id, 1, "staged", target_step, NULL);
 }
@@ -681,6 +835,8 @@ static void parse_get_icd_group_result(struct json_object* root, const char* req
     struct json_object *params = NULL, *stage_request = NULL, *group_value = NULL;
     IcdBindingStage snapshot;
     IcdBindingGroup group;
+    unsigned index;
+    int found = 0;
     if (!json_object_object_get_ex(root, "params", &params) ||
         json_object_get_type(params) != json_type_object ||
         !json_object_object_get_ex(params, "stage_request_id", &stage_request) ||
@@ -692,10 +848,17 @@ static void parse_get_icd_group_result(struct json_object* root, const char* req
         return;
     }
     pthread_mutex_lock(&command_lock);
-    snapshot = icd_binding_groups[group];
+    for (index = 0; index < icd_binding_queue_count; ++index) {
+        const IcdBindingQueueEntry* entry = icd_binding_queue[index];
+        if (entry->group == group &&
+            !strcmp(entry->stage_request_id, json_object_get_string(stage_request))) {
+            icd_binding_queue_snapshot(entry, &snapshot);
+            found = 1;
+            break;
+        }
+    }
     pthread_mutex_unlock(&command_lock);
-    if (snapshot.state == ICD_ENVIRONMENT_EMPTY ||
-        strcmp(snapshot.stage_request_id, json_object_get_string(stage_request))) {
+    if (!found) {
         send_receipt(sender, request_id, 0, "unknown ICD binding transaction", sequence, NULL);
         return;
     }
@@ -865,6 +1028,9 @@ static void parse_get_hil_status(const char* request_id,
                                  const struct sockaddr_in* sender) {
     struct json_object* fields = json_object_new_object();
     ControlSource source;
+    float actuator_output[HIL_ACTUATOR_COUNT ? HIL_ACTUATOR_COUNT : 1];
+    uint64_t actuator_output_sequence;
+    unsigned actuator_index;
 #if HIL_INITIAL_STATE_ABI_AVAILABLE
     FlightStateV3_t projection;
     int have_projection;
@@ -873,6 +1039,8 @@ static void parse_get_hil_status(const char* request_id,
     double status_time_s;
     pthread_mutex_lock(&command_lock);
     source = control_arbiter.active_source;
+    memcpy(actuator_output, applied_actuator_output, sizeof(actuator_output));
+    actuator_output_sequence = applied_actuator_output_sequence;
     pthread_mutex_unlock(&command_lock);
     /* Capture once: the receipt sequence, simulation time and
      * model_state.model_step must describe the same model boundary even while
@@ -889,6 +1057,14 @@ static void parse_get_hil_status(const char* request_id,
     json_object_object_add(fields, "sequence", json_object_new_int64((int64_t)status_sequence));
     json_object_object_add(fields, "sim_time_s", json_object_new_double(status_time_s));
     json_object_object_add(fields, "control_source", json_object_new_string(control_source_name(source)));
+    {
+        struct json_object* output = json_object_new_array();
+        for (actuator_index = 0; actuator_index < HIL_ACTUATOR_COUNT; ++actuator_index)
+            json_object_array_add(output, json_object_new_double(actuator_output[actuator_index]));
+        json_object_object_add(fields, "actuator_output", output);
+        json_object_object_add(fields, "actuator_output_sequence",
+                               json_object_new_int64((int64_t)actuator_output_sequence));
+    }
     json_object_object_add(fields, "model_loaded", json_object_new_boolean(model_is_loaded()));
     /* A generated DWork mapping makes the state boundary observable without
      * stepping.  Resource bytes are resolved by the local gateway and the C
@@ -976,6 +1152,96 @@ static void parse_get_configuration_snapshot(const char* request_id,
     send_receipt(sender, request_id, 1, "retained applied RunConfigure", sequence, fields);
 }
 
+/* Return a bounded slice of the immutable post-step observations retained by
+ * the C model thread.  Keeping transport chunks below a UDP datagram avoids
+ * truncating a valid 1000-step lifecycle request while preserving every
+ * separate generated solver result. */
+static void parse_get_lifecycle_step_result(struct json_object* root, const char* request_id,
+                                            const struct sockaddr_in* sender) {
+#if !HIL_INITIAL_STATE_ABI_AVAILABLE
+    (void)root;
+    send_receipt(sender, request_id, 0, "generated State132 projection unavailable", sequence, NULL);
+#else
+    struct json_object *params = NULL, *stage = NULL, *start = NULL, *count = NULL;
+    const char* stage_request_id;
+    uint64_t start_index, requested_count;
+    LifecycleStepSample samples[LIFECYCLE_STEP_RESULT_CHUNK_MAX];
+    unsigned available, copied, index;
+    struct json_object* fields;
+    struct json_object* values;
+    if (!json_object_object_get_ex(root, "params", &params) ||
+        json_object_get_type(params) != json_type_object ||
+        json_object_object_length(params) != 3 ||
+        !json_object_object_get_ex(params, "stage_request_id", &stage) ||
+        json_object_get_type(stage) != json_type_string ||
+        !json_object_object_get_ex(params, "start_index", &start) ||
+        !json_uint64(start, &start_index) ||
+        !json_object_object_get_ex(params, "count", &count) ||
+        !json_uint64(count, &requested_count) || !requested_count ||
+        requested_count > LIFECYCLE_STEP_RESULT_CHUNK_MAX) {
+        send_receipt(sender, request_id, 0, "stage_request_id, start_index and bounded count are required",
+                     sequence, NULL);
+        return;
+    }
+    stage_request_id = json_object_get_string(stage);
+    pthread_mutex_lock(&command_lock);
+    if (!lifecycle_step_history.valid ||
+        strcmp(lifecycle_step_history.stage_request_id, stage_request_id) ||
+        start_index >= lifecycle_step_history.count) {
+        pthread_mutex_unlock(&command_lock);
+        send_receipt(sender, request_id, 0, "unknown lifecycle STEP history", sequence, NULL);
+        return;
+    }
+    available = lifecycle_step_history.count - (unsigned)start_index;
+    copied = available < (unsigned)requested_count ? available : (unsigned)requested_count;
+    memcpy(samples, &lifecycle_step_history.samples[start_index], copied * sizeof(samples[0]));
+    pthread_mutex_unlock(&command_lock);
+    fields = json_object_new_object();
+    values = json_object_new_array();
+    for (index = 0; index < copied; ++index) {
+        struct json_object* item = json_object_new_object();
+        struct json_object* actuators = json_object_new_array();
+        struct json_object* state_vector = json_object_new_array();
+        unsigned actuator_index;
+        const FlightStateV3_t* sample = &samples[index].state;
+        /* This fixed C projection is intentionally compact for UDP transport.
+         * It contains every non-constant State132 channel; the gateway maps
+         * it back to the same State132 object and validates that object. */
+        json_object_array_add(state_vector, json_object_new_int64((int64_t)sample->sequence));
+        json_object_array_add(state_vector, json_object_new_double(sample->north_m));
+        json_object_array_add(state_vector, json_object_new_double(sample->east_m));
+        json_object_array_add(state_vector, json_object_new_double(sample->down_m));
+        json_object_array_add(state_vector, json_object_new_double(sample->vn_mps));
+        json_object_array_add(state_vector, json_object_new_double(sample->ve_mps));
+        json_object_array_add(state_vector, json_object_new_double(sample->vd_mps));
+        json_object_array_add(state_vector, json_object_new_double(sample->q_w));
+        json_object_array_add(state_vector, json_object_new_double(sample->q_x));
+        json_object_array_add(state_vector, json_object_new_double(sample->q_y));
+        json_object_array_add(state_vector, json_object_new_double(sample->q_z));
+        json_object_array_add(state_vector, json_object_new_double(sample->p_radps));
+        json_object_array_add(state_vector, json_object_new_double(sample->q_radps));
+        json_object_array_add(state_vector, json_object_new_double(sample->r_radps));
+        json_object_array_add(state_vector, json_object_new_boolean(sample->airborne));
+        json_object_array_add(state_vector, json_object_new_double(sample->ax_mps2));
+        json_object_array_add(state_vector, json_object_new_double(sample->ay_mps2));
+        json_object_array_add(state_vector, json_object_new_double(sample->az_mps2));
+        json_object_object_add(item, "state_vector", state_vector);
+        for (actuator_index = 0; actuator_index < HIL_ACTUATOR_COUNT; ++actuator_index)
+            json_object_array_add(actuators,
+                                  json_object_new_double(samples[index].actuator_output[actuator_index]));
+        json_object_object_add(item, "actuator_output", actuators);
+        json_object_object_add(item, "sampled_ns",
+                               json_object_new_int64((int64_t)samples[index].sampled_ns));
+        json_object_array_add(values, item);
+    }
+    json_object_object_add(fields, "stage_request_id", json_object_new_string(stage_request_id));
+    json_object_object_add(fields, "total_count", json_object_new_int((int)lifecycle_step_history.count));
+    json_object_object_add(fields, "start_index", json_object_new_int64((int64_t)start_index));
+    json_object_object_add(fields, "samples", values);
+    send_receipt(sender, request_id, 1, "retained lifecycle STEP observations", sequence, fields);
+#endif
+}
+
 static void parse_configure(struct json_object* root, const char* request_id,
                             const struct sockaddr_in* sender);
 
@@ -1057,6 +1323,8 @@ static void parse_set_model_initial_state(struct json_object* root, const char* 
             return;
         }
     }
+    initial_state = candidate;
+    initial_state_valid = 1;
     pthread_mutex_unlock(&command_lock);
     send_receipt(sender, request_id, 1, "generated initial state applied; full RunConfigure remains unavailable",
                  sequence, NULL);
@@ -1104,6 +1372,28 @@ static int parse_model_input_snapshot(struct json_object* inputs, ModelU_t* inpu
         }
     }
     return 1;
+}
+
+/* Flight control is either one motor array or several fixed-wing axes.  The
+ * configuration boundary must verify the generated descriptors rather than
+ * assume the quadrotor-only motor_command spelling. */
+static int generated_flight_control_is_safe(const ModelU_t* input) {
+    unsigned index, actuator = 0;
+    for (index = 0; index < HIL_INPUT_COUNT; ++index) {
+        const HilInputSpec* spec = &HIL_INPUT_SPECS[index];
+        double values[MAX_INPUT_VALUE_COUNT];
+        unsigned value_index;
+        if (strncmp(spec->name, "flight_control.", strlen("flight_control."))) continue;
+        if (spec->dimension > MAX_INPUT_VALUE_COUNT ||
+            !hil_contract_get_input(input, spec->name, values, spec->dimension)) return 0;
+        for (value_index = 0; value_index < spec->dimension; ++value_index) {
+            if (actuator >= HIL_ACTUATOR_COUNT ||
+                fabs(values[value_index] - HIL_ACTUATOR_SPECS[actuator].safe_value) > 1e-9)
+                return 0;
+            actuator++;
+        }
+    }
+    return actuator == HIL_ACTUATOR_COUNT;
 }
 
 static void parse_prepare_model_snapshot(struct json_object* root, const char* request_id,
@@ -1155,6 +1445,8 @@ static void parse_prepare_model_snapshot(struct json_object* root, const char* r
         send_receipt(sender, request_id, 0, "generated initial-state setter failed", sequence, NULL);
         return;
     }
+    initial_state = candidate_state;
+    initial_state_valid = 1;
     pending_live.input = active_input;
     pending_live.parameters = active_parameters;
     pending_live.generation++;
@@ -1219,9 +1511,6 @@ static void parse_configure(struct json_object* root, const char* request_id,
     HilParameterValues candidate_parameters;
     HilInitialState candidate_state;
     double ground_height_m = 0.0;
-    double motor[HIL_MAX_ACTUATORS];
-    unsigned index;
-    int safe_motors = 1;
     if (!HIL_FULL_CONFIGURATION_ABI_AVAILABLE) {
         send_receipt(sender, request_id, 0, "generated full configuration ABI unavailable", sequence, NULL);
         return;
@@ -1266,14 +1555,11 @@ static void parse_configure(struct json_object* root, const char* request_id,
     if (!parse_model_input_snapshot(inputs, &candidate_input, &candidate_parameters) ||
         !hil_contract_get_input(&candidate_input, "environment.ground_height_m", &ground_height_m, 1U) ||
         !parse_initial_state_value(state_value, ground_height_m, &candidate_state) ||
-        !parse_resource_context(resources, configuration, -ground_height_m) ||
-        !hil_contract_get_input(&candidate_input, "flight_control.motor_command", motor, HIL_ACTUATOR_COUNT)) {
+        !parse_resource_context(resources, configuration, -ground_height_m)) {
         send_receipt(sender, request_id, 0, "RunConfigure violates generated model/resource contract", sequence, NULL);
         return;
     }
-    for (index = 0; index < HIL_ACTUATOR_COUNT; ++index)
-        if (fabs(motor[index] - HIL_ACTUATOR_SPECS[index].safe_value) > 1e-9) safe_motors = 0;
-    if (!safe_motors || configured_model_revision == UINT32_MAX) {
+    if (!generated_flight_control_is_safe(&candidate_input) || configured_model_revision == UINT32_MAX) {
         send_receipt(sender, request_id, 0, "RunConfigure initial control is unsafe or revision is exhausted", sequence, NULL);
         return;
     }
@@ -1306,6 +1592,8 @@ static void parse_configure(struct json_object* root, const char* request_id,
         send_receipt(sender, request_id, 0, "generated initial-state setter failed", sequence, NULL);
         return;
     }
+    initial_state = candidate_state;
+    initial_state_valid = 1;
     if (configured_configuration) json_object_put(configured_configuration);
     configured_configuration = json_object_get(configuration);
     configured_model_revision++;
@@ -2014,12 +2302,14 @@ static int prepare_sensor_sample(FlightStateV3_t* sample) {
 }
 
 static void queue_lifecycle_at(int event, uint64_t target_step, int target_bound,
-                               const char* request_id, const struct sockaddr_in* sender) {
+                               unsigned step_count, const char* request_id,
+                               const struct sockaddr_in* sender) {
     pthread_mutex_lock(&command_lock);
     lifecycle_request.pending = 1;
     lifecycle_request.event = event;
     lifecycle_request.target_bound = target_bound;
     lifecycle_request.target_step = target_step;
+    lifecycle_request.step_count = step_count;
     strncpy(lifecycle_request.request_id, request_id, sizeof(lifecycle_request.request_id) - 1);
     lifecycle_request.request_id[sizeof(lifecycle_request.request_id) - 1] = '\0';
     lifecycle_request.sender = *sender;
@@ -2027,7 +2317,7 @@ static void queue_lifecycle_at(int event, uint64_t target_step, int target_bound
 }
 
 static void queue_lifecycle(int event, const char* request_id, const struct sockaddr_in* sender) {
-    queue_lifecycle_at(event, sequence, 1, request_id, sender);
+    queue_lifecycle_at(event, sequence, 1, 0U, request_id, sender);
 }
 
 static int lifecycle_event_from_name(const char* name, int* event) {
@@ -2037,6 +2327,7 @@ static int lifecycle_event_from_name(const char* name, int* event) {
     else if (!strcmp(name, "RESUME")) *event = HIL_RUNNING;
     else if (!strcmp(name, "STOP")) *event = HIL_STOPPED;
     else if (!strcmp(name, "RESET")) *event = HIL_RESETTING;
+    else if (!strcmp(name, "STEP")) *event = HIL_LIFECYCLE_STEP_EVENT;
     else return 0;
     return 1;
 }
@@ -2046,27 +2337,40 @@ static int lifecycle_event_from_name(const char* name, int* event) {
  * it has made the state/control change at that boundary. */
 static void parse_stage_lifecycle(struct json_object* root, const char* request_id,
                                   const struct sockaddr_in* sender) {
-    struct json_object *params = NULL, *action = NULL, *target = NULL;
-    uint64_t target_step;
+    struct json_object *params = NULL, *action = NULL, *target = NULL, *count = NULL;
+    uint64_t target_step, step_count = 0;
     int event;
     if (!json_object_object_get_ex(root, "params", &params) || json_object_get_type(params) != json_type_object ||
-        json_object_object_length(params) != 2 ||
         !json_object_object_get_ex(params, "action", &action) || json_object_get_type(action) != json_type_string ||
         !json_object_object_get_ex(params, "target_step", &target) || !json_uint64(target, &target_step) ||
         !lifecycle_event_from_name(json_object_get_string(action), &event)) {
         send_receipt(sender, request_id, 0, "action and target_step are required", sequence, NULL);
         return;
     }
+    if (event == HIL_LIFECYCLE_STEP_EVENT) {
+        if (json_object_object_length(params) != 3 ||
+            !json_object_object_get_ex(params, "step_count", &count) ||
+            !json_uint64(count, &step_count) || !step_count ||
+            step_count > LIFECYCLE_STEP_HISTORY_CAPACITY) {
+            send_receipt(sender, request_id, 0, "STEP requires step_count in 1..1000", sequence, NULL);
+            return;
+        }
+    } else if (json_object_object_length(params) != 2) {
+        send_receipt(sender, request_id, 0, "action and target_step are required", sequence, NULL);
+        return;
+    }
     pthread_mutex_lock(&command_lock);
     if (lifecycle_request.pending ||
         (lifecycle == HIL_RUNNING && (target_step <= sequence || target_step > sequence + ICD_ENVIRONMENT_MAX_LOOKAHEAD_STEPS)) ||
-        (lifecycle != HIL_RUNNING && target_step != sequence)) {
+        (lifecycle != HIL_RUNNING && target_step != sequence) ||
+        (event == HIL_LIFECYCLE_STEP_EVENT &&
+         (lifecycle != HIL_PAUSED || control_arbiter.active_source != CONTROL_SOURCE_NONE))) {
         pthread_mutex_unlock(&command_lock);
         send_receipt(sender, request_id, 0, "lifecycle target is not an admissible actual model boundary", sequence, NULL);
         return;
     }
     pthread_mutex_unlock(&command_lock);
-    queue_lifecycle_at(event, target_step, 1, request_id, sender);
+    queue_lifecycle_at(event, target_step, 1, (unsigned)step_count, request_id, sender);
 }
 
 static void send_reset_parameter_completion(uint64_t effective_sequence) {
@@ -2115,14 +2419,64 @@ static void apply_lifecycle_request(void) {
         return;
     }
 
-    if (request.event == HIL_PAUSED) {
+    if (request.event == HIL_LIFECYCLE_STEP_EVENT) {
+        ControlSource source;
+        unsigned index;
+        pthread_mutex_lock(&command_lock);
+        source = control_arbiter.active_source;
+        if (lifecycle == HIL_PAUSED && source == CONTROL_SOURCE_NONE) {
+            clear_icd_binding_queue_locked();
+            lifecycle_step_history.valid = 0;
+            lifecycle_step_history.count = 0;
+            strncpy(lifecycle_step_history.stage_request_id, request.request_id,
+                    sizeof(lifecycle_step_history.stage_request_id) - 1U);
+            lifecycle_step_history.stage_request_id[sizeof(lifecycle_step_history.stage_request_id) - 1U] = '\0';
+        } else valid = 0;
+        pthread_mutex_unlock(&command_lock);
+        if (valid) {
+            for (index = 0; index < request.step_count; ++index) {
+                /* STEP is offline-only: no source, mission, queued input or
+                 * live update may write during these individual 1ms solver
+                 * calls.  The generated actuator setter receives safe zero
+                 * before every call and the post-step C projection is saved. */
+                zero_motor_command();
+                model_step();
+                sequence++;
+                sim_time_s += 0.001;
+                populate_state();
+                record_sensor_truth();
+                lifecycle_step_history.samples[index].state = state;
+                pthread_mutex_lock(&command_lock);
+                memcpy(lifecycle_step_history.samples[index].actuator_output,
+                       applied_actuator_output,
+                       sizeof(lifecycle_step_history.samples[index].actuator_output));
+                pthread_mutex_unlock(&command_lock);
+                lifecycle_step_history.samples[index].sampled_ns = monotonic_time_ns();
+            }
+            pthread_mutex_lock(&command_lock);
+            lifecycle_step_history.count = request.step_count;
+            lifecycle_step_history.valid = 1;
+            pthread_mutex_unlock(&command_lock);
+        }
+    } else if (request.event == HIL_PAUSED) {
         if (lifecycle != HIL_RUNNING) valid = 0;
-        else { lifecycle = HIL_PAUSED; if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_send_event("pause", mission.mission_id); }
+        else {
+            lifecycle = HIL_PAUSED;
+            pthread_mutex_lock(&command_lock);
+            clear_icd_binding_queue_locked();
+            control_arbiter_clear(&control_arbiter);
+            pthread_mutex_unlock(&command_lock);
+            if (HIL_FIXED_WING_V3_TCP) fixed_wing_v3_tcp_send_event("pause", mission.mission_id);
+        }
     } else if (request.event == HIL_RUNNING) {
         if (lifecycle != HIL_PAUSED && lifecycle != HIL_CONFIGURED) valid = 0;
         else {
             const int resumed = lifecycle == HIL_PAUSED;
             lifecycle = HIL_RUNNING;
+            pthread_mutex_lock(&command_lock);
+            clear_icd_binding_queue_locked();
+            control_arbiter_clear(&control_arbiter);
+            pthread_mutex_unlock(&command_lock);
             if (HIL_FIXED_WING_V3_TCP)
                 fixed_wing_v3_tcp_send_event(resumed ? "resume" : "start", mission.mission_id);
         }
@@ -2147,6 +2501,7 @@ static void apply_lifecycle_request(void) {
         else {
             lifecycle = HIL_STOPPED;
             pthread_mutex_lock(&command_lock);
+            clear_icd_binding_queue_locked();
             control_arbiter_clear(&control_arbiter);
             mission.active = 0;
             mission.waypoint_count = 0;
@@ -2175,8 +2530,23 @@ static void apply_lifecycle_request(void) {
             active_parameters = initial_parameters;
             if (pending_reset.generation) active_input = pending_reset.input;
             if (pending_reset.generation) active_parameters = pending_reset.parameters;
+            pthread_mutex_lock(&command_lock);
+            clear_icd_binding_queue_locked();
+            pthread_mutex_unlock(&command_lock);
             *model_get_input() = active_input;
             hil_contract_apply_exported_globals(&active_parameters);
+            if (!initial_state_valid || !hil_contract_set_initial_state(&initial_state)) {
+                lifecycle = HIL_FAILED;
+                valid = 0;
+                pending_reset.generation = 0;
+                pthread_mutex_lock(&command_lock);
+                control_arbiter_clear(&control_arbiter);
+                pthread_mutex_unlock(&command_lock);
+                send_receipt(&request.sender, request.request_id, 0,
+                             "reset could not restore frozen initial state", sequence, NULL);
+                pthread_mutex_unlock(&model_boundary_lock);
+                return;
+            }
             pending_live.input = active_input;
             pending_live.parameters = active_parameters;
             pending_live.generation++;
@@ -2230,88 +2600,130 @@ static void apply_live_update(void) {
     pthread_mutex_unlock(&model_boundary_lock);
 }
 
-static void reject_icd_binding_stage(IcdBindingGroup group,
-                                     const IcdBindingStage* snapshot,
-                                     const char* reason) {
+static void finish_icd_binding_queue_entry(IcdBindingQueueEntry* entry,
+                                           const IcdBindingStage* snapshot,
+                                           const char* reason, int applied,
+                                           uint64_t next_step) {
+    unsigned item;
     pthread_mutex_lock(&command_lock);
-    if (icd_binding_groups[group].state == ICD_ENVIRONMENT_STAGED &&
-        !strcmp(icd_binding_groups[group].stage_request_id, snapshot->stage_request_id)) {
-        icd_binding_groups[group].state = ICD_ENVIRONMENT_REJECTED;
-        strncpy(icd_binding_groups[group].reason, reason,
-                sizeof(icd_binding_groups[group].reason) - 1U);
+    if (entry->state == ICD_ENVIRONMENT_STAGED &&
+        !strcmp(entry->stage_request_id, snapshot->stage_request_id)) {
+        entry->state = applied ? ICD_ENVIRONMENT_APPLIED : ICD_ENVIRONMENT_REJECTED;
+        entry->applied_step = applied ? next_step : 0;
+        entry->model_revision = applied ? ++icd_binding_revisions[entry->group] : 0;
+        strncpy(entry->reason, reason, sizeof(entry->reason) - 1U);
+        if (applied) {
+            for (item = 0; item < entry->field_count; ++item)
+                memcpy(icd_binding_queue_values(entry, item), snapshot->readback[item],
+                       entry->dimensions[item] * sizeof(double));
+            icd_binding_groups[entry->group] = *snapshot;
+            icd_binding_groups[entry->group].state = ICD_ENVIRONMENT_APPLIED;
+            icd_binding_groups[entry->group].applied_step = next_step;
+            icd_binding_groups[entry->group].model_revision = entry->model_revision;
+            strncpy(icd_binding_groups[entry->group].reason, "APPLIED",
+                    sizeof(icd_binding_groups[entry->group].reason) - 1U);
+        }
     }
     pthread_mutex_unlock(&command_lock);
 }
 
-/* Commit one complete generated-contract group.  Work is performed on local
- * candidates first; active model memory changes only after every field has
- * validated and every generated setter succeeded. */
-static void apply_icd_binding_group(IcdBindingGroup group, uint64_t next_step) {
+/* Commit every complete generic group due at this exact 1ms model boundary.
+ * Queue ordering is maintained by the command thread, so the RT thread never
+ * scans unrelated future requests and a late entry is rejected rather than
+ * being applied as a catch-up write. */
+static void apply_icd_binding_queue(uint64_t next_step) {
+    for (;;) {
+        IcdBindingQueueEntry* entry;
+        IcdBindingStage snapshot;
+        ModelU_t input_candidate;
+        HilParameterValues parameter_candidate;
+        unsigned item;
+        uint64_t now_ns = monotonic_time_ns();
+        pthread_mutex_lock(&command_lock);
+        if (icd_binding_queue_next >= icd_binding_queue_count ||
+            icd_binding_queue[icd_binding_queue_next]->target_step > next_step) {
+            pthread_mutex_unlock(&command_lock);
+            return;
+        }
+        entry = icd_binding_queue[icd_binding_queue_next++];
+        icd_binding_queue_snapshot(entry, &snapshot);
+        input_candidate = active_input;
+        parameter_candidate = active_parameters;
+        pthread_mutex_unlock(&command_lock);
+        if (snapshot.state != ICD_ENVIRONMENT_STAGED) continue;
+        if (snapshot.deadline_ns <= now_ns || snapshot.target_step < next_step) {
+            finish_icd_binding_queue_entry(entry, &snapshot,
+                                           snapshot.deadline_ns <= now_ns ? "EXPIRED" : "LATE",
+                                           0, next_step);
+            continue;
+        }
+        if (snapshot.target_step != next_step) continue;
+        for (item = 0; item < snapshot.field_count; ++item) {
+            if (entry->group == ICD_GROUP_PARAMETERS) {
+                const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[snapshot.spec_indices[item]];
+                if (!hil_contract_set_parameter(&input_candidate, &parameter_candidate,
+                                                spec->name, snapshot.values[item][0])) {
+                    finish_icd_binding_queue_entry(entry, &snapshot,
+                                                   "GENERATED_SETTER_UNAVAILABLE", 0, next_step);
+                    break;
+                }
+            } else {
+                const HilInputSpec* spec = &HIL_INPUT_SPECS[snapshot.spec_indices[item]];
+                if (!hil_contract_set_input(&input_candidate, spec->name, snapshot.values[item],
+                                            snapshot.dimensions[item])) {
+                    finish_icd_binding_queue_entry(entry, &snapshot,
+                                                   "GENERATED_SETTER_UNAVAILABLE", 0, next_step);
+                    break;
+                }
+            }
+        }
+        if (item != snapshot.field_count) continue;
+        active_input = input_candidate;
+        active_parameters = parameter_candidate;
+        *model_get_input() = active_input;
+        if (entry->group == ICD_GROUP_PARAMETERS)
+            hil_contract_apply_exported_globals(&active_parameters);
+        for (item = 0; item < snapshot.field_count; ++item) {
+            if (entry->group == ICD_GROUP_PARAMETERS)
+                snapshot.readback[item][0] = active_parameters.value[snapshot.spec_indices[item]];
+            else {
+                const HilInputSpec* spec = &HIL_INPUT_SPECS[snapshot.spec_indices[item]];
+                if (!hil_contract_get_input(&active_input, spec->name, snapshot.readback[item],
+                                            snapshot.dimensions[item])) {
+                    finish_icd_binding_queue_entry(entry, &snapshot,
+                                                   "GENERATED_GETTER_UNAVAILABLE", 0, next_step);
+                    break;
+                }
+            }
+        }
+        if (item == snapshot.field_count)
+            finish_icd_binding_queue_entry(entry, &snapshot, "APPLIED", 1, next_step);
+    }
+}
+
+/* The normal control-arbiter writer owns the generated actuator ports until
+ * the final point in a model loop.  A frozen generic flight-control binding
+ * is itself that final writer and therefore must be reapplied on subsequent
+ * loops too; otherwise its acknowledged target-step value survives only one
+ * millisecond before the arbiter's safe command overwrites it. */
+static void apply_active_icd_flight_binding(void) {
     IcdBindingStage snapshot;
-    ModelU_t input_candidate;
-    HilParameterValues parameter_candidate;
     unsigned item;
-    uint64_t now_ns = monotonic_time_ns();
     pthread_mutex_lock(&command_lock);
-    snapshot = icd_binding_groups[group];
-    input_candidate = active_input;
-    parameter_candidate = active_parameters;
+    snapshot = icd_binding_groups[ICD_GROUP_FLIGHT_CONTROL];
     pthread_mutex_unlock(&command_lock);
-    if (snapshot.state != ICD_ENVIRONMENT_STAGED) return;
-    if (snapshot.deadline_ns <= now_ns || snapshot.target_step < next_step) {
-        reject_icd_binding_stage(group, &snapshot,
-                                 snapshot.deadline_ns <= now_ns ? "EXPIRED" : "LATE");
-        return;
-    }
-    if (snapshot.target_step != next_step) return;
+    if (snapshot.state != ICD_ENVIRONMENT_APPLIED) return;
     for (item = 0; item < snapshot.field_count; ++item) {
-        if (group == ICD_GROUP_PARAMETERS) {
-            const HilParameterSpec* spec = &HIL_PARAMETER_SPECS[snapshot.spec_indices[item]];
-            if (!hil_contract_set_parameter(&input_candidate, &parameter_candidate,
-                                            spec->name, snapshot.values[item][0])) {
-                reject_icd_binding_stage(group, &snapshot, "GENERATED_SETTER_UNAVAILABLE");
-                return;
-            }
-        } else {
-            const HilInputSpec* spec = &HIL_INPUT_SPECS[snapshot.spec_indices[item]];
-            if (!hil_contract_set_input(&input_candidate, spec->name,
-                                        snapshot.values[item], snapshot.dimensions[item])) {
-                reject_icd_binding_stage(group, &snapshot, "GENERATED_SETTER_UNAVAILABLE");
-                return;
-            }
+        const HilInputSpec* spec = &HIL_INPUT_SPECS[snapshot.spec_indices[item]];
+        if (!hil_contract_set_input(&active_input, spec->name,
+                                    snapshot.values[item], snapshot.dimensions[item])) {
+            fprintf(stderr, "[HIL] generated frozen flight-control setter unavailable\n");
+            lifecycle = HIL_FAILED;
+            running = 0;
+            return;
         }
     }
-    active_input = input_candidate;
-    active_parameters = parameter_candidate;
     *model_get_input() = active_input;
-    if (group == ICD_GROUP_PARAMETERS)
-        hil_contract_apply_exported_globals(&active_parameters);
-    for (item = 0; item < snapshot.field_count; ++item) {
-        if (group == ICD_GROUP_PARAMETERS) {
-            snapshot.readback[item][0] =
-                active_parameters.value[snapshot.spec_indices[item]];
-        } else {
-            const HilInputSpec* spec = &HIL_INPUT_SPECS[snapshot.spec_indices[item]];
-            if (!hil_contract_get_input(&active_input, spec->name,
-                                        snapshot.readback[item], snapshot.dimensions[item])) {
-                reject_icd_binding_stage(group, &snapshot, "GENERATED_GETTER_UNAVAILABLE");
-                return;
-            }
-        }
-    }
-    pthread_mutex_lock(&command_lock);
-    if (icd_binding_groups[group].state == ICD_ENVIRONMENT_STAGED &&
-        !strcmp(icd_binding_groups[group].stage_request_id, snapshot.stage_request_id)) {
-        for (item = 0; item < snapshot.field_count; ++item)
-            memcpy(icd_binding_groups[group].readback[item], snapshot.readback[item],
-                   snapshot.dimensions[item] * sizeof(double));
-        icd_binding_groups[group].state = ICD_ENVIRONMENT_APPLIED;
-        icd_binding_groups[group].applied_step = next_step;
-        icd_binding_groups[group].model_revision = ++icd_binding_revisions[group];
-        strncpy(icd_binding_groups[group].reason, "APPLIED",
-                sizeof(icd_binding_groups[group].reason) - 1U);
-    }
-    pthread_mutex_unlock(&command_lock);
 }
 
 /* Runs only on the real-time model thread immediately before model_step().
@@ -2495,6 +2907,10 @@ static void write_actuator_command(const float* actuator, unsigned count) {
         return;
     }
     *model_get_input() = active_input;
+    pthread_mutex_lock(&command_lock);
+    memcpy(applied_actuator_output, actuator, count * sizeof(*actuator));
+    applied_actuator_output_sequence = lifecycle == HIL_RUNNING ? sequence + 1U : sequence;
+    pthread_mutex_unlock(&command_lock);
 }
 
 static void zero_motor_command(void) {
@@ -2677,6 +3093,7 @@ static void parse_command(const char* text, const struct sockaddr_in* sender) {
     else if (!strcmp(command, "get_icd_snapshot")) parse_get_icd_snapshot(root, request_id, sender);
     else if (!strcmp(command, "get_hil_status")) parse_get_hil_status(request_id, sender);
     else if (!strcmp(command, "get_configuration_snapshot")) parse_get_configuration_snapshot(request_id, sender);
+    else if (!strcmp(command, "get_lifecycle_step_result")) parse_get_lifecycle_step_result(root, request_id, sender);
     else if (!strcmp(command, "configure")) parse_configure(root, request_id, sender);
     else if (!strcmp(command, "stage_lifecycle")) parse_stage_lifecycle(root, request_id, sender);
 #if HIL_INITIAL_STATE_ABI_AVAILABLE
@@ -2770,9 +3187,7 @@ int main(void) {
         if (lifecycle == HIL_RUNNING) {
             ControlSource source = active_control_source();
             apply_live_update();
-            apply_icd_binding_group(ICD_GROUP_ENVIRONMENT, sequence + 1U);
-            apply_icd_binding_group(ICD_GROUP_FAULT, sequence + 1U);
-            apply_icd_binding_group(ICD_GROUP_PARAMETERS, sequence + 1U);
+            apply_icd_binding_queue(sequence + 1U);
             apply_icd_environment_stage(sequence + 1U);
             apply_icd_fault_stage(sequence + 1U);
             apply_mission_update();
@@ -2795,7 +3210,7 @@ int main(void) {
                 write_actuator_command(external_actuator, HIL_ACTUATOR_COUNT);
             }
             apply_icd_flight_control_stage(sequence + 1U);
-            apply_icd_binding_group(ICD_GROUP_FLIGHT_CONTROL, sequence + 1U);
+            apply_active_icd_flight_binding();
             model_step(); sequence++; sim_time_s += 0.001; populate_state();
             record_sensor_truth();
             if (have_valid_state && sequence % 4U == 0U) {

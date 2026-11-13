@@ -60,6 +60,47 @@ class SimulatorRunServiceTests(GatewayTest):
         self.assertEqual(found["data"]["result"], "NOT_RUN")
         self.assertEqual(found["data"]["run_id"], created["data"]["run_id"])
 
+    def test_polling_queries_do_not_consume_durable_mutation_idempotency_capacity(self):
+        from input_simulator.run_service import SimulatorRunService
+        from input_simulator.run_store import RunStore
+
+        store = RunStore(max_requests=2)
+        service = SimulatorRunService(
+            self.management, self.template, store=store,
+            clock=lambda: "2026-10-20T00:00:00Z", run_id_factory=lambda: "run-polling")
+        created = service.handle(copy.deepcopy(self.create))
+        run_id = created["data"]["run_id"]
+
+        for index in range(600):
+            response = service.handle({"cmd": "simulator_run_get", "params": {
+                "api_version": "0.3", "request_id": "poll-{}".format(index), "run_id": run_id}})
+            self.assertEqual((response["status"], response["code"]), ("SUCCESS", "OK"))
+        self.assertEqual(len(store._requests), 1)
+
+        # A state-changing request still has durable replay semantics after
+        # sustained polling; this one consumes the second and final slot.
+        start = {"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "start-after-polling", "run_id": run_id,
+            "expected_revision": "1", "action": "START"}}
+        response = service.handle(start)
+        self.assertEqual((response["status"], response["code"]), ("REJECTED", "TOOL_UNAVAILABLE"))
+        self.assertEqual(service.handle(copy.deepcopy(start)), response)
+        self.assertEqual(len(store._requests), 2)
+
+    def test_store_startup_prunes_legacy_read_only_replays_but_keeps_mutations(self):
+        from input_simulator.run_store import RunStore
+
+        with tempfile.TemporaryDirectory() as temporary:
+            first = RunStore(state_directory=temporary)
+            query = {"cmd": "simulator_run_get", "params": {"request_id": "legacy-query"}}
+            create = {"cmd": "simulator_run_create", "params": {"request_id": "legacy-create"}}
+            first.remember("legacy-query", query, {"query": True})
+            first.remember("legacy-create", create, {"create": True})
+
+            restored = RunStore(state_directory=temporary)
+            self.assertIsNone(restored.replay("legacy-query", query))
+            self.assertEqual(restored.replay("legacy-create", create), {"create": True})
+
     def test_template_baseline_and_active_run_conflicts_are_rejected_as_management_errors(self):
         mismatch = copy.deepcopy(self.create)
         mismatch["params"]["baseline_sha256"] = "0" * 64
@@ -220,6 +261,42 @@ class SimulatorRunServiceTests(GatewayTest):
 
         self.assertEqual(completed, [("INCOMPLETE", ("session-open", "local-stop-before-configure"))])
         self.assertEqual(failed, [])
+
+    def test_formal_execution_unexpected_post_start_error_compensates_before_failing(self):
+        from input_simulator.run_executor import ExecutionReporter, FormalHILExecutionBackend
+
+        backend = FormalHILExecutionBackend(lambda _snapshot: self.fail("patched source is required"),
+                                            status_poll_s=.001)
+        source = SimpleNamespace(
+            session_id=7,
+            open=lambda: {"header": {"target_step": 0}},
+            capabilities={"implemented_message_ids": [2, 3, 4],
+                          "available_probes": ["consumer.RunConfigure", "consumer.Lifecycle"]},
+            close=lambda: None,
+            transport=SimpleNamespace(close=lambda: None),
+        )
+
+        def request(message, *, target_step):
+            return {"message_id": 130, "header": {"transaction_id": message["message_id"]},
+                    "payload": {"request_message_id": message["message_id"], "stage": "APPLIED",
+                                "error": "OK", "applied_step": target_step}}
+
+        source.request = request
+        source.heartbeat = lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("unexpected poll error"))
+        backend._session = lambda _snapshot: source
+        compensated = []
+        backend._compensate_stop = lambda *_args: compensated.append(True) or ("status-stopped-safe",)
+        failed = []
+        reporter = ExecutionReporter(running=lambda _refs: None,
+                                     completed=lambda *_args: self.fail("unexpected error cannot complete"),
+                                     failed=lambda code, detail, refs: failed.append((code, detail, refs)))
+        stopped = threading.Event()
+        backend.begin("operation-unexpected", stopped)
+        backend.execute(SimpleNamespace(create_snapshot=b'{"run_configuration": {}}'), reporter, stopped)
+
+        self.assertEqual(compensated, [True])
+        self.assertEqual(failed, [("INTERNAL_ERROR", "execution backend raised unexpectedly",
+                                   ("status-stopped-safe",))])
 
     def test_actual_backend_evidence_drives_start_stop_transitions(self):
         from input_simulator.run_executor import RunExecutionBackend, RunExecutor
@@ -382,11 +459,57 @@ class SimulatorRunServiceTests(GatewayTest):
                 failed = service.store.get(run_id)
                 self.assertEqual((failed["state"], failed["last_error"]["code"]),
                                  ("FAILED", public_code))
+                self.assertEqual(failed["last_error"]["details"], [{
+                    "path": "/execution", "code": public_code,
+                    "message": "controlled " + code,
+                }])
                 records = service.store.list_records(run_id, limit=100)["items"]
                 self.assertEqual([(item["kind"], item["reason_code"]) for item in records], [
                     ("RESPONSE", "START_QUEUED"), (kind, reason),
                     ("OPERATION_RESULT", "EXECUTION_FAILED")])
                 self.assertEqual(records[-1]["operation_result"], "FAILED")
+
+    def test_failed_run_keeps_stop_until_independent_emergency_stop_is_confirmed(self):
+        from input_simulator.run_executor import RunExecutionBackend, RunExecutor
+        from input_simulator.run_service import SimulatorRunService
+
+        class LostStopBackend(RunExecutionBackend):
+            def execute(self, _snapshot, reporter, _stop_requested):
+                reporter.running(("lifecycle-start-applied",))
+                reporter.failed("INTERNAL_ERROR", "simulated unexpected execution failure")
+
+            def request_stop(self, _operation_id):
+                raise AssertionError("failed Run has no original worker to stop")
+
+            def emergency_stop(self):
+                self.recovery_called = True
+                return ("emergency-ccore-stop-applied", "status-stopped-safe")
+
+        backend = LostStopBackend()
+        ids = iter(("operation-start", "operation-recovery"))
+        service = SimulatorRunService(
+            self.management, self.template, executor=RunExecutor(backend),
+            clock=lambda: "2026-10-20T00:00:00Z", run_id_factory=lambda: "run-stop-recovery",
+            operation_id_factory=lambda: next(ids))
+        created = service.handle(copy.deepcopy(self.create))
+        run_id = created["data"]["run_id"]
+        service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "recovery-start", "run_id": run_id,
+            "expected_revision": "1", "action": "START"}})
+        deadline = time.monotonic() + 2
+        while service.store.get(run_id)["state"] != "FAILED" and time.monotonic() < deadline:
+            time.sleep(.01)
+        failed = service.store.get(run_id)
+        self.assertEqual(failed["available_actions"], ["STOP"])
+        recovered = service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "recovery-stop", "run_id": run_id,
+            "expected_revision": failed["revision"], "action": "STOP"}})
+        self.assertEqual((recovered["status"], recovered["code"]), ("ACCEPTED", "QUEUED"))
+        self.assertTrue(backend.recovery_called)
+        self.assertEqual(service.store.get(run_id)["available_actions"], [])
+        records = service.store.list_records(run_id, limit=100)["items"]
+        self.assertEqual(records[-2]["reason_code"], "HIL_EMERGENCY_STOP_APPLIED")
+        self.assertEqual(records[-1]["reason_code"], "STOP_RECOVERY_CONFIRMED")
 
     def test_assertion_failure_is_a_completed_fail_not_a_hil_or_tool_error(self):
         from input_simulator.run_executor import RunExecutionBackend, RunExecutor

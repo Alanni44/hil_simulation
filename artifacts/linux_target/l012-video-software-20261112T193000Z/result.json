@@ -1,0 +1,32 @@
+{
+  "format": "HIL_L012_VIDEO_SOFTWARE_1",
+  "status": "SOFTWARE_H26X_DECODE_VALIDATED",
+  "ffmpeg": "/usr/bin/ffmpeg",
+  "frames": [
+    {
+      "codec": "H264",
+      "annex_b_sha256": "6c77bc20f782f20db9f4e58d644e01c0aa590e6aa63215e34aad4610991697b1",
+      "hiv1_fragments": 1,
+      "pixels_sha256": "cba2452f21f15fec88a23768cfe1fcf259aa2447dfb4984c8f36309b3cc57d2d",
+      "pixel_bytes": 1382400,
+      "frame_index": 0,
+      "pts_us": 0,
+      "capture_step": 1000
+    },
+    {
+      "codec": "H265",
+      "annex_b_sha256": "b432a5eb749565728cdc34efd5b212bed6d89460f0e6322d7bd355d37d0e9f6a",
+      "hiv1_fragments": 2,
+      "pixels_sha256": "cba2452f21f15fec88a23768cfe1fcf259aa2447dfb4984c8f36309b3cc57d2d",
+      "pixel_bytes": 1382400,
+      "frame_index": 0,
+      "pts_us": 0,
+      "capture_step": 1000
+    }
+  ],
+  "hardware_injection_qualified": false,
+  "limits": [
+    "No video injector, RS422 sync line, physical video Ethernet or device output was used.",
+    "Serial, AD/DA and TTL are REQUIRED_DRIVER hardware items and remain unqualified."
+  ]
+}

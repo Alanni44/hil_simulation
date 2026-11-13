@@ -15,6 +15,12 @@ SUPPORTED_COMMANDS = frozenset({
     "simulator_run_create", "simulator_run_get", "simulator_run_control", "simulator_records_list",
 })
 
+# A query observes mutable Run/Record state.  Retaining its response would
+# both make a retry stale and turn normal polling into unbounded durable
+# idempotency history.  Only commands that can change execution state need a
+# durable replay barrier to prevent duplicated side effects.
+_MUTATING_COMMANDS = frozenset({"simulator_run_create", "simulator_run_control"})
+
 _ERROR_CODES = {
     "BASELINE": "BASELINE_MISMATCH", "HASH": "HASH_MISMATCH",
     "REFERENCE": "REFERENCE_INVALID", "MODEL": "MODEL_MAPPING_MISSING",
@@ -215,10 +221,20 @@ class SimulatorRunService:
 
     def _backend_failure(self, run_id, code, detail, evidence_refs=(), operation_id=None):
         mapped = _ERROR_CODES.get(code, "INTERNAL_ERROR")
+        if type(detail) is not str:
+            detail = "execution backend did not provide failure detail"
+        error = {"code": mapped, "retryable": False,
+                 "details": [{"path": "/execution", "code": mapped, "message": detail[:1024]}]}
+        stop_confirmed = "status-stopped-safe" in evidence_refs
 
         def failed(run):
-            run.update(state="FAILED", result="FAIL", available_actions=[], evidence_complete=False,
-                       last_error={"code": mapped, "retryable": False, "details": []})
+            # A failed management Run is not proof that its independently
+            # running HIL model stopped.  Keep the existing STOP command
+            # available until a formal or emergency STOPPED/NONE readback is
+            # recorded; this is the only recovery action permitted for it.
+            run.update(state="FAILED", result="FAIL",
+                       available_actions=[] if stop_confirmed else ["STOP"], evidence_complete=False,
+                       last_error=error)
 
         result = self._transition(run_id, allowed_states={"WAITING", "RUNNING", "STOPPING"}, mutate=failed)
         if result is not None:
@@ -310,8 +326,46 @@ class SimulatorRunService:
         if action == "STOP":
             if self.executor is None:
                 raise ICDError("TARGET_MISSING", "STOP requires an installed actual HIL execution backend")
-            if current["state"] not in {"WAITING", "RUNNING"} or "STOP" not in current["available_actions"]:
+            if "STOP" not in current["available_actions"]:
                 raise ICDError("STATE", "STOP is not available for this Run")
+            recovery = current["state"] == "FAILED"
+            if current["state"] not in {"WAITING", "RUNNING", "FAILED"}:
+                raise ICDError("STATE", "STOP is not available for this Run")
+            if recovery:
+                operation_id = self._operation_id_factory()
+                self.management.validate_definition("Id", operation_id)
+
+                def recovering(run):
+                    # The frozen v0.3 Run schema requires a non-terminal
+                    # result while state is STOPPING.  Preserve the original
+                    # failure in last_error and restore FAIL after confirmation.
+                    run.update(state="STOPPING", result="RUNNING", available_actions=[])
+
+                stopping_run = self._transition(run_id, allowed_states={"FAILED"}, mutate=recovering)
+                if stopping_run is None:
+                    raise ICDError("VERSION_CONFLICT", "Run changed before emergency STOP could be queued")
+                self._record_fact(run_id, kind="SAFETY", reason_code="STOP_RECOVERY_REQUESTED",
+                                  operation_id=operation_id)
+                try:
+                    refs = self.executor.emergency_stop()
+                    if "status-stopped-safe" not in refs:
+                        raise ICDError("EVIDENCE_INCOMPLETE", "emergency STOP lacks stopped-safe evidence")
+                except ICDError as error:
+                    self._backend_failure(run_id, error.code, error.detail, operation_id=operation_id)
+                    raise
+
+                def recovered(run):
+                    run.update(state="FAILED", result="FAIL", available_actions=[], evidence_complete=False)
+
+                if self._transition(run_id, allowed_states={"STOPPING"}, mutate=recovered) is None:
+                    raise ICDError("VERSION_CONFLICT", "Run changed before emergency STOP could be confirmed")
+                self._record_fact(run_id, kind="RESPONSE", reason_code="HIL_EMERGENCY_STOP_APPLIED",
+                                  operation_id=operation_id, evidence_refs=refs)
+                self._record_fact(run_id, kind="OPERATION_RESULT", reason_code="STOP_RECOVERY_CONFIRMED",
+                                  operation_id=operation_id, evidence_refs=refs,
+                                  operation_result="SUCCEEDED")
+                return self._response(request, status="ACCEPTED", code="QUEUED", message="emergency HIL STOP confirmed",
+                                      data=self.store.get(run_id), error=None, operation_id=operation_id)
             with self._operation_lock:
                 active = self._active_operations.get(run_id)
             if active is None:
@@ -340,17 +394,25 @@ class SimulatorRunService:
         raise ICDError("UNSUPPORTED", "only START and STOP are enabled by this minimal service")
 
     def handle(self, request):
-        """Validate, execute CREATE/GET, and retain a byte-identical replay."""
+        """Validate and execute a management command.
+
+        CREATE and CONTROL retain byte-identical replay evidence.  GET and
+        RECORDS_LIST are deliberately evaluated afresh: their request IDs are
+        correlation IDs, not persistent cache keys, so polling cannot consume
+        the mutation/control-plane idempotency budget or return stale state.
+        """
         self.management.validate_request(request)
         request_id = request["params"]["request_id"]
-        try:
-            replay = self.store.replay(request_id, request)
-        except ICDError as error:
-            # A colliding key is a valid management rejection, but must never
-            # replace the original request-id evidence.
-            return self._failure(request, error)
-        if replay is not None:
-            return replay
+        retain_replay = request["cmd"] in _MUTATING_COMMANDS
+        if retain_replay:
+            try:
+                replay = self.store.replay(request_id, request)
+            except ICDError as error:
+                # A colliding key is a valid management rejection, but must
+                # never replace the original request-id evidence.
+                return self._failure(request, error)
+            if replay is not None:
+                return replay
         try:
             if request["cmd"] not in SUPPORTED_COMMANDS:
                 raise ICDError("UNSUPPORTED", "management command is not enabled by this minimal service")
@@ -364,4 +426,12 @@ class SimulatorRunService:
                 response = self._records_list(request)
         except ICDError as error:
             response = self._failure(request, error)
-        return self.store.remember(request_id, request, response)
+        if not retain_replay:
+            return response
+        try:
+            return self.store.remember(request_id, request, response)
+        except ICDError as error:
+            # The command has already completed.  Return a schema-valid
+            # management rejection instead of leaking an uncaught store error
+            # through the HTTP boundary.
+            return self._failure(request, error)

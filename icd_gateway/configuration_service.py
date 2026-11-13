@@ -47,6 +47,52 @@ class ModelConfigurationBoundary:
 
 
 @dataclass(frozen=True, slots=True)
+class ModelResetReceipt:
+    """Verified C-core boundary after an explicit model reset."""
+
+    lifecycle: str
+    model_step: int
+    model_revision: int
+    control_source: str
+    sim_time_us: int
+    sampled_ns: int
+    deadline_ns: int
+
+    def __post_init__(self):
+        if (self.lifecycle != "STOPPED" or type(self.model_step) is not int
+                or self.model_step != 0 or type(self.model_revision) is not int
+                or not 0 <= self.model_revision <= 0xffffffff
+                or self.control_source != "NONE" or type(self.sim_time_us) is not int
+                or self.sim_time_us != 0 or type(self.sampled_ns) is not int
+                or type(self.deadline_ns) is not int
+                or not 0 <= self.sampled_ns < self.deadline_ns <= MAX_TIME):
+            raise ICDError("SCHEMA", "verified stopped zero-step reset boundary required")
+
+
+@dataclass(frozen=True, slots=True)
+class ModelRuntimeStatus:
+    """Fresh, authoritative C-core status for an external lifecycle caller."""
+
+    lifecycle: str
+    model_step: int
+    model_revision: int
+    control_source: str
+    sim_time_us: int
+    sampled_ns: int
+    deadline_ns: int
+
+    def __post_init__(self):
+        if (self.lifecycle not in ("STOPPED", "CONFIGURED", "RUNNING", "PAUSED", "RESETTING", "ENDED", "FAILED")
+                or type(self.model_step) is not int or not 0 <= self.model_step <= 0xffffffff
+                or type(self.model_revision) is not int or not 0 <= self.model_revision <= 0xffffffff
+                or self.control_source not in ("NONE", "DEMO_MISSION", "PX4_SITL", "PHYSICAL_UUT")
+                or type(self.sim_time_us) is not int or not 0 <= self.sim_time_us <= 0xffffffffffffffff
+                or type(self.sampled_ns) is not int or type(self.deadline_ns) is not int
+                or not 0 <= self.sampled_ns < self.deadline_ns <= MAX_TIME):
+            raise ICDError("SCHEMA", "complete fresh authoritative model status required")
+
+
+@dataclass(frozen=True, slots=True)
 class ModelConfigurationContext:
     identity_json: bytes
     request_json: bytes
@@ -113,6 +159,14 @@ class ModelConfigurationBackend(ABC):
     def read_boundary(self, identity, *, now_ns):
         """Read the authoritative model boundary or fail closed when unavailable."""
         raise ICDError('TARGET_MISSING','authoritative model boundary reader is unavailable')
+
+    def reset_model(self, identity, *, now_ns):
+        """Reset a stopped model and return its verified zero-step boundary."""
+        raise ICDError('TARGET_MISSING', 'authoritative model reset is unavailable')
+
+    def read_runtime_status(self, identity, *, now_ns):
+        """Read fresh lifecycle, source, step and simulated time from C-core."""
+        raise ICDError('TARGET_MISSING', 'authoritative model status reader is unavailable')
 
     @abstractmethod
     def read_context(self, identity, request_json, *, now_ns):

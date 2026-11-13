@@ -1,0 +1,48 @@
+{
+  "format": "HIL_L006_CUTIL_VCAN_SENDER_1",
+  "status": "SOFTWARE_CUTIL_SENDER_CAPABILITY_VERIFIED",
+  "execution_host": "Linux 5.4.10-rt5 (x86_64)",
+  "generated_at_utc": "2026-10-29T12:37:25Z",
+  "interface": "can2",
+  "interface_details": "5: can2: <NOARP,UP,LOWER_UP> mtu 72 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/can  promiscuity 0 \n    vcan numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 \n",
+  "candump": {
+    "path": "/tmp/hil-l006-can-utils-sender.j7kD1N/source/candump",
+    "sha256": "552e992028801243a5ed28d08f18bcccf4630b6f2b8c03f04f91803b873fd7bd"
+  },
+  "cansend": {
+    "path": "/tmp/hil-l006-can-utils-sender.j7kD1N/source/cansend",
+    "sha256": "af0b8987316d20fdd5ac36696b78fbab2f5003517752d84532f3a87f1ea34c4a"
+  },
+  "receiver_argv": [
+    "/tmp/hil-l006-can-utils-sender.j7kD1N/source/candump",
+    "-L",
+    "-N",
+    "-x",
+    "-n",
+    "1",
+    "can2,123:C00007FF"
+  ],
+  "sender_argv": [
+    "/tmp/hil-l006-can-utils-sender.j7kD1N/source/cansend",
+    "can2",
+    "123##1000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F"
+  ],
+  "sender": {
+    "state": "EXITED",
+    "returncode": 0
+  },
+  "observation": {
+    "state": "EXITED",
+    "returncode": 0,
+    "stdout": "(1793277445.711958000) can2 123##5000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F T\n",
+    "is_fd": true,
+    "bitrate_switch": true,
+    "timestamp_format": "candump -L -N"
+  },
+  "authorization": {
+    "fixture_can_id": "0x123 (outside formal-message filters)",
+    "product_send_authorization": "NOT_GRANTED",
+    "meaning": "raw original-tool capability fixture only; it cannot authorize a formal application message"
+  },
+  "hardware_qualification": "NOT_EVALUATED: vcan cannot qualify a physical controller, bus arbitration/load, hardware timestamps, or electrical behaviour."
+}

@@ -15,12 +15,14 @@ Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 RestartSec=2
 UMask=0077
+RuntimeDirectory=hil
+RuntimeDirectoryMode=0750
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 ReadOnlyPaths=/opt/hil
-ReadWritePaths=/opt/hil/logs
+ReadWritePaths=/opt/hil/logs /run/hil
 
 [Install]
 WantedBy=multi-user.target

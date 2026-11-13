@@ -17,6 +17,7 @@ from .model_clock import _remember_feedback, _remember_control_feedback
 
 MAX_COUNTER = 0xffffffff
 MAX_REPLY_BYTES = 65536 + 1024
+EMERGENCY_EXCHANGE_RESERVE = 3
 
 
 def _snapshot_message(value):
@@ -176,10 +177,18 @@ class SourceSession:
     def records(self):
         return tuple(self._records)
 
-    def _record_capacity(self, value):
+    def _record_capacity(self, value, *, emergency=False):
         raw = canonicalize(value)
-        if (len(self._records) + len(self._inputs) >= self._max_records
-                or self._record_bytes + self._input_bytes + len(raw) + MAX_REPLY_BYTES > self._max_record_bytes):
+        if type(emergency) is not bool:
+            raise ICDError("SCHEMA", "explicit emergency evidence mode must be boolean")
+        # A running model must always retain room for status, Lifecycle STOP,
+        # and stopped-status exchanges.  The small overflow is not available
+        # to normal simulator traffic.
+        extra_records = EMERGENCY_EXCHANGE_RESERVE if emergency else 0
+        extra_bytes = EMERGENCY_EXCHANGE_RESERVE * MAX_REPLY_BYTES if emergency else 0
+        if (len(self._records) + len(self._inputs) >= self._max_records + extra_records
+                or self._record_bytes + self._input_bytes + len(raw) + MAX_REPLY_BYTES
+                > self._max_record_bytes + extra_bytes):
             raise ICDError("BUFFER_FULL", "drain source exchange records before another network request")
         return raw
 
@@ -226,8 +235,8 @@ class SourceSession:
         else:
             raise ICDError("STATE", "feedback is not defined for this serial request exchange")
 
-    def _exchange(self, value):
-        raw = self._record_capacity(value)
+    def _exchange(self, value, *, emergency=False):
+        raw = self._record_capacity(value, emergency=emergency)
         started = self._now()
         completed, reply_raw, error = None, None, None
         try:
@@ -485,29 +494,32 @@ class SourceSession:
         _, size = self._inputs.pop(key)
         self._input_bytes -= size
 
-    def _request(self, stimulus, target_step, transaction_id):
+    def _request(self, stimulus, target_step, transaction_id, *, emergency=False):
         stimulus = copy.deepcopy(stimulus)
         self.contract.validate_stimulus(stimulus, model_id=loads(self._identity_json)["model_id"])
+        if emergency and stimulus.get("message_id") not in (2, 4):
+            raise ICDError("AUTHORIZATION", "emergency evidence capacity is reserved for Status and Lifecycle")
         # Reserve evidence before consuming sequence/transaction or sending.
         preview = {**stimulus, "header": {"session_id": MAX_COUNTER, "sequence": MAX_COUNTER,
                                          "target_step": MAX_COUNTER, "transaction_id": MAX_COUNTER,
                                          "valid_for_ms": self.contract.entry(stimulus["message_id"])["valid_for_ms"]}}
-        self._record_capacity(preview)
+        self._record_capacity(preview, emergency=emergency)
         header = self._preview_header(stimulus["message_id"], target_step, transaction_id)
         self._check_heartbeat_transaction(stimulus['message_id'], header.transaction_id)
         self._commit_header(header, stimulus['message_id'],stimulus)
         value = {**stimulus, "header": asdict(header)}
         self.contract.validate_message(value, direction="TO_36")
-        return self._exchange(value)
+        return self._exchange(value, emergency=emergency)
 
-    def request(self, stimulus, *, target_step, transaction_id=None):
+    def request(self, stimulus, *, target_step, transaction_id=None, emergency=False):
         with self._operation():
-            return self._request(stimulus, target_step, transaction_id)
+            return self._request(stimulus, target_step, transaction_id, emergency=emergency)
 
-    def heartbeat(self, sender_step, *, target_step):
+    def heartbeat(self, sender_step, *, target_step, emergency=False):
         with self._operation():
             reply = self._request({"message_id": 2, "payload": {"last_rx_sequence": self._last_rx_sequence,
-                                                               "sender_step": sender_step}}, target_step, None)
+                                                               "sender_step": sender_step}}, target_step, None,
+                                  emergency=emergency)
             if reply["message_id"] == 131:
                 self._deadline_ns = self._records[-1].started_ns + self._lease_ms * 1_000_000
             return reply

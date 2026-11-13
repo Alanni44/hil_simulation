@@ -345,15 +345,37 @@ class ModelLifecycleService:
             for key,g in assembler._groups.items() if key[3] in selected)
         return selected,queue,assembler,worker,inputs,groups
 
-    def _scope_check(self,scope,context,now,origin_sid):
+    def _scope_check(self,scope,context,now,origin_sid,*,step_inflight=False):
         self._check()
         selected,queue,assembler,worker,inputs,groups=scope
         if (self._registry._model_queue is not queue or self._registry._resource_worker is not worker
                 or self._receiver.assembler is not assembler):
             raise ICDError('STATE','original lifecycle local owners changed during operation')
-        current=self._scope(origin_sid,now)
-        if current[0]!=selected or current[4]!=inputs or current[5]!=groups:
-            raise ICDError('STATE','original lifecycle sessions/inputs/fragments changed during operation')
+        if step_inflight:
+            # STEP was admitted while its source lease was live.  Its bounded
+            # offline solver batch may finish after that 1000ms lease, so do
+            # not reinterpret post-effect evidence processing as a new write
+            # permission.  The serial service lock keeps the captured local
+            # owners stable; expiry is still enforced before the C write.
+            origin=self._registry._sessions.get(origin_sid)
+            if origin is None:
+                raise ICDError('STATE','original STEP session disappeared during its admitted batch')
+            from .receiver import RetiredAssembly
+            identity=self._registry.identity(origin_sid)
+            fields=('run_id','vehicle_id','scenario_id','model_id','definition_version')
+            current_selected=tuple(sid for sid in self._registry.session_ids
+                if all(self._registry.identity(sid)[key]==identity[key] for key in fields))
+            if current_selected!=selected:
+                raise ICDError('STATE','original STEP run sessions changed during its admitted batch')
+            current_inputs=tuple(p for p in queue._pending.values() if p.key[0] in selected) if queue is not None else ()
+            current_groups=tuple(RetiredAssembly(key,g.first,g.deadline_ns,g.reserved,tuple(sorted(g.pieces.items())))
+                for key,g in assembler._groups.items() if key[3] in selected)
+            if current_inputs!=inputs or current_groups!=groups:
+                raise ICDError('STATE','original STEP local inputs/fragments changed during its admitted batch')
+        else:
+            current=self._scope(origin_sid,now)
+            if current[0]!=selected or current[4]!=inputs or current[5]!=groups:
+                raise ICDError('STATE','original lifecycle sessions/inputs/fragments changed during operation')
         if queue is not None and queue._steps[context.view.model_id]!=context.view.model_step:
             raise ICDError('STATE','actual model and original queue step differ before lifecycle')
 
@@ -434,9 +456,10 @@ class ModelLifecycleService:
                         receipt=value
                 finally:
                     completed=self._observe_time(started)
-                self._admitted(request,completed)
+                if not decision.steps:
+                    self._admitted(request,completed)
                 self._receipt(receipt,context,decision,identity,original,started,completed)
-                self._scope_check(scope,context,completed,sid)
+                self._scope_check(scope,context,completed,sid,step_inflight=bool(decision.steps))
                 self._cleanup_active=True
                 try:
                     if decision.new_session:
@@ -463,9 +486,11 @@ class ModelLifecycleService:
                     self._cleanup_active=False
                     completed=self._observe_time(completed)
                 self._check()
-                if completed>=min(origin.deadline_ns,received+request['header']['valid_for_ms']*1000000,
-                                  receipt.deadline_ns,receipt.sampled_ns+240000000):
-                    raise ICDError('EXPIRED','lifecycle completion expired after actual local effects')
+                if not decision.steps:
+                    deadline=min(origin.deadline_ns,received+request['header']['valid_for_ms']*1000000,
+                                 receipt.deadline_ns,receipt.sampled_ns+240000000)
+                    if completed>=deadline:
+                        raise ICDError('EXPIRED','lifecycle completion expired after actual local effects')
                 reply={'message_id':130,'header':terminal,'payload':{
                     'request_sequence':key[1],'request_message_id':4,'stage':'APPLIED','error':'OK',
                     'applied_step':receipt.view.model_step,'model_revision':receipt.model_revision,'probe_id':1004}}

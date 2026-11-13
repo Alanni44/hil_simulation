@@ -29,6 +29,55 @@ class VideoFragment:
     transport: str = "VIDEO"
 
 
+@dataclass(frozen=True, slots=True)
+class VideoFrame:
+    header: VideoHeader
+    payload: bytes
+
+
+class VideoReassembler:
+    """按 HIV1 完整帧身份重组，不能将不同帧或冲突分片拼接。"""
+
+    def __init__(self, codec, *, max_groups=64):
+        if type(codec) is not VideoCodec or type(max_groups) is not int or not 1 <= max_groups <= 64:
+            raise ICDError("SCHEMA", "actual VideoCodec and bounded frame-group capacity required")
+        self.codec, self._max_groups, self._groups = codec, max_groups, {}
+
+    @staticmethod
+    def _key(fragment):
+        header = fragment.header
+        return (header.session_id, header.stream_numeric_id, header.frame_index, header.capture_step,
+                header.pts_us, header.codec)
+
+    def push(self, fragment):
+        if type(fragment) is not VideoFragment:
+            raise ICDError("SCHEMA", "exact decoded HIV1 VideoFragment required")
+        key = self._key(fragment)
+        entry = self._groups.get(key)
+        if entry is None:
+            if len(self._groups) >= self._max_groups:
+                raise ICDError("BUFFER_FULL", "video reassembly capacity is full")
+            entry = (fragment.header, fragment.count, fragment.frame_bytes, {})
+            self._groups[key] = entry
+        header, count, frame_bytes, pieces = entry
+        if (header != fragment.header or count != fragment.count or frame_bytes != fragment.frame_bytes):
+            raise ICDError("FRAGMENT", "HIV1 frame identity/count/size changed within one group")
+        previous = pieces.get(fragment.index)
+        if previous is not None:
+            if previous != fragment.payload:
+                raise ICDError("FRAGMENT", "conflicting duplicate HIV1 video fragment")
+            return None
+        pieces[fragment.index] = fragment.payload
+        if len(pieces) != count:
+            return None
+        payload = b"".join(pieces[index] for index in range(count))
+        del self._groups[key]
+        if len(payload) != frame_bytes:
+            raise ICDError("FRAGMENT", "complete HIV1 group differs from declared frame size")
+        self.codec.validate_frame(payload, header)
+        return VideoFrame(header, payload)
+
+
 class VideoCodec:
     def __init__(self, contract):
         self.rules = contract.catalogue["codecs"]["VIDEO"]

@@ -19,6 +19,8 @@ from .configuration_service import (
     ModelConfigurationBoundary,
     ModelConfigurationContext,
     ModelConfigurationReceipt,
+    ModelResetReceipt,
+    ModelRuntimeStatus,
 )
 from .semantic_guards import SemanticGuards
 
@@ -47,22 +49,39 @@ class PreparationResult:
         return self.state == "CONFIGURED" and self.control_source == "NONE"
 
 
+@dataclass(frozen=True, slots=True)
+class ResetResult:
+    reset_id: str
+    model_id: str
+    model_revision: int
+    model_step: int
+    sim_time_us: int
+    state: str
+    control_source: str
+    sampled_ns: int
+
+
 class PreparationService:
     """Serialises actual first-circle preparation and proves its readback."""
 
-    def __init__(self, contract, backend, *, clock=time.monotonic_ns, max_results=64):
+    def __init__(self, contract, backend, *, clock=time.monotonic_ns, max_results=64,
+                 telemetry_epoch_client=None):
         if not isinstance(contract, Contract) or not contract.component_hashes:
             raise ICDError("HASH", "verified formal contract required for preparation")
         if not isinstance(backend, ModelConfigurationBackend) or backend.contract is not contract:
             raise ICDError("TARGET_MISSING", "same-contract actual configuration backend required")
         if not callable(clock) or type(max_results) is not int or not 1 <= max_results <= 4096:
             raise ICDError("CAPACITY", "bounded preparation history and clock required")
+        if telemetry_epoch_client is not None and not callable(getattr(telemetry_epoch_client, 'advance', None)):
+            raise ICDError("TARGET_MISSING", "telemetry epoch client must provide advance")
         self.contract = contract
         self.backend = backend
         self._clock = clock
         self._max_results = max_results
         self._by_prepare_id = {}
         self._by_snapshot = {}
+        self._by_reset_id = {}
+        self._telemetry_epoch_client = telemetry_epoch_client
         self._lock = threading.Lock()
 
     def _now(self):
@@ -204,6 +223,64 @@ class PreparationService:
         with self._lock:
             return self._prepare_locked(prepare_id, frozen_identity, frozen_configuration, snapshot,
                 lambda boundary: self._run_configure_request(frozen_configuration, boundary.model_step))
+
+    def reset_current(self, reset_id, identity):
+        """Create a verified zero-step boundary before a new RunConfigure."""
+        if type(reset_id) is not str or not 1 <= len(reset_id) <= 128:
+            raise ICDError("SCHEMA", "bounded reset ID required")
+        if type(identity) is not dict:
+            raise ICDError("SCHEMA", "Run identity object required")
+        frozen_identity = loads(canonicalize(identity))
+        if frozen_identity.get("model_id") not in self.backend.model_ids:
+            raise ICDError("TARGET_MISSING", "requested model has no actual configuration backend")
+        with self._lock:
+            previous = self._by_reset_id.get(reset_id)
+            if previous is not None:
+                if previous.model_id != frozen_identity["model_id"]:
+                    raise ICDError("DUPLICATE", "reset_id names another model")
+                return previous
+            if len(self._by_reset_id) >= self._max_results:
+                raise ICDError("CAPACITY", "reset history capacity is exhausted")
+            started = self._now()
+            boundary = self.backend.read_boundary(dict(frozen_identity), now_ns=started)
+            checked = self._now()
+            self._verify_boundary_fresh(boundary, checked)
+            if boundary.lifecycle != "STOPPED" or boundary.control_source != "NONE":
+                raise ICDError("STATE", "model reset requires authoritative STOPPED/NONE boundary")
+            receipt = self.backend.reset_model(dict(frozen_identity), now_ns=checked)
+            completed = self._now()
+            if (type(receipt) is not ModelResetReceipt
+                    or not receipt.sampled_ns <= completed < min(receipt.deadline_ns, receipt.sampled_ns + 240_000_000)
+                    or receipt.model_step != 0 or receipt.sim_time_us != 0
+                    or receipt.lifecycle != "STOPPED" or receipt.control_source != "NONE"):
+                raise ICDError("STATE", "actual model reset lacks a safe zero-step readback")
+            if self._telemetry_epoch_client is not None:
+                try:
+                    self._telemetry_epoch_client.advance(reset_id, frozen_identity.get('run_id', reset_id))
+                except (OSError, ValueError) as exc:
+                    raise ICDError("STATE", "verified reset could not advance telemetry epoch: {}".format(exc))
+            result = ResetResult(reset_id=reset_id, model_id=frozen_identity["model_id"],
+                                 model_revision=receipt.model_revision, model_step=receipt.model_step,
+                                 sim_time_us=receipt.sim_time_us, state=receipt.lifecycle,
+                                 control_source=receipt.control_source, sampled_ns=receipt.sampled_ns)
+            self._by_reset_id[reset_id] = result
+            return result
+
+    def status_current(self, identity):
+        """Return one fresh C-core readback; never use preparation history."""
+        if type(identity) is not dict:
+            raise ICDError("SCHEMA", "Run identity object required")
+        frozen_identity = loads(canonicalize(identity))
+        if frozen_identity.get("model_id") not in self.backend.model_ids:
+            raise ICDError("TARGET_MISSING", "requested model has no actual configuration backend")
+        with self._lock:
+            started = self._now()
+            status = self.backend.read_runtime_status(dict(frozen_identity), now_ns=started)
+            completed = self._now()
+            if (type(status) is not ModelRuntimeStatus
+                    or not status.sampled_ns <= completed < min(status.deadline_ns, status.sampled_ns + 240_000_000)):
+                raise ICDError("STATE", "actual C-core status readback is stale or incomplete")
+            return status
 
     def prepare(self, prepare_id, identity, request):
         """Prepare one frozen ID3 message, preserving its original idempotency key."""

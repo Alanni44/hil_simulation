@@ -1,0 +1,145 @@
+{
+  "format": "HIL_L010_CCORE_LIFECYCLE_1",
+  "status": "SOFTWARE_LIFECYCLE_BOUNDARY_VALIDATED",
+  "execution_scope": "LOCAL_GENERATED_CCORE_NON_RT",
+  "records": [
+    {
+      "request": {
+        "request_id": "l010-pause-42",
+        "action": "PAUSE",
+        "target_step": 42
+      },
+      "reply": {
+        "request_id": "l010-pause-42",
+        "accepted": true,
+        "reason": "applied",
+        "effective_sequence": 42,
+        "lifecycle": "PAUSED"
+      }
+    },
+    {
+      "request": {
+        "request_id": "l010-resume-42",
+        "action": "RESUME",
+        "target_step": 42
+      },
+      "reply": {
+        "request_id": "l010-resume-42",
+        "accepted": true,
+        "reason": "applied",
+        "effective_sequence": 42,
+        "lifecycle": "RUNNING"
+      }
+    },
+    {
+      "request": {
+        "request_id": "l010-stop-86",
+        "action": "STOP",
+        "target_step": 86
+      },
+      "reply": {
+        "request_id": "l010-stop-86",
+        "accepted": true,
+        "reason": "applied",
+        "effective_sequence": 86,
+        "lifecycle": "STOPPED"
+      }
+    },
+    {
+      "request": {
+        "request_id": "l010-reset-86",
+        "action": "RESET",
+        "target_step": 86
+      },
+      "reply": {
+        "request_id": "l010-reset-86",
+        "accepted": true,
+        "reason": "applied",
+        "effective_sequence": 0,
+        "lifecycle": "STOPPED"
+      }
+    }
+  ],
+  "final_status": {
+    "request_id": "l004-status",
+    "accepted": true,
+    "reason": "HIL capability/status",
+    "effective_sequence": 0,
+    "lifecycle": "STOPPED",
+    "fields": {
+      "lifecycle": "STOPPED",
+      "sequence": 0,
+      "sim_time_s": 0,
+      "control_source": "none",
+      "actuator_output": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "actuator_output_sequence": 0,
+      "model_loaded": true,
+      "initial_state_abi": true,
+      "full_configuration_abi": true,
+      "model_revision": 1,
+      "initial_state": {
+        "position": {
+          "north_m": 0,
+          "east_m": 0,
+          "down_m": 0
+        },
+        "velocity_n_mps": 0,
+        "velocity_e_mps": 0,
+        "velocity_d_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 0,
+          "q_y": 0,
+          "q_z": 0
+        },
+        "p_radps": 0,
+        "q_radps": 0,
+        "r_radps": 0,
+        "airborne": false
+      },
+      "model_state": {
+        "model_step": 0,
+        "position": {
+          "north_m": 0,
+          "east_m": 0,
+          "down_m": 0
+        },
+        "vn_mps": 0,
+        "ve_mps": 0,
+        "vd_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 0,
+          "q_y": 0,
+          "q_z": 0
+        },
+        "p_radps": 0,
+        "q_radps": 0,
+        "r_radps": 0,
+        "airborne": false,
+        "ax_mps2": 0,
+        "ay_mps2": 0,
+        "az_mps2": 0,
+        "engine_rpm": 0,
+        "fuel_remaining_kg": 0,
+        "hydraulic_pressure_pa": 0,
+        "electrical_voltage_v": 28,
+        "avionics_state": "UNAVAILABLE"
+      }
+    }
+  },
+  "binary_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+  "model_contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317",
+  "not_verified": [
+    "4096_ACTUAL_C_QUEUE",
+    "PER_INPUT_NO_OVERWRITE_OR_CATCHUP",
+    "SAFE_ACTUATOR_OUTPUT_READBACK",
+    "FORMAL_3_6_LIFECYCLE_SERVICE",
+    "RT_DEADLINE_AND_HARDWARE_SAFETY"
+  ]
+}

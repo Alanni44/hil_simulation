@@ -1,0 +1,71 @@
+{
+  "format": "HIL_L013_RT_LOAD_1",
+  "status": "NOT_QUALIFIED",
+  "execution_scope": "TARGET_GENERATED_CCORE_CONCURRENT_CPU_AND_UDP_LOAD",
+  "model": {
+    "executable": "/home/user/桌面/hil-simulator/artifacts/linux_target/l010-step-candidate-20261112T100000Z/bin/quadrotor_hil_rt",
+    "binary_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+    "contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317"
+  },
+  "requested": {
+    "duration_s": 60.0,
+    "cpu_load_workers": 7,
+    "allow_nonrt": false,
+    "model_cpu": 3,
+    "load_cpus": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "step_period_ns": 1000000,
+    "step_limit_abs_lateness_ns": 10000,
+    "system_period_ns": 80000000,
+    "system_limit_abs_error_ns": 1000000
+  },
+  "realtime": {
+    "samples": 61139,
+    "p99": 70000,
+    "maximum": 3610803,
+    "over_250us": 60,
+    "non_realtime": 0
+  },
+  "cycle_80ms_observation": {
+    "source": "C_CORE_20MS_STATUS_PACKET_GROUP_OF_FOUR",
+    "not_a_replacement_for": "3.6_STATUS_SERVICE_80MS_PUBLICATION",
+    "samples": 2997,
+    "period_ns_p99": 80820896,
+    "period_ns_max": 84757881,
+    "absolute_error_ns_p99": 1121596,
+    "absolute_error_ns_max": 4769623,
+    "model_step_delta_min": 80,
+    "model_step_delta_max": 80,
+    "within_plus_minus_1ms": false
+  },
+  "management_udp_load": {
+    "samples": 3001,
+    "p99_ns": 1098684,
+    "max_ns": 5592536,
+    "failures": []
+  },
+  "resource_usage": {
+    "before": {
+      "rss_kib": 12916,
+      "cpu_ticks": 3
+    },
+    "after": {
+      "rss_kib": 12916,
+      "cpu_ticks": 336
+    },
+    "cpu_ticks_delta": 333,
+    "rss_kib_max_observed": 12916
+  },
+  "not_verified": [
+    "3.6_STATUS_SERVICE_80MS_PUBLICATION_UNTIL_SERVICE_IS_DEPLOYED",
+    "PHYSICAL_CAN_OR_ETHERNET_THROUGHPUT",
+    "LONG_STABILITY_UNLESS_DURATION_IS_1800_SECONDS_OR_MORE"
+  ]
+}

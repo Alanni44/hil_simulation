@@ -294,6 +294,15 @@ class SourceSessionTests(unittest.TestCase):
         reply=session.request({"message_id":7,"payload":message(7)["payload"]},target_step=100)
         self.assertEqual(reply["payload"]["request_sequence"],2)
 
+    def test_emergency_status_uses_only_the_bounded_stop_reserve(self):
+        session=self.session(max_records=1)
+        session.open()
+        self.rejects("BUFFER_FULL",lambda:session.request(
+            {"message_id":7,"payload":message(7)["payload"]},target_step=100))
+        reply=session.heartbeat(0,target_step=0,emergency=True)
+        self.assertEqual(reply["message_id"],131)
+        self.assertEqual(len(session.records),2)
+
     def test_transport_timeout_is_recorded_without_faking_response_or_session(self):
         session=self.session()
         self.peer.raise_error=ICDError("TIMEOUT","unit-test-only missing peer")

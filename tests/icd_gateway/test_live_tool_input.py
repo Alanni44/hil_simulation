@@ -16,6 +16,7 @@ from input_simulator.protocol import ProtocolParser
 from input_simulator.capture import CaptureParser
 from input_simulator.replay_export import ExportBinding
 from input_simulator.session import SourceSession
+from input_simulator.tool_commands import ToolCommand
 from input_simulator.tools import ChannelReservations
 from test_source_inputs import resources, source_inputs
 import test_source_session
@@ -297,13 +298,18 @@ class InputTests(unittest.TestCase):
     def test_observer_unknown_original_branch_and_invalid_limits_are_rejected(self):
         self.session.open()
         builder=self.builder()
-        for branch,mode in (('CANT','OBSERVE'),('SAVVY','SEND'),('CANREPLAY','SEND'),('ETHREPLAY','SEND')):
+        for branch,mode in (('CANT','OBSERVE'),('CANREPLAY','SEND'),('ETHREPLAY','SEND')):
             token=self.book.reserve(branch,branch,('can0',),mode=mode)
             self.rejects('AUTHORIZATION',lambda:builder.prepare(token,{'message_id':7,'payload':message(7)['payload']},ExportBinding('CANFD_0','can0'),target_step=100))
             self.book.release(token)
+        savvy = self.book.reserve('savvy', 'SAVVY', ('can0',), mode='SEND')
+        plan = builder.prepare(savvy, {'message_id': 7, 'payload': message(7)['payload']},
+                               ExportBinding('CANFD_0', 'can0'), target_step=100)
+        self.assertEqual(plan.commands, (ToolCommand(('SavvyCAN', '--hil-authorized-send'), 'CANFD_0'),))
+        self.book.release(savvy)
         for kw in ({'capacity':True},{'capacity':0},{'capacity':65},{'max_bytes':True},{'max_bytes':0}):
             self.rejects('CAPACITY',lambda:self.builder(**kw))
-        self.assertEqual(self.prepare().message['header']['sequence'],2)
+        self.assertEqual(self.prepare().message['header']['sequence'],3)
 
     def test_post_allocation_tool_error_or_revoke_preserves_original_input_no_rollback(self):
         self.session.open()

@@ -81,6 +81,13 @@ root-owned runtime location, starts the C core and starts `hil-gateway.service`.
 It provisions `can0`, `can1` and `can2` as `vcan` interfaces. This is the
 three-chain development topology, not a physical CAN FD qualification.
 
+Current deployments retain gateway status evidence in
+`/opt/hil/runtime/hil-gateway-resources-status-evidence`, separate from the
+strict resource-store root. On the first run after upgrading, `start-minimal-hil`
+stops the gateway and moves the legacy `status-evidence` directory out of the
+resource-store root without deleting it. If both locations already exist, it
+refuses to merge evidence and requires operator review.
+
 The endpoints to hand to the remote backend after the stack is active are
 `http://192.168.100.165:18081/api/hil/preparation/commands` (3.6 first
 circle over HTTP), `http://192.168.100.165:18080/api/simulator/commands`

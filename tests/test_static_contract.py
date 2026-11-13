@@ -93,7 +93,7 @@ class RuntimeContractStaticTests(unittest.TestCase):
 
     def test_build_validates_generated_abi_and_emits_no_defaults(self):
         source = read('matlab_scripts/build_script.m')
-        self.assertIn('validate_contract_abi(contract, y_fields, u_fields, model_h)', source)
+        self.assertIn('validate_contract_abi(contract, y_fields, u_fields, dw_fields, model_h)', source)
         self.assertIn('Generated ExtY field missing', source)
         self.assertIn('model_contract.h', source)
         self.assertIn('[HIL] GCC command:', source)

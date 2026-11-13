@@ -1,0 +1,26 @@
+{
+  "format": "HIL_L013_RT_LOAD_1",
+  "status": "NOT_QUALIFIED",
+  "execution_scope": "INTERRUPTED_TARGET_GENERATED_CCORE_RUN",
+  "reason": "collector process ended before it wrote complete evidence",
+  "model": {
+    "executable": "/home/user/桌面/hil-simulator/artifacts/linux_target/l010-step-candidate-20261112T100000Z/bin/quadrotor_hil_rt",
+    "binary_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+    "contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317"
+  },
+  "realtime": {
+    "samples": 1853751,
+    "p99": 110000,
+    "maximum": 12296055,
+    "over_250us": 2418,
+    "non_realtime": 0
+  },
+  "not_verified": [
+    "80MS_CYCLE_OBSERVATION",
+    "MANAGEMENT_UDP_LOAD",
+    "RESOURCE_USAGE",
+    "LONG_STABILITY_COMPLETE_EVIDENCE",
+    "3.6_STATUS_SERVICE_80MS_PUBLICATION",
+    "PHYSICAL_CAN_OR_ETHERNET_THROUGHPUT"
+  ]
+}

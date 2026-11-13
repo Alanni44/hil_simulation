@@ -1,0 +1,82 @@
+{
+  "format": "HIL_L006_CAN_TOOL_READINESS_1",
+  "status": "TOOL_DEPENDENCIES_UNAVAILABLE",
+  "execution_host": "Linux 5.4.10-rt5 (x86_64)",
+  "generated_at_utc": "2026-10-29T12:02:54Z",
+  "interface": "can0",
+  "interface_details": "3: can0: <NOARP,UP,LOWER_UP> mtu 72 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/can  promiscuity 0 \n    vcan numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 \n",
+  "branches": {
+    "CUTIL": {
+      "catalogue_id": "CUTIL",
+      "branch_id": "CAN_UTILS",
+      "status": "UNAVAILABLE",
+      "reason": "Required tool dependencies were not found; no substitute backend.",
+      "executables": [
+        {
+          "name": "candump",
+          "present": false,
+          "location": null,
+          "sha256": null
+        },
+        {
+          "name": "cansend",
+          "present": false,
+          "location": null,
+          "sha256": null
+        },
+        {
+          "name": "cangen",
+          "present": false,
+          "location": null,
+          "sha256": null
+        }
+      ],
+      "pending_checks": [
+        "ACTUAL_TOOL_BACKEND_AND_DEVICE",
+        "ACTUAL_VERSION_BUILD_QUALIFICATION",
+        "PROCESS_TREE_STOP_AND_SAFETY",
+        "STANDARD_AUTHORIZATION_AND_FEEDBACK",
+        "TARGET_TIMING_AND_ORIGINAL_TX_RX"
+      ]
+    },
+    "SAVVY": {
+      "catalogue_id": "SAVVY",
+      "branch_id": "SAVVYCAN",
+      "status": "UNAVAILABLE",
+      "reason": "Required tool dependencies were not found; no substitute backend.",
+      "executables": [
+        {
+          "name": "SavvyCAN",
+          "present": false,
+          "location": null,
+          "sha256": null
+        }
+      ],
+      "pending_checks": [
+        "ACTUAL_TOOL_BACKEND_AND_DEVICE",
+        "ACTUAL_VERSION_BUILD_QUALIFICATION",
+        "PROCESS_TREE_STOP_AND_SAFETY",
+        "STANDARD_AUTHORIZATION_AND_FEEDBACK",
+        "TARGET_TIMING_AND_ORIGINAL_TX_RX"
+      ]
+    }
+  },
+  "default_observation": {
+    "argv": [
+      "candump",
+      "-L",
+      "-N",
+      "-x",
+      "can0,302:C00007FF,307:C00007FF,308:C00007FF,309:C00007FF,30A:C00007FF,30B:C00007FF,30C:C00007FF,30D:C00007FF,30E:C00007FF,30F:C00007FF,310:C00007FF,481:C00007FF,482:C00007FF"
+    ],
+    "reservation_mode": "OBSERVE",
+    "reservation_authorized_to_transmit": false,
+    "plan_authorized_to_transmit": false,
+    "result": "CANDUMP_ONLY_NO_SEND_AUTHORITY"
+  },
+  "not_executed": [
+    "No can-utils or SavvyCAN executable was launched by this readiness check.",
+    "Start/stop, actual CAN-FD/BRS/timestamp/channel evidence and any transmission require the original installed tool, a separately granted sender session, and a qualified target device."
+  ],
+  "hardware_qualification": "NOT_EVALUATED: interface inspection does not qualify a physical CAN-FD controller, bus arbitration/load, hardware timestamps, or electrical behaviour."
+}

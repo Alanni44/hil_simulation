@@ -1,7 +1,10 @@
 """Explicit model-backed standard Heartbeat/Status service; no model defaults."""
 
 from abc import ABC, abstractmethod
+import base64
 from dataclasses import dataclass
+import os
+from pathlib import Path
 import threading
 import time
 
@@ -65,7 +68,8 @@ class ModelStatusRecord:
 
 class ModelStatusService:
     def __init__(self, contract, registry, backend, *, max_records=4096, max_bytes=16*1024*1024,
-                 clock=time.monotonic_ns):
+                 clock=time.monotonic_ns, archive_root=None, archive_segment_bytes=16*1024*1024,
+                 archive_segments=8):
         if (not isinstance(contract,Contract) or not contract.component_hashes
                 or type(registry) is not SessionRegistry or registry.contract is not contract):
             raise ICDError('HASH','same actual verified contract and registry required')
@@ -75,6 +79,18 @@ class ModelStatusService:
                 or type(max_bytes) is not int or not 1 <= max_bytes <= 128*1024*1024
                 or not callable(clock)):
             raise ICDError('CAPACITY','finite original model status history required')
+        if archive_root is not None:
+            if (not isinstance(archive_root, (str, Path)) or type(archive_segment_bytes) is not int
+                    or not 64 * 1024 <= archive_segment_bytes <= 128 * 1024 * 1024
+                    or type(archive_segments) is not int or not 1 <= archive_segments <= 64):
+                raise ICDError('CAPACITY', 'bounded owned status evidence archive required')
+            archive_root = Path(archive_root)
+            try:
+                archive_root.mkdir(mode=0o750, parents=True, exist_ok=True)
+                if not archive_root.is_dir() or archive_root.is_symlink():
+                    raise OSError('archive root is not an owned directory')
+            except OSError as error:
+                raise ICDError('RESOURCE', 'status evidence archive is unavailable') from error
         self.contract,self.registry,self.backend=contract,registry,backend
         self._contract,self._registry,self._backend=contract,registry,backend
         self._models=backend.model_ids
@@ -89,6 +105,73 @@ class ModelStatusService:
         self._lock=threading.Lock()
         self._clock=clock
         self._last_observed_ns=None
+        self._archive_root = archive_root
+        self._archive_segment_bytes = archive_segment_bytes if archive_root is not None else None
+        self._archive_segments = archive_segments if archive_root is not None else None
+        self._archive_failed = False
+
+    def capacity_snapshot(self):
+        """Bounded diagnostics for admission failures; never exposes raw payloads."""
+        return {
+            'pool': 'model_status_evidence',
+            'max_records': self._max_records,
+            'used_records': len(self._records),
+            'remaining_records': self._max_records-len(self._records),
+            'max_bytes': self._max_bytes,
+            'used_bytes': self._bytes,
+            'remaining_bytes': self._max_bytes-self._bytes,
+            'archive_enabled': self._archive_root is not None,
+            'archive_failed': self._archive_failed,
+        }
+
+    @staticmethod
+    def _archive_value(record):
+        sample = None if record.sample is None else {
+            'identity_b64': base64.b64encode(record.sample.identity_json).decode('ascii'),
+            'payload_b64': base64.b64encode(record.sample.payload_json).decode('ascii'),
+            'sampled_ns': str(record.sample.sampled_ns), 'deadline_ns': str(record.sample.deadline_ns),
+        }
+        return canonicalize({
+            'version': 1,
+            'request_b64': base64.b64encode(record.request_json).decode('ascii'),
+            'received_ns': str(record.received_ns), 'completed_ns': str(record.completed_ns),
+            'sample': sample,
+            'reply_b64': None if record.reply_json is None else base64.b64encode(record.reply_json).decode('ascii'),
+            'error': record.error,
+        }) + b'\n'
+
+    def _archive_record(self, record):
+        """Durably retain one complete record before releasing RAM history."""
+        if self._archive_root is None or self._archive_failed:
+            return False
+        raw = self._archive_value(record)
+        if len(raw) > self._archive_segment_bytes:
+            self._archive_failed = True
+            return False
+        current = self._archive_root / 'status-evidence.jsonl'
+        try:
+            current_size = current.stat().st_size if current.exists() else 0
+            if current_size + len(raw) > self._archive_segment_bytes:
+                oldest = self._archive_root / ('status-evidence.%d.jsonl' % self._archive_segments)
+                oldest.unlink(missing_ok=True)
+                for index in range(self._archive_segments - 1, 0, -1):
+                    source = self._archive_root / ('status-evidence.%d.jsonl' % index)
+                    if source.exists():
+                        os.replace(source, self._archive_root / ('status-evidence.%d.jsonl' % (index + 1)))
+                if current.exists():
+                    os.replace(current, self._archive_root / 'status-evidence.1.jsonl')
+            fd = os.open(current, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o640)
+            try:
+                os.write(fd, raw)
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            return True
+        except OSError:
+            # The original record remains in the bounded in-memory buffer.
+            # Subsequent admission will safely reject when that buffer fills.
+            self._archive_failed = True
+            return False
 
     @property
     def last_observed_ns(self):
@@ -180,7 +263,8 @@ class ModelStatusService:
             if not self.supports(identity['model_id']):
                 raise ICDError('TARGET_MISSING','original model has no installed status backend')
             reserve=512+len(original)+3*MAX_SAMPLE_BYTES
-            if len(self._records)>=self._max_records or self._bytes+reserve>self._max_bytes:
+            if (self._archive_root is None or self._archive_failed) and (
+                    len(self._records)>=self._max_records or self._bytes+reserve>self._max_bytes):
                 raise ICDError('BUFFER_FULL','retain status evidence before another backend read')
             self._attempted.add(key)
             sample,reply,error=None,None,None
@@ -245,8 +329,9 @@ class ModelStatusService:
             finally:
                 record=ModelStatusRecord(original,now_ns,completed,sample,
                                          canonicalize(reply) if error is None and reply is not None else None,error)
-                self._records.append(record)
-                self._bytes+=record.stored_bytes
+                if not self._archive_record(record):
+                    self._records.append(record)
+                    self._bytes+=record.stored_bytes
             return reply
         finally:
             self._lock.release()

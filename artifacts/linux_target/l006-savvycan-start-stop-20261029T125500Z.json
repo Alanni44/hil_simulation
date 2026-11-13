@@ -1,0 +1,31 @@
+{
+  "format": "HIL_L006_SAVVYCAN_START_STOP_1",
+  "status": "SOFTWARE_SAVVYCAN_START_STOP_VERIFIED",
+  "execution_host": "Linux 5.4.10-rt5 (x86_64)",
+  "generated_at_utc": "2026-10-29T12:50:27Z",
+  "appimage": "/home/user/桌面/hil-simulator/tools/SavvyCAN/V199.1/SavvyCAN-305dafd-x86_64.AppImage",
+  "appimage_sha256": "8bd3b51a7bc0ba71678bd96175c8a103447f9d30ae15531c996f6805513250f9",
+  "extraction": {
+    "state": "EXITED",
+    "returncode": 0
+  },
+  "viewer": {
+    "state": "STOPPED",
+    "direct_child_terminal": true,
+    "argv": [
+      "/tmp/hil-l006-savvycan-7tb851m7/squashfs-root/AppRun"
+    ],
+    "stdout": "",
+    "stderr": ""
+  },
+  "authorization": {
+    "can_connection_opened": false,
+    "gui_send_invoked": false,
+    "meaning": "default GUI start/stop only; no transmit authority acquired"
+  },
+  "pending": [
+    "SAVVYCAN_SOCKETCAN_CONNECTION_AND_FD_BRS_OBSERVATION",
+    "SAVVYCAN_FORMAL_SEND_AUTHORIZATION",
+    "PHYSICAL_CANFD_QUALIFICATION"
+  ]
+}

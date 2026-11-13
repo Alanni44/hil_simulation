@@ -1,0 +1,82 @@
+{
+  "format": "HIL_L005_SOCKETCAN_VCAN_1",
+  "status": "SOFTWARE_VCAN_VERIFIED",
+  "execution_host": "Linux 5.4.10-rt5 (x86_64)",
+  "generated_at_utc": "2026-10-29T11:54:47Z",
+  "completed_linux_items": [
+    "L-005-software"
+  ],
+  "interface": "can0",
+  "interface_details": "3: can0: <NOARP,UP,LOWER_UP> mtu 72 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/can  promiscuity 0 \n    vcan numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 \n",
+  "python_can_version": "4.6.1",
+  "message_id": 10,
+  "request_frame_count": 2,
+  "request_frames": [
+    {
+      "arbitration_id": 778,
+      "data_hex": "01000026d7a6ec290200000050000000020000000002f00000000000000044c000000000008041c00000000000003ec0000000008007de40000000000040b229",
+      "dlc": 64,
+      "is_fd": true,
+      "bitrate_switch": true,
+      "is_extended_id": false,
+      "is_remote_frame": false,
+      "is_error_frame": false,
+      "error_state_indicator": false,
+      "is_rx": false,
+      "channel": "can0",
+      "timestamp": 1793274887.4668248
+    },
+    {
+      "arbitration_id": 778,
+      "data_hex": "0100000ad7a6ec290200000050000000020000000102f0006a40000000000044a64000000000000000000000000000000000000000000000000000000000a60e",
+      "dlc": 64,
+      "is_fd": true,
+      "bitrate_switch": true,
+      "is_extended_id": false,
+      "is_remote_frame": false,
+      "is_error_frame": false,
+      "error_state_indicator": false,
+      "is_rx": false,
+      "channel": "can0",
+      "timestamp": 1793274887.4677622
+    }
+  ],
+  "feedback_frames": [
+    {
+      "arbitration_id": 1153,
+      "data_hex": "01000014d7a6ec290200000000000000020000000001e803020000000a0000000000000000000000000000000000000000000000000000000000000000003cbb",
+      "dlc": 64,
+      "is_fd": true,
+      "bitrate_switch": true,
+      "is_extended_id": false,
+      "is_remote_frame": false,
+      "is_error_frame": false,
+      "error_state_indicator": false,
+      "is_rx": false,
+      "channel": "can0",
+      "timestamp": 1793274887.4788167
+    },
+    {
+      "arbitration_id": 1153,
+      "data_hex": "01000014d7a6ec290300000000000000020000000001e803020000000a0001000000000000000000000000000000000000000000000000000000000000001d7e",
+      "dlc": 64,
+      "is_fd": true,
+      "bitrate_switch": true,
+      "is_extended_id": false,
+      "is_remote_frame": false,
+      "is_error_frame": false,
+      "error_state_indicator": false,
+      "is_rx": false,
+      "channel": "can0",
+      "timestamp": 1793274887.4801335
+    }
+  ],
+  "feedback_stages": [
+    "RECEIVED",
+    "VALIDATED"
+  ],
+  "receiver_records": 1,
+  "closed_gateway_rejected_with": "STATE",
+  "verification": "Shared CAN-FD codec -> actual python-can SocketCAN/vcan peer -> CANGateway -> Receiver -> actual SocketCAN feedback.",
+  "hardware_qualification": "NOT_EVALUATED: vcan has no physical controller, bus arbitration/load or electrical disconnect evidence."
+}

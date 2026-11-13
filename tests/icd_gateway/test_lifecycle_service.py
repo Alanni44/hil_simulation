@@ -143,6 +143,23 @@ class LifecycleServiceTests(GatewayTest):
                     self.assertEqual(self.sid not in self.registry.session_ids,action in ('RESET','RESUME'))
                     self.assertEqual((self.backend.read_calls,self.backend.write_calls),(1,1))
 
+    def test_admitted_offline_step_finishes_after_source_lease_without_renewing_it(self):
+        self.create(action='STEP')
+        m=self.module
+        samples=tuple(replace(sample,sampled_ns=998_000_000+index*500_000)
+                      for index,sample in enumerate(self.backend.receipt.steps,1))
+        self.backend.receipt=replace(self.backend.receipt,steps=samples,
+                                     sampled_ns=1_000_000_000,deadline_ns=1_240_000_000)
+        def write(raw,context,decision,now):
+            self.now=1_000_000_001
+            return replace(self.backend.receipt,request_json=raw)
+        self.backend.write_hook=write
+        replies=self.deliver(self.request)
+        self.assertEqual([reply['payload']['stage'] for reply in replies],['RECEIVED','APPLIED'],
+                         self.service.records[-1].error)
+        self.assertEqual(self.service.records[-1].receipt.view.model_step,13)
+        self.assertIn(self.sid,self.registry.session_ids)
+
     def test_capability_is_only_consumer_not_model_or_hardware_qualification(self):
         self.create()
         caps=self.opened[0]['payload']['capabilities']

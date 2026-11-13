@@ -1,0 +1,6 @@
+{
+  "format": "HIL_L013_RT_LOAD_1",
+  "status": "NOT_QUALIFIED",
+  "error": "RuntimeError",
+  "detail": "C model refused startup: [HIL] SCHED_FIFO/locked memory unavailable; refusing production start (sched_setscheduler=1:Operation not permitted mlockall=0:ok)\n"
+}

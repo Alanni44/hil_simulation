@@ -1,0 +1,209 @@
+{
+  "format": "HIL_L010_FORMAL_LIFECYCLE_SERVICE_1",
+  "status": "SOFTWARE_FORMAL_LIFECYCLE_SERVICE_VALIDATED",
+  "execution_scope": "LOCAL_GENERATED_CCORE_NON_RT",
+  "session_ids": [
+    1936863550,
+    1936863551,
+    1936863552
+  ],
+  "requests": [
+    {
+      "message_id": 4,
+      "header": {
+        "session_id": 1936863550,
+        "sequence": 2,
+        "target_step": 542,
+        "transaction_id": 2,
+        "valid_for_ms": 1000
+      },
+      "payload": {
+        "action": "PAUSE",
+        "expected_state": "RUNNING",
+        "reset_policy": "NOT_APPLICABLE"
+      }
+    },
+    {
+      "message_id": 4,
+      "header": {
+        "session_id": 1936863551,
+        "sequence": 2,
+        "target_step": 542,
+        "transaction_id": 2,
+        "valid_for_ms": 1000
+      },
+      "payload": {
+        "action": "STEP",
+        "expected_state": "PAUSED",
+        "reset_policy": "NOT_APPLICABLE",
+        "step_count": 1000
+      }
+    },
+    {
+      "message_id": 4,
+      "header": {
+        "session_id": 1936863552,
+        "sequence": 2,
+        "target_step": 1542,
+        "transaction_id": 2,
+        "valid_for_ms": 1000
+      },
+      "payload": {
+        "action": "STOP",
+        "expected_state": "PAUSED",
+        "reset_policy": "NOT_APPLICABLE"
+      }
+    }
+  ],
+  "replies": [
+    [
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863550,
+          "sequence": 2,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "RECEIVED",
+          "error": "OK",
+          "applied_step": 0,
+          "model_revision": 0,
+          "probe_id": 0
+        }
+      },
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863550,
+          "sequence": 3,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "APPLIED",
+          "error": "OK",
+          "applied_step": 542,
+          "model_revision": 1,
+          "probe_id": 1004
+        }
+      }
+    ],
+    [
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863551,
+          "sequence": 2,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "RECEIVED",
+          "error": "OK",
+          "applied_step": 0,
+          "model_revision": 0,
+          "probe_id": 0
+        }
+      },
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863551,
+          "sequence": 3,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "APPLIED",
+          "error": "OK",
+          "applied_step": 1542,
+          "model_revision": 1,
+          "probe_id": 1004
+        }
+      }
+    ],
+    [
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863552,
+          "sequence": 2,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "RECEIVED",
+          "error": "OK",
+          "applied_step": 0,
+          "model_revision": 0,
+          "probe_id": 0
+        }
+      },
+      {
+        "message_id": 130,
+        "header": {
+          "session_id": 1936863552,
+          "sequence": 3,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "payload": {
+          "request_sequence": 2,
+          "request_message_id": 4,
+          "stage": "APPLIED",
+          "error": "OK",
+          "applied_step": 1542,
+          "model_revision": 1,
+          "probe_id": 1004
+        }
+      }
+    ]
+  ],
+  "records": [
+    {
+      "error": null,
+      "write_attempted": true,
+      "receipt_state": "PAUSED",
+      "step_count": 0,
+      "actuators_json": "{\"motor_command\":[0,0,0,0]}"
+    },
+    {
+      "error": null,
+      "write_attempted": true,
+      "receipt_state": "PAUSED",
+      "step_count": 1000,
+      "actuators_json": "{\"motor_command\":[0,0,0,0]}"
+    },
+    {
+      "error": null,
+      "write_attempted": true,
+      "receipt_state": "STOPPED",
+      "step_count": 0,
+      "actuators_json": "{\"motor_command\":[0,0,0,0]}"
+    }
+  ],
+  "binary_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+  "model_contract_sha256": "d54c372dacb836c88afc540aa755086cf5a97780d06eeeba9eccd144f8700317",
+  "not_verified": [
+    "PHYSICAL_ACTUATOR_OR_ESC_READBACK",
+    "RT_DEADLINE_AND_HARDWARE_SAFETY"
+  ]
+}

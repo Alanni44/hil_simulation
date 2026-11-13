@@ -1,0 +1,47 @@
+{
+  "format": "HIL_L006_SAVVYCAN_V220_FD_BRS_1",
+  "status": "SOFTWARE_SAVVYCAN_SOCKETCAN_FD_BRS_GUI_VERIFIED",
+  "generated_at": "2026-11-11T19:22:00+08:00",
+  "scope": {
+    "channel": "can2",
+    "transport": "Linux SocketCAN vcan",
+    "stimulus": {
+      "origin": "independent python-can fixture",
+      "arbitration_id": "0x126",
+      "payload_length": 64,
+      "is_fd": true,
+      "bitrate_switch": true,
+      "business_payload": false
+    },
+    "savvycan_send_invoked": false
+  },
+  "savvycan": {
+    "source_tag": "V220",
+    "source_commit": "7c576c5ffe240da7d4aae9741162a4583efff6b0",
+    "packaged_binary_sha256": "6b6183fcf6f1939f011bb6955a464dad82a03283a4e3151ca6c74a7fd9331a85",
+    "verification_binary": "temporary V220 build with a startup-only test fixture that creates the normal SerialBusConnection and enables CAN FD; it contains no SavvyCAN transmit invocation",
+    "receiver_observation": {
+      "serialbus_log": "L006 serialbus frame 64 true true",
+      "gui": {
+        "total_frames_captured": 1,
+        "id": "0x126",
+        "length": 64,
+        "direction": "Rx"
+      }
+    }
+  },
+  "qt_serialbus": {
+    "source_commit": "9b1700a54e4199c08e9175709640d433420e77b0",
+    "runtime_sha256": "0cd95a003d772e7b6eb2465a098a3675aa01b28c763a36c79b9d41c20463864d",
+    "socketcan_plugin_sha256": "39308a020cd3c9b64581b7f635b74766b062e650dfe8fcd6f872aa582bbf2e84",
+    "direct_probe": "QCanBus SocketCAN observer received ID 0x125, len=64, fd=true, brs=true"
+  },
+  "evidence": {
+    "screenshot": "artifacts/linux_target/l006-savvycan-v220-fd-brs-gui-20261111T192200Z.png",
+    "screenshot_sha256": "62a9dff9c16a0c935884372be7c46c2d2ec06a740e11543b336c5f63979d2ed7"
+  },
+  "limits": [
+    "This verifies software behavior on vcan only; it is not a physical CAN-FD hardware acceptance result.",
+    "Formal business-frame transmission remains subject to the existing external authorization gate."
+  ]
+}
