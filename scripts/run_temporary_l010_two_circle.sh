@@ -25,11 +25,11 @@ WORK_ROOT=/opt/hil/runtime/work
 DEPLOY=/opt/hil/bin/hil-deploy
 SMOKE=/opt/hil/bin/run-minimal-full-flow
 [[ -x "$TARGET" && -x "$DEPLOY" && -x "$SMOKE" ]] || {
-    echo "目标核心、部署器或两圈入口不可用" >&2
+    echo "目标核心、部署器或本机最小烟测入口不可用" >&2
     exit 2
 }
 
-RUN_ID="l010-two-circle-temporary-$(date +%Y%m%dT%H%M%S)"
+RUN_ID="l010-temporary-internal-smoke-$(date +%Y%m%dT%H%M%S)"
 WORK_DIR="$WORK_ROOT/$RUN_ID"
 EVIDENCE_DIR="$REPO_DIR/artifacts/linux_target/$RUN_ID"
 ORIGINAL="$WORK_DIR/original_rt"
@@ -117,10 +117,11 @@ import sys
 
 path, run_id, original, candidate, test_code, restore_code = sys.argv[1:]
 with open(path, "w", encoding="utf-8") as target:
-    json.dump({"format": "HIL_L010_TEMPORARY_TWO_CIRCLE_1", "run_id": run_id,
+    json.dump({"format": "HIL_L010_TEMPORARY_INTERNAL_SMOKE_1", "run_id": run_id,
                "original_sha256": original, "candidate_sha256": candidate,
-               "two_circle_exit_code": int(test_code), "restore_exit_code": int(restore_code),
-               "status": "PASSED" if test_code == "0" and restore_code == "0" else "FAILED"},
+               "internal_smoke_exit_code": int(test_code), "restore_exit_code": int(restore_code),
+               "external_3_3_3_6_status": "NOT_EXECUTED",
+               "status": "PASSED_INTERNAL_SMOKE_ONLY" if test_code == "0" and restore_code == "0" else "FAILED"},
               target, ensure_ascii=False, indent=2)
     target.write("\n")
 PY
@@ -136,9 +137,10 @@ deploy_file "$CANDIDATE_COPY" "$CANDIDATE_SHA"
 SWITCHED=1
 query_core "$EVIDENCE_DIR/candidate-capabilities.json" yes yes
 
-# 第一圈：恢复配置准备服务；第二圈：已有的 CREATE/START/ID10/STOP 有界入口。
+# 本机服务配置恢复，随后只调用本机 simulator 管理端口的最小烟测；
+# 它不是未启动的外部 3.3/3.6 前后端联调。
 systemctl restart hil-prepare.service
 systemctl start hil-preparation.service hil-telemetry.service
 systemctl is-active --quiet hil-prepare.service hil-preparation.service hil-telemetry.service
-"$SMOKE" > "$EVIDENCE_DIR/two-circle.stdout" 2> "$EVIDENCE_DIR/two-circle.stderr"
-query_core "$EVIDENCE_DIR/after-two-circle.json" yes yes
+"$SMOKE" > "$EVIDENCE_DIR/internal-smoke.stdout" 2> "$EVIDENCE_DIR/internal-smoke.stderr"
+query_core "$EVIDENCE_DIR/after-internal-smoke.json" yes yes
