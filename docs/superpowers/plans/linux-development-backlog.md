@@ -770,6 +770,11 @@ Linux完成证据：L-004 -> artifacts/linux_target/l004-three-model-boundary-20
 - 同一最终候选重新验证 C 最终写入点安全读回（`safety/result.json`）和 PAUSE/RESUME/STOP/RESET（`lifecycle/result.json`）；既有 4096 C 队列证据保持在 `l010-safety-candidate-20261111T131500Z/queue/result.json`，该队列实现未被本次 STEP 改动触及。
 - L-010 的软件侧缺口至此关闭。仍不可提升为实体/发布资格：本机进程是 `HIL_ALLOW_NONRT=1`，C 写入点读回不是 ESC/执行器反馈，也没有 PREEMPT_RT 时钟、真实总线或硬件安全验收。
 
+### 2026-11-16 L-010 临时候选两圈联调与回退验证
+
+- 从本次 L-010 源码在独立候选目录重新生成 C 模型后，通过既有 `hil-deploy` 校验部署器临时替换运行核心。候选状态实际包含 `actuator_output`/序号，且 `get_lifecycle_step_result` 已由“不支持命令”变为参数校验拒绝，证明 STEP 消费者已进入候选 C 核心。
+- 已执行既有两圈有界入口：准备服务恢复后，模拟器完成 CREATE、START、固定 ID10 输入、STOP 及记录校验；输出为 `MINIMAL_FULL_FLOW_READY`，`scenario_input_applied=true`、`hil_stop_applied=true`、记录数为 7。随后用同一 SHA-256 校验部署器恢复原核心；恢复后执行器读回字段消失且 STEP 再次报告不支持，六项 systemd 服务均为 active。完整证据为 `artifacts/linux_target/l010-two-circle-temporary-20261116T203949/`。
+
 ### 2026-11-12 后续开发目标机基线
 
 - 用户明确指定当前 Linux 主机为后续开发、联调和软件验收的目标机基线。后续任务应优先在本机完成目标 C 模型、服务、原工具链、SocketCAN/vcan、网络隔离、生命周期和证据闭环；不得因缺少另一台“目标机”而停滞或重复建立替代开发环境。

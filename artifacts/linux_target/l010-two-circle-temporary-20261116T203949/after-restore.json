@@ -1,0 +1,77 @@
+{
+  "has_actuator_output": false,
+  "step_supported": false,
+  "status": {
+    "request_id": "temporary-l010-status",
+    "accepted": true,
+    "reason": "HIL capability/status",
+    "effective_sequence": 0,
+    "lifecycle": "STOPPED",
+    "fields": {
+      "lifecycle": "STOPPED",
+      "sequence": 0,
+      "sim_time_s": 0,
+      "control_source": "none",
+      "model_loaded": true,
+      "initial_state_abi": true,
+      "full_configuration_abi": true,
+      "model_revision": 0,
+      "initial_state": {
+        "position": {
+          "north_m": 0,
+          "east_m": 0,
+          "down_m": 0
+        },
+        "velocity_n_mps": 0,
+        "velocity_e_mps": 0,
+        "velocity_d_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 0,
+          "q_y": 0,
+          "q_z": 0
+        },
+        "p_radps": 0,
+        "q_radps": 0,
+        "r_radps": 0,
+        "airborne": false
+      },
+      "model_state": {
+        "model_step": 0,
+        "position": {
+          "north_m": 0,
+          "east_m": 0,
+          "down_m": 0
+        },
+        "vn_mps": 0,
+        "ve_mps": 0,
+        "vd_mps": 0,
+        "orientation": {
+          "q_w": 1,
+          "q_x": 0,
+          "q_y": 0,
+          "q_z": 0
+        },
+        "p_radps": 0,
+        "q_radps": 0,
+        "r_radps": 0,
+        "airborne": false,
+        "ax_mps2": 0,
+        "ay_mps2": 0,
+        "az_mps2": 0,
+        "engine_rpm": 0,
+        "fuel_remaining_kg": 0,
+        "hydraulic_pressure_pa": 0,
+        "electrical_voltage_v": 28,
+        "avionics_state": "UNAVAILABLE"
+      }
+    }
+  },
+  "step_query": {
+    "request_id": "temporary-l010-step",
+    "accepted": false,
+    "reason": "unsupported command for this contract",
+    "effective_sequence": 0,
+    "lifecycle": "STOPPED"
+  }
+}

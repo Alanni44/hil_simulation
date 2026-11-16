@@ -1,0 +1,9 @@
+{
+  "format": "HIL_L010_TEMPORARY_TWO_CIRCLE_1",
+  "run_id": "l010-two-circle-temporary-20261116T203949",
+  "original_sha256": "f8a093f735fbbffb9475a132bf01cf12d095c3e65f9e6194a96e6a5e1608c3f0",
+  "candidate_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+  "two_circle_exit_code": 0,
+  "restore_exit_code": 0,
+  "status": "PASSED"
+}

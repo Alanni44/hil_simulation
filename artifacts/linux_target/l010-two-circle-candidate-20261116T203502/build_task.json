@@ -1,0 +1,10 @@
+{
+  "contract_path": "/home/user/\u684c\u9762/hil-simulator/artifacts/z_mission/model/hil_contract.json",
+  "dependency_paths": [],
+  "executable_dir": "/home/user/\u684c\u9762/hil-simulator/artifacts/linux_target/l010-two-circle-candidate-20261116T203502/bin",
+  "matlab_version": "R2018b",
+  "model_name": "quadrotor_hil",
+  "output_dir": "/home/user/\u684c\u9762/hil-simulator/artifacts/linux_target/l010-two-circle-candidate-20261116T203502/generated",
+  "package_root": "/home/user/\u684c\u9762/hil-simulator/artifacts/z_mission/model",
+  "slx_path": "/home/user/\u684c\u9762/hil-simulator/artifacts/z_mission/model/quadrotor_hil.slx"
+}

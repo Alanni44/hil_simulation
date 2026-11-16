@@ -1,0 +1,3 @@
+archived prior simulator smoke state: /opt/hil/runtime/input-simulator-state.before-smoke-20261116T203955
+{"hil_stop_applied": true, "record_count": 7, "result": "INCOMPLETE", "run_id": "run-07f655c8927f8dab359b3685", "scenario_input_applied": true, "start_operation_id": "operation-a3ef274711393b8d6221e8b6", "status": "MINIMAL_FULL_FLOW_READY", "stop_operation_id": "operation-0272bcc5136efb2d2875755e"}
+full-flow smoke complete; HIL restored to CONFIGURED and ready for external callers
