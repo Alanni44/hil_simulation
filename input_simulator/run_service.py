@@ -76,6 +76,7 @@ class SimulatorRunService:
         self._run_id_factory = run_id_factory or (lambda: "run-" + secrets.token_hex(12))
         self._operation_id_factory = operation_id_factory or (lambda: "operation-" + secrets.token_hex(12))
         self._active_operations = {}
+        self._pending_controls = {}
         self._operation_lock = threading.Lock()
 
     def _timestamp(self):
@@ -236,10 +237,11 @@ class SimulatorRunService:
                        available_actions=[] if stop_confirmed else ["STOP"], evidence_complete=False,
                        last_error=error)
 
-        result = self._transition(run_id, allowed_states={"WAITING", "RUNNING", "STOPPING"}, mutate=failed)
+        result = self._transition(run_id, allowed_states={"WAITING", "RUNNING", "PAUSED", "STOPPING"}, mutate=failed)
         if result is not None:
             with self._operation_lock:
                 self._active_operations.pop(run_id, None)
+                self._pending_controls.pop(run_id, None)
             if code in _HIL_FAILURE_CODES:
                 kind, reason = "REJECTED", "HIL_" + code
             elif code in _EVIDENCE_FAILURE_CODES:
@@ -287,18 +289,45 @@ class SimulatorRunService:
 
             def running(_evidence_refs):
                 def apply(run):
-                    run.update(state="RUNNING", result="RUNNING", available_actions=["STOP"])
+                    run.update(state="RUNNING", result="RUNNING", available_actions=["PAUSE", "STOP"])
                 if self._transition(run_id, allowed_states={"WAITING"}, mutate=apply) is not None:
                     self._record_fact(run_id, kind="RESPONSE", reason_code="HIL_START_APPLIED",
                                       operation_id=operation_id, evidence_refs=_evidence_refs)
+
+            def paused(_evidence_refs):
+                with self._operation_lock:
+                    pending = self._pending_controls.pop(run_id, None)
+                if pending is None or pending[0] != "PAUSE":
+                    return
+
+                def apply(run):
+                    run.update(state="PAUSED", result="RUNNING", available_actions=["RESUME", "STOP"])
+                if self._transition(run_id, allowed_states={"RUNNING"}, mutate=apply) is not None:
+                    self._record_fact(run_id, kind="RESPONSE", reason_code="HIL_PAUSE_APPLIED",
+                                      operation_id=pending[1], message_id="4", evidence_refs=_evidence_refs)
+                    self.store.release_record_reservation(run_id, 2)
+
+            def resumed(_evidence_refs):
+                with self._operation_lock:
+                    pending = self._pending_controls.pop(run_id, None)
+                if pending is None or pending[0] != "RESUME":
+                    return
+
+                def apply(run):
+                    run.update(state="RUNNING", result="RUNNING", available_actions=["PAUSE", "STOP"])
+                if self._transition(run_id, allowed_states={"PAUSED"}, mutate=apply) is not None:
+                    self._record_fact(run_id, kind="RESPONSE", reason_code="HIL_RESUME_APPLIED",
+                                      operation_id=pending[1], message_id="4", evidence_refs=_evidence_refs)
+                    self.store.release_record_reservation(run_id, 2)
 
             def completed(result, evidence_refs):
                 def finish(run):
                     run.update(state="COMPLETED", result=result, available_actions=[],
                                evidence_complete=(result == "PASS"), last_error=None)
-                if self._transition(run_id, allowed_states={"WAITING", "RUNNING", "STOPPING"}, mutate=finish) is not None:
+                if self._transition(run_id, allowed_states={"WAITING", "RUNNING", "PAUSED", "STOPPING"}, mutate=finish) is not None:
                     with self._operation_lock:
                         self._active_operations.pop(run_id, None)
+                        self._pending_controls.pop(run_id, None)
                     self._record_fact(run_id, kind="OPERATION_RESULT", reason_code="EXECUTION_" + result,
                                       operation_id=operation_id, evidence_refs=evidence_refs,
                                       operation_result="SUCCEEDED" if result == "PASS" else "FAILED")
@@ -315,6 +344,7 @@ class SimulatorRunService:
                 # fast real START callback must never precede its QUEUED fact.
                 self._record_fact(run_id, kind="RESPONSE", reason_code="START_QUEUED", operation_id=operation_id)
                 self.executor.submit(operation_id, snapshot, on_running=running,
+                                     on_paused=paused, on_resumed=resumed,
                                      on_completed=completed,
                                      on_failed=lambda code, detail, evidence: self._backend_failure(
                                          run_id, code, detail, evidence, operation_id), on_record=record)
@@ -323,13 +353,55 @@ class SimulatorRunService:
                 raise
             return self._response(request, status="ACCEPTED", code="QUEUED", message="START queued",
                                   data=queued_run, error=None, operation_id=operation_id)
+        if action in {"PAUSE", "RESUME"}:
+            if self.executor is None:
+                raise ICDError("TARGET_MISSING", action + " requires an installed actual HIL execution backend")
+            expected_state, available_action = (
+                ("RUNNING", "PAUSE") if action == "PAUSE" else ("PAUSED", "RESUME"))
+            supported = self.executor.supports_pause() if action == "PAUSE" else self.executor.supports_resume()
+            if not supported:
+                raise ICDError("TARGET_MISSING", "execution backend has no actual " + action + " boundary")
+            if current["state"] != expected_state or available_action not in current["available_actions"]:
+                raise ICDError("STATE", action + " is not available for this Run")
+            with self._operation_lock:
+                active = self._active_operations.get(run_id)
+                if active is None or run_id in self._pending_controls:
+                    raise ICDError("STATE", "Run has no available execution control boundary")
+            operation_id = self._operation_id_factory()
+            self.management.validate_definition("Id", operation_id)
+            # Reserve the queued, applied and failure-terminal evidence before
+            # signalling the live model.  Success consumes two records and
+            # releases the remaining two from this bounded reservation.
+            self.store.reserve_records(run_id, 4)
+
+            def queued(run):
+                run.update(available_actions=["STOP"])
+
+            queued_run = self._transition(run_id, allowed_states={expected_state}, mutate=queued)
+            if queued_run is None:
+                self.store.release_record_reservation(run_id, 4)
+                raise ICDError("VERSION_CONFLICT", "Run changed before " + action + " could be queued")
+            with self._operation_lock:
+                self._pending_controls[run_id] = (action, operation_id)
+            self._record_fact(run_id, kind="RESPONSE", reason_code=action + "_QUEUED",
+                              operation_id=operation_id, message_id="4")
+            try:
+                if action == "PAUSE":
+                    self.executor.request_pause(active)
+                else:
+                    self.executor.request_resume(active)
+            except ICDError as error:
+                self._backend_failure(run_id, error.code, error.detail, operation_id=operation_id)
+                raise
+            return self._response(request, status="ACCEPTED", code="QUEUED", message=action + " queued",
+                                  data=queued_run, error=None, operation_id=operation_id)
         if action == "STOP":
             if self.executor is None:
                 raise ICDError("TARGET_MISSING", "STOP requires an installed actual HIL execution backend")
             if "STOP" not in current["available_actions"]:
                 raise ICDError("STATE", "STOP is not available for this Run")
             recovery = current["state"] == "FAILED"
-            if current["state"] not in {"WAITING", "RUNNING", "FAILED"}:
+            if current["state"] not in {"WAITING", "RUNNING", "PAUSED", "FAILED"}:
                 raise ICDError("STATE", "STOP is not available for this Run")
             if recovery:
                 operation_id = self._operation_id_factory()
@@ -376,7 +448,7 @@ class SimulatorRunService:
             def stopping(run):
                 run.update(state="STOPPING", result="RUNNING", available_actions=[])
 
-            stopping_run = self._transition(run_id, allowed_states={"WAITING", "RUNNING"}, mutate=stopping)
+            stopping_run = self._transition(run_id, allowed_states={"WAITING", "RUNNING", "PAUSED"}, mutate=stopping)
             if stopping_run is None:
                 raise ICDError("VERSION_CONFLICT", "Run changed before STOP could be queued")
             # This is the local cancellation/dispatch fact.  Persist it before
@@ -385,6 +457,8 @@ class SimulatorRunService:
             self._record_fact(run_id, kind="SAFETY", reason_code="STOP_REQUESTED",
                               operation_id=operation_id)
             try:
+                with self._operation_lock:
+                    self._pending_controls.pop(run_id, None)
                 self.executor.request_stop(active)
             except ICDError as error:
                 self._backend_failure(run_id, error.code, error.detail, operation_id=active)

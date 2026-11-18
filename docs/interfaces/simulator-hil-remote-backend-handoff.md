@@ -5,13 +5,13 @@
 外部调用应使用[四旋翼 HIL/模拟器最小联调固定配置](quadrotor-hil-external-integration-config.md)
 及其完整 JSON；该文件是本轮唯一的创建参数来源。
 
-目标机是 `192.168.100.165`。本次由模拟器/HIL 侧提供三个入口：
+目标机是 `192.168.100.152`。本次由模拟器/HIL 侧提供三个入口：
 
 | 用途 | 调用方 | 地址 |
 |---|---|---|
-| 第一圈 HIL 准备 | 3.6 后端 | `http://192.168.100.165:18081/api/hil/preparation/commands` |
-| 第二圈模拟器管理 | 3.3 后端 | `http://192.168.100.165:18080/api/simulator/commands` |
-| 实时状态遥测 | 3.6 后端 | `ws://192.168.100.165:8765/ws/hil` |
+| 第一圈 HIL 准备 | 3.6 后端 | `http://192.168.100.152:18081/api/hil/preparation/commands` |
+| 第二圈模拟器管理 | 3.3 后端 | `http://192.168.100.152:18080/api/simulator/commands` |
+| 实时状态遥测 | 3.6 后端 | `ws://192.168.100.152:8765/ws/hil` |
 
 无需由后端启动目标机进程。模拟器/HIL 侧在联调前启动 `hil-core@current`、`hil-prepare`、`hil-gateway`、`input-simulator`、`hil-preparation` 和 `hil-telemetry` 服务。
 
@@ -37,7 +37,7 @@ model_id        = quadrotor_hil
 3. 前端以同一业务 `runId` 向 3.3 发 START。3.3 先向 3.6 查询准备上下文，核对模型、基线和配置快照；不满足时不调用模拟器。
 4. 3.3 用当前固定 CANT CreateParams 调用 `simulator_run_create`，保存模拟器 `run_id`、`revision`、后端命令 ID 和管理 `request_id`，并向 3.6 登记同一业务 Run 的执行关联。
 5. 登记成功后，3.3 调用 `simulator_run_control/START`。模拟器对 HIL 只核对第一圈已准备的同一配置，再发送正式 Lifecycle START 和固定场景输入。
-6. 3.3 每秒调用 `simulator_run_get` 与 `simulator_records_list`；3.6 同时订阅 8765 的新鲜 `STATE_TELEMETRY`，并用已登记关联归入同一业务 `runId`。
+6. 运行中，3.3 可调用 `simulator_run_control/PAUSE` 或 `RESUME`。暂停在真实下一模型边界生效，安全置零并撤销控制权；继续保留暂停时的模型内部状态、不补跑暂停期间的步数，并建立新的正式会话。3.3 每秒调用 `simulator_run_get` 与 `simulator_records_list`；3.6 同时订阅 8765 的新鲜 `STATE_TELEMETRY`，并用已登记关联归入同一业务 `runId`。
 7. 前端 STOP 经 3.3 调用 `simulator_run_control/STOP`。模拟器停止本 Run 的场景调度后，对仍在运行的 HIL 发送 Lifecycle `STOP`，并在同一会话读回 `STOPPED`、`control_source=NONE`。若正式会话因自身证据容量或传输故障不能确认 STOP，模拟器只在本机调用 C-core safety STOP，并再次读回 `STOPPED`、`control_source=NONE`；它记录 `HIL_EMERGENCY_STOP_APPLIED`，不得伪称为正式 Lifecycle STOP。两种路径均无停止读回时，必须报告停止未确认，不能把 Run 解释为模型已停止。3.3 轮询到该真实停止证据后回传给 3.6；3.6 统一发布业务终态。若停止步数非零，3.6 必须先调用第一圈 `hil_reset`，并确认 `STOPPED/NONE/model_step=0/sim_time_us=0`，再执行下一次 `hil_prepare` 恢复 `CONFIGURED`。
 
 不把 HTTP 202/`ACCEPTED`、报文 `RECEIVED`、WebSocket 已连接或单帧旧遥测当作实际运行成功。实际 START 以 HIL Lifecycle 应用回执或同次运行的新鲜推进状态确认；实际 STOP 以 `HIL_STOP_APPLIED` 和安全状态读回确认。
@@ -58,10 +58,36 @@ model_id        = quadrotor_hil
 |---|---|
 | `simulator_run_create` | 校验并固化第二圈固定快照，不启动 HIL |
 | `simulator_run_control` / `START` | 异步开始正式执行 |
-| `simulator_run_control` / `STOP` | 安全停止正式执行 |
+| `simulator_run_control` / `PAUSE` | 异步暂停运行中的模型；仅 `RUNNING` 可用 |
+| `simulator_run_control` / `RESUME` | 异步继续暂停的模型；仅 `PAUSED` 可用 |
+| `simulator_run_control` / `STOP` | 安全停止正式执行；`RUNNING`、`PAUSED` 均可用 |
 | `simulator_run_get`、`simulator_records_list` | 查询状态、修订号与事实证据 |
 
 `params.api_version` 必须是 `"0.3"`，`request_id` 是幂等键。CREATE 的其余八个字段必须逐字段采用 `quadrotor_hil.external.json` 的完整内容，不得使用旧 fixture、旧 ETHGEN 值或候选文件的哈希。响应中的模拟器 `run_id` 与业务 `runId` 不同，必须由 3.3 保存映射。
+
+PAUSE/RESUME 的请求体与 START/STOP 相同，仅替换 `action`。`expected_revision` 必须使用最近一次 GET 或控制响应中的字符串 revision；同一请求超时重试必须保留完全相同的 `request_id` 和请求体。HTTP `200` 且 `status=ACCEPTED`、`code=QUEUED` 仅表示请求已登记，不能据此更新业务状态。3.3 必须等待 GET 和 Records 的实际证据：
+
+| 动作 | 已应用后的 Run | Records 中必须存在 |
+|---|---|---|
+| PAUSE | `state=PAUSED`，`available_actions=["RESUME","STOP"]` | `RESPONSE/PAUSE_QUEUED`、`RESPONSE/HIL_PAUSE_APPLIED` |
+| RESUME | `state=RUNNING`，`available_actions=["PAUSE","STOP"]` | `RESPONSE/RESUME_QUEUED`、`RESPONSE/HIL_RESUME_APPLIED` |
+
+控制调用示例：
+
+```json
+{
+  "cmd": "simulator_run_control",
+  "params": {
+    "api_version": "0.3",
+    "request_id": "3.3-pause-<全局唯一ID>",
+    "run_id": "<simulator_run_create 返回的 run_id>",
+    "expected_revision": "<最近一次 revision>",
+    "action": "PAUSE"
+  }
+}
+```
+
+继续时将 `action` 改为 `RESUME`，并使用暂停确认后的最新 revision。`409` 时必须重新 GET 后再决定是否发起新请求；`422` 表示 HIL 回执、状态读回或证据不足，不能把该操作视为已生效。
 
 固定场景会向 HIL 应用 ID 10 Environment 输入（`wind_n_mps=1`）。3.3 应在 Records 中观察 `APPLIED/SCENARIO_INPUT_APPLIED` 和 `message_id="10"`，随后使用最新 revision 发 STOP。最小 smoke 的 `result=INCOMPLETE` 表示没有完整业务断言裁决，不等同链路失败或业务 PASS。
 

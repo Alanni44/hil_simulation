@@ -27,9 +27,9 @@
 
 | 圈次 | 调用方 | 地址 | 允许操作 |
 |---|---|---|---|
-| 第一圈 | 3.6 | `POST http://192.168.100.165:18081/api/hil/preparation/commands` | `hil_reset`、`hil_prepare`、`hil_prepare_get` |
-| 第二圈 | 3.3 | `POST http://192.168.100.165:18080/api/simulator/commands` | `simulator_run_create`、`simulator_run_get`、`simulator_run_control`、`simulator_records_list` |
-| 遥测 | 3.6 | `ws://192.168.100.165:8765/ws/hil` | 只读 `STATE_TELEMETRY` |
+| 第一圈 | 3.6 | `POST http://192.168.100.152:18081/api/hil/preparation/commands` | `hil_reset`、`hil_prepare`、`hil_prepare_get` |
+| 第二圈 | 3.3 | `POST http://192.168.100.152:18080/api/simulator/commands` | `simulator_run_create`、`simulator_run_get`、`simulator_run_control`、`simulator_records_list` |
+| 遥测 | 3.6 | `ws://192.168.100.152:8765/ws/hil` | 只读 `STATE_TELEMETRY` |
 
 8765 拒绝 `INITIALIZE`、`START` 和 `STOP`。第一圈只能使用 HTTP `hil_prepare`。
 

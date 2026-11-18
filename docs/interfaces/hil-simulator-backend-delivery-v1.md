@@ -8,9 +8,9 @@
 
 | 调用方 | 用途 | 地址 | 操作 |
 |---|---|---|---|
-| 3.6 | 第一圈：实时状态、复位、准备 | `POST http://192.168.100.165:18081/api/hil/preparation/commands` | `hil_status_get`、`hil_reset`、`hil_prepare`、`hil_prepare_get` |
-| 3.3 | 第二圈：创建、启动、停止、证据查询 | `POST http://192.168.100.165:18080/api/simulator/commands` | `simulator_run_create`、`simulator_run_get`、`simulator_run_control`、`simulator_records_list` |
-| 3.6 | 只读实时遥测 | `ws://192.168.100.165:8765/ws/hil` | `STATE_TELEMETRY` |
+| 3.6 | 第一圈：实时状态、复位、准备 | `POST http://192.168.100.152:18081/api/hil/preparation/commands` | `hil_status_get`、`hil_reset`、`hil_prepare`、`hil_prepare_get` |
+| 3.3 | 第二圈：创建、启动、暂停、继续、停止、证据查询 | `POST http://192.168.100.152:18080/api/simulator/commands` | `simulator_run_create`、`simulator_run_get`、`simulator_run_control`、`simulator_records_list` |
+| 3.6 | 只读实时遥测 | `ws://192.168.100.152:8765/ws/hil` | `STATE_TELEMETRY` |
 
 请求和响应均为 UTF-8 JSON，`Content-Type: application/json`。8765 只读，不能发送
 START、STOP、RESET 或初始化指令。后端不得直接访问 C-core UDP `9997`。

@@ -98,7 +98,11 @@ commands are `simulator_run_create`, `simulator_run_get`,
 and persists a fixed template/snapshot.  START requires an explicit
 `RunExecutionBackend`; it must report `RUNNING` only after retained HIL START
 evidence and must report a terminal result using retained STOP/completion
-evidence.  Without that backend the public response is `TOOL_UNAVAILABLE`.
+evidence. PAUSE is reported only after the HIL Lifecycle receipt and a direct
+`PAUSED/NONE` readback; RESUME is reported only after its Lifecycle receipt,
+the required new formal session, and a direct `RUNNING/NONE` readback. While a
+PAUSE/RESUME request is pending, only STOP remains available. Without that
+backend the public response is `TOOL_UNAVAILABLE`.
 
 Each management response is validated against the frozen v0.3 API schema.
 Record entries retain sender facts and references; they are not a telemetry

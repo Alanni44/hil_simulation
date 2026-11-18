@@ -358,13 +358,107 @@ class SimulatorRunServiceTests(GatewayTest):
         self.assertEqual((records[-1]["kind"], records[-1]["operation_result"]),
                          ("OPERATION_RESULT", "FAILED"))
 
+    def test_pause_resume_use_actual_backend_evidence_and_preserve_stop(self):
+        from input_simulator.run_executor import RunExecutionBackend, RunExecutor
+        from input_simulator.run_service import SimulatorRunService
+
+        class PauseResumeBackend(RunExecutionBackend):
+            def __init__(self):
+                self.pause_requested = threading.Event()
+                self.resume_requested = threading.Event()
+                self.paused = threading.Event()
+                self.resumed = threading.Event()
+
+            def execute(self, _snapshot, reporter, stop_requested):
+                reporter.running(("hil-start-ack",))
+                while not stop_requested.is_set():
+                    if self.pause_requested.wait(.01):
+                        self.pause_requested.clear()
+                        reporter.paused(("hil-pause-ack", "status-paused-safe"))
+                        self.paused.set()
+                        while not stop_requested.is_set() and not self.resume_requested.wait(.01):
+                            pass
+                        if stop_requested.is_set():
+                            break
+                        self.resume_requested.clear()
+                        reporter.resumed(("hil-resume-ack", "resume-session-open"))
+                        self.resumed.set()
+                reporter.record("RESPONSE", "HIL_STOP_APPLIED", message_id="4",
+                                evidence_refs=("hil-stop-ack",))
+                reporter.completed("INCOMPLETE", ("hil-stop-ack",))
+
+            def request_stop(self, _operation_id):
+                return None
+
+            def request_pause(self, _operation_id):
+                self.pause_requested.set()
+
+            def request_resume(self, _operation_id):
+                self.resume_requested.set()
+
+        backend = PauseResumeBackend()
+        ids = iter(("operation-start", "operation-pause", "operation-resume", "operation-stop"))
+        service = SimulatorRunService(
+            self.management, self.template, executor=RunExecutor(backend),
+            clock=lambda: "2026-10-20T00:00:00Z", run_id_factory=lambda: "run-pause-resume",
+            operation_id_factory=lambda: next(ids))
+        run_id = service.handle(copy.deepcopy(self.create))["data"]["run_id"]
+        service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "pause-resume-start", "run_id": run_id,
+            "expected_revision": "1", "action": "START"}})
+        deadline = time.monotonic() + 2
+        while service.store.get(run_id)["state"] != "RUNNING" and time.monotonic() < deadline:
+            time.sleep(.01)
+        running = service.store.get(run_id)
+        self.assertEqual(running["available_actions"], ["PAUSE", "STOP"])
+
+        pause = service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "pause-resume-pause", "run_id": run_id,
+            "expected_revision": running["revision"], "action": "PAUSE"}})
+        self.assertEqual((pause["status"], pause["operation_id"]), ("ACCEPTED", "operation-pause"))
+        self.assertTrue(backend.paused.wait(2))
+        deadline = time.monotonic() + 2
+        while service.store.get(run_id)["state"] != "PAUSED" and time.monotonic() < deadline:
+            time.sleep(.01)
+        paused = service.store.get(run_id)
+        self.assertEqual(paused["available_actions"], ["RESUME", "STOP"])
+
+        resume = service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "pause-resume-resume", "run_id": run_id,
+            "expected_revision": paused["revision"], "action": "RESUME"}})
+        self.assertEqual((resume["status"], resume["operation_id"]), ("ACCEPTED", "operation-resume"))
+        self.assertTrue(backend.resumed.wait(2))
+        deadline = time.monotonic() + 2
+        while service.store.get(run_id)["state"] != "RUNNING" and time.monotonic() < deadline:
+            time.sleep(.01)
+        resumed = service.store.get(run_id)
+        self.assertEqual(resumed["available_actions"], ["PAUSE", "STOP"])
+
+        service.handle({"cmd": "simulator_run_control", "params": {
+            "api_version": "0.3", "request_id": "pause-resume-stop", "run_id": run_id,
+            "expected_revision": resumed["revision"], "action": "STOP"}})
+        deadline = time.monotonic() + 2
+        while service.store.get(run_id)["state"] != "COMPLETED" and time.monotonic() < deadline:
+            time.sleep(.01)
+        records = service.store.list_records(run_id, limit=100)["items"]
+        self.assertEqual([record["reason_code"] for record in records], [
+            "START_QUEUED", "HIL_START_APPLIED", "PAUSE_QUEUED", "HIL_PAUSE_APPLIED",
+            "RESUME_QUEUED", "HIL_RESUME_APPLIED", "STOP_REQUESTED", "HIL_STOP_APPLIED",
+            "EXECUTION_INCOMPLETE"])
+        self.assertEqual(records[3]["operation_id"], "operation-pause")
+        self.assertEqual(records[5]["operation_id"], "operation-resume")
+
     def test_formal_execution_stop_is_bound_to_its_registered_operation(self):
         from input_simulator.run_executor import FormalHILExecutionBackend
 
         backend = FormalHILExecutionBackend(lambda snapshot: None)
         cancellation = threading.Event()
         backend.begin("operation-formal", cancellation)
+        backend.request_pause("operation-formal")
+        backend.request_resume("operation-formal")
         backend.request_stop("operation-formal")
+        self.assertTrue(backend._active["operation-formal"]["pause"].is_set())
+        self.assertTrue(backend._active["operation-formal"]["resume"].is_set())
         self.assertTrue(cancellation.is_set())
         self.rejects("STATE", lambda: backend.request_stop("operation-missing"))
 

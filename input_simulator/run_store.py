@@ -389,6 +389,18 @@ class RunStore:
             self._record_reserved[run_id] = 0
             self._persist_locked()
 
+    def release_record_reservation(self, run_id, count):
+        """Release unused pre-effect evidence slots for one completed control action."""
+        if type(count) is not int or count < 1:
+            raise ICDError("CAPACITY", "positive evidence reservation release required")
+        with self._lock:
+            if run_id not in self._runs:
+                raise ICDError("NOT_FOUND", "simulator Run does not exist")
+            if count > self._record_reserved[run_id]:
+                raise ICDError("STATE", "evidence reservation release exceeds the retained reservation")
+            self._record_reserved[run_id] -= count
+            self._persist_locked()
+
     def append_fact(self, run_id, fact):
         """Allocate the next cursor atomically for one management evidence fact."""
         if type(fact) is not dict:

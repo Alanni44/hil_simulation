@@ -37,8 +37,11 @@ class RunExecutionBackend(ABC):
 
 
 class ExecutionReporter:
-    def __init__(self, *, running, completed, failed, record=None):
-        self._running, self._completed, self._failed = running, completed, failed
+    def __init__(self, *, running, paused=None, resumed=None, completed, failed, record=None):
+        self._running = running
+        self._paused = paused or (lambda _evidence_refs: None)
+        self._resumed = resumed or (lambda _evidence_refs: None)
+        self._completed, self._failed = completed, failed
         self._record = record
         self._state = "WAITING"
         self._lock = threading.Lock()
@@ -50,9 +53,23 @@ class ExecutionReporter:
             self._state = "RUNNING"
         self._running(tuple(evidence_refs))
 
+    def paused(self, evidence_refs=()):
+        with self._lock:
+            if self._state != "RUNNING":
+                raise ICDError("STATE", "actual PAUSED evidence requires an active Run")
+            self._state = "PAUSED"
+        self._paused(tuple(evidence_refs))
+
+    def resumed(self, evidence_refs=()):
+        with self._lock:
+            if self._state != "PAUSED":
+                raise ICDError("STATE", "actual RESUME evidence requires a paused Run")
+            self._state = "RUNNING"
+        self._resumed(tuple(evidence_refs))
+
     def completed(self, result, evidence_refs=()):
         with self._lock:
-            if self._state not in {"WAITING", "RUNNING"}:
+            if self._state not in {"WAITING", "RUNNING", "PAUSED"}:
                 raise ICDError("STATE", "actual terminal evidence may be reported once")
             if result not in {"PASS", "FAIL", "INCOMPLETE"}:
                 raise ICDError("SCHEMA", "terminal Run result is invalid")
@@ -89,7 +106,8 @@ class RunExecutor:
         self._lock = threading.Lock()
         self._active = None
 
-    def submit(self, operation_id, snapshot, *, on_running, on_completed, on_failed, on_record=None):
+    def submit(self, operation_id, snapshot, *, on_running, on_paused=None, on_resumed=None,
+               on_completed, on_failed, on_record=None):
         if (type(operation_id) is not str or not callable(on_running) or not callable(on_completed)
                 or not callable(on_failed) or on_record is not None and not callable(on_record)):
             raise ICDError("SCHEMA", "bounded operation ID and execution callbacks required")
@@ -97,8 +115,8 @@ class RunExecutor:
             if self._active is not None:
                 raise ICDError("CONTROL_CONFLICT", "one simulator execution is already active")
             stopped = threading.Event()
-            reporter = ExecutionReporter(running=on_running, completed=on_completed, failed=on_failed,
-                                         record=on_record)
+            reporter = ExecutionReporter(running=on_running, paused=on_paused, resumed=on_resumed,
+                                         completed=on_completed, failed=on_failed, record=on_record)
             begin = getattr(self.backend, "begin", None)
             if begin is not None:
                 begin(operation_id, stopped)
@@ -134,6 +152,32 @@ class RunExecutor:
                 raise ICDError("STATE", "requested operation is not the active execution")
             active[1].set()
         self.backend.request_stop(operation_id)
+
+    def supports_pause(self):
+        return callable(getattr(self.backend, "request_pause", None))
+
+    def supports_resume(self):
+        return callable(getattr(self.backend, "request_resume", None))
+
+    def request_pause(self, operation_id):
+        with self._lock:
+            active = self._active
+            if active is None or active[0] != operation_id:
+                raise ICDError("STATE", "requested operation is not the active execution")
+        method = getattr(self.backend, "request_pause", None)
+        if not callable(method):
+            raise ICDError("TARGET_MISSING", "execution backend has no actual PAUSE boundary")
+        method(operation_id)
+
+    def request_resume(self, operation_id):
+        with self._lock:
+            active = self._active
+            if active is None or active[0] != operation_id:
+                raise ICDError("STATE", "requested operation is not the active execution")
+        method = getattr(self.backend, "request_resume", None)
+        if not callable(method):
+            raise ICDError("TARGET_MISSING", "execution backend has no actual RESUME boundary")
+        method(operation_id)
 
     def emergency_stop(self):
         """Stop a target after its original execution worker has failed.
@@ -241,10 +285,24 @@ class FormalHILExecutionBackend(RunExecutionBackend):
 
     def request_stop(self, operation_id):
         with self._lock:
-            event = self._active.get(operation_id)
-        if event is None:
+            controls = self._active.get(operation_id)
+        if controls is None:
             raise ICDError("STATE", "formal execution operation is not active")
-        event.set()
+        controls["stop"].set()
+
+    def request_pause(self, operation_id):
+        with self._lock:
+            controls = self._active.get(operation_id)
+        if controls is None:
+            raise ICDError("STATE", "formal execution operation is not active")
+        controls["pause"].set()
+
+    def request_resume(self, operation_id):
+        with self._lock:
+            controls = self._active.get(operation_id)
+        if controls is None:
+            raise ICDError("STATE", "formal execution operation is not active")
+        controls["resume"].set()
 
     def begin(self, operation_id, stop_requested):
         if type(operation_id) is not str or not isinstance(stop_requested, threading.Event):
@@ -252,17 +310,38 @@ class FormalHILExecutionBackend(RunExecutionBackend):
         with self._lock:
             if operation_id in self._active:
                 raise ICDError("STATE", "formal execution operation was already registered")
-            self._active[operation_id] = stop_requested
+            self._active[operation_id] = {
+                "stop": stop_requested,
+                "pause": threading.Event(),
+                "resume": threading.Event(),
+            }
+
+    def _controls(self, stop_requested):
+        with self._lock:
+            for controls in self._active.values():
+                if controls["stop"] is stop_requested:
+                    return controls
+        raise ICDError("STATE", "formal execution cancellation state is not registered")
+
+    @staticmethod
+    def _close_source(source):
+        try:
+            source.close()
+        finally:
+            close = getattr(source.transport, "close", None)
+            if callable(close):
+                close()
 
     def _stop_hil(self, source, started, session_id, reporter):
         """Apply and read back a real safe STOP for a started execution."""
         status = source.heartbeat(started["applied_step"], target_step=started["applied_step"], emergency=True)
         payload = status["payload"]
-        if payload["state"] != "RUNNING":
-            raise ICDError("STATE", "actual HIL is not RUNNING at STOP request")
-        stop_step = payload["model_step"] + self._stop_lead_steps
+        if payload["state"] not in ("RUNNING", "PAUSED"):
+            raise ICDError("STATE", "actual HIL is not active at STOP request")
+        stop_step = (payload["model_step"] + self._stop_lead_steps
+                     if payload["state"] == "RUNNING" else payload["model_step"])
         stop_reply = source.request({"message_id": 4, "payload": {
-            "action": "STOP", "expected_state": "RUNNING", "reset_policy": "NOT_APPLICABLE"}},
+            "action": "STOP", "expected_state": payload["state"], "reset_policy": "NOT_APPLICABLE"}},
             target_step=stop_step, emergency=True)
         self._applied(stop_reply, 4)
         stop_refs = self._correlation_refs(stop_reply, session_id, "lifecycle-stop-applied")
@@ -273,6 +352,49 @@ class FormalHILExecutionBackend(RunExecutionBackend):
                 or stopped["payload"]["model_step"] != stop_step):
             raise ICDError("BUSINESS_FAILED", "HIL STOP lacks direct stopped/safe status evidence")
         return (*stop_refs, "status-stopped-safe")
+
+    def _pause_hil(self, source, started, session_id, reporter):
+        """Freeze the model at its next actual boundary and prove PAUSED/NONE."""
+        status = source.heartbeat(started["applied_step"], target_step=started["applied_step"])
+        payload = status["payload"]
+        if payload["state"] != "RUNNING":
+            raise ICDError("STATE", "actual HIL is not RUNNING at PAUSE request")
+        pause_step = payload["model_step"] + 1
+        reply = source.request({"message_id": 4, "payload": {
+            "action": "PAUSE", "expected_state": "RUNNING", "reset_policy": "NOT_APPLICABLE"}},
+            target_step=pause_step)
+        self._applied(reply, 4)
+        refs = self._correlation_refs(reply, session_id, "lifecycle-pause-applied")
+        paused = source.heartbeat(pause_step, target_step=pause_step)
+        paused_payload = paused["payload"]
+        if (paused_payload["state"] != "PAUSED" or paused_payload["control_source"] != "NONE"
+                or paused_payload["model_step"] != pause_step):
+            raise ICDError("BUSINESS_FAILED", "HIL PAUSE lacks direct paused/safe status evidence")
+        return pause_step, (*refs, "status-paused-safe")
+
+    def _resume_hil(self, source, snapshot, started, session_id, reporter):
+        """Resume once, then open a new formal session retired by RESUME."""
+        status = source.heartbeat(started["applied_step"], target_step=started["applied_step"])
+        payload = status["payload"]
+        if payload["state"] != "PAUSED":
+            raise ICDError("STATE", "actual HIL is not PAUSED at RESUME request")
+        resume_step = payload["model_step"]
+        reply = source.request({"message_id": 4, "payload": {
+            "action": "RESUME", "expected_state": "PAUSED", "reset_policy": "NOT_APPLICABLE"}},
+            target_step=resume_step)
+        self._applied(reply, 4)
+        old_refs = self._correlation_refs(reply, session_id, "lifecycle-resume-applied")
+        self._close_source(source)
+        resumed_source = self._session(snapshot)
+        resumed_source.open()
+        resumed_session_id = resumed_source.session_id
+        resumed = resumed_source.heartbeat(resume_step, target_step=resume_step)
+        payload = resumed["payload"]
+        if payload["state"] != "RUNNING" or payload["control_source"] != "NONE":
+            self._close_source(resumed_source)
+            raise ICDError("BUSINESS_FAILED", "HIL RESUME lacks direct running/safe status evidence")
+        refs = (*old_refs, "session-" + str(resumed_session_id), "resume-session-open")
+        return resumed_source, resumed_session_id, payload["model_step"], refs
 
     def _compensate_stop(self, source, started, session_id, reporter, original_failure):
         """Stop an already-started model before publishing execution failure."""
@@ -365,14 +487,48 @@ class FormalHILExecutionBackend(RunExecutionBackend):
                     raise ICDError("TARGET_MISSING", "scenario requires an installed original CANT sender")
                 can_sender, _book, _token = self._can_sender_factory(source, request)
             evidence = ["lifecycle-stop-applied"]
+            controls = self._controls(stop_requested)
             # Associate the RunExecutor's operation only after formal START is
             # evidence-backed; an early STOP cannot be mistaken for a target
             # lifecycle request before the model was running.
-            while not stop_requested.wait(self._status_poll_s):
+            while not stop_requested.is_set():
+                if controls["pause"].is_set():
+                    controls["pause"].clear()
+                    pause_step, pause_refs = self._pause_hil(source, started, session_id, reporter)
+                    evidence.extend(pause_refs)
+                    reporter.paused(pause_refs)
+                    if can_sender is not None:
+                        can_sender.close()
+                        can_sender = None
+                    while not stop_requested.is_set() and not controls["resume"].is_set():
+                        paused = source.heartbeat(pause_step, target_step=pause_step)
+                        paused_payload = paused["payload"]
+                        if (paused_payload["state"] != "PAUSED"
+                                or paused_payload["control_source"] != "NONE"
+                                or paused_payload["model_step"] != pause_step):
+                            raise ICDError("STATE", "actual HIL changed while the Run was paused")
+                        stop_requested.wait(self._status_poll_s)
+                    if stop_requested.is_set():
+                        break
+                    controls["resume"].clear()
+                    source, session_id, resumed_step, resume_refs = self._resume_hil(
+                        source, snapshot, started, session_id, reporter)
+                    started = {**started, "applied_step": resumed_step}
+                    evidence.extend(resume_refs)
+                    reporter.resumed(resume_refs)
+                    if events:
+                        if self._can_sender_factory is None:
+                            raise ICDError("TARGET_MISSING", "scenario requires an installed original CANT sender")
+                        can_sender, _book, _token = self._can_sender_factory(source, request)
+                    continue
+                if stop_requested.wait(self._status_poll_s):
+                    break
                 status = source.heartbeat(started["applied_step"], target_step=started["applied_step"])
                 if status["payload"]["state"] != "RUNNING":
                     raise ICDError("STATE", "actual HIL left RUNNING before requested STOP")
                 current = status["payload"]["model_step"]
+                if events and events[0][0] <= current:
+                    raise ICDError("TIMEOUT", "scenario target boundary was missed while the Run was paused")
                 # Keep a bounded lead: the C-core accepts target steps only
                 # within its published look-ahead window, and the immutable
                 # ID10 validity period begins at transmission.  Status is
@@ -454,16 +610,11 @@ class FormalHILExecutionBackend(RunExecutionBackend):
         finally:
             with self._lock:
                 for key, value in tuple(self._active.items()):
-                    if value is stop_requested:
+                    if value["stop"] is stop_requested:
                         del self._active[key]
             try:
                 if can_sender is not None:
                     can_sender.close()
             finally:
                 pass
-            try:
-                source.close()
-            finally:
-                close = getattr(source.transport, "close", None)
-                if callable(close):
-                    close()
+            self._close_source(source)

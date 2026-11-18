@@ -7,7 +7,7 @@
 当前目标机：
 
 ```text
-POST http://192.168.100.165:18081/api/hil/preparation/commands
+POST http://192.168.100.152:18081/api/hil/preparation/commands
 Content-Type: application/json
 ```
 
@@ -16,7 +16,7 @@ BOM，JSON 对象中不能有重复键。请求必须带 `Content-Length`，最�
 返回 `Content-Type: application/json`、`Cache-Control: no-store`。当前部署未配置认证，
 调用方应通过受控网络限制该端口访问。
 
-第一圈的唯一写入口是本 HTTP 接口。`ws://192.168.100.165:8765/ws/hil` 只发布
+第一圈的唯一写入口是本 HTTP 接口。`ws://192.168.100.152:8765/ws/hil` 只发布
 `STATE_TELEMETRY`，拒绝 `INITIALIZE`、`START`、`STOP`，不能用它替代本接口。
 
 ## 固定快照与哈希
@@ -202,7 +202,7 @@ jq --arg request_id '3.6-prepare-request-001' \
 | curl --fail-with-body --request POST \
     --header 'Content-Type: application/json' \
     --data-binary @- \
-    http://192.168.100.165:18081/api/hil/preparation/commands
+    http://192.168.100.152:18081/api/hil/preparation/commands
 ```
 
 成功时 HTTP `200`，响应结构固定如下。这是当前冻结快照的可解析线缆示例：
