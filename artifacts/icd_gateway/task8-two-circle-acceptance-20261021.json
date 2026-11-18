@@ -1,0 +1,160 @@
+{
+ "report": "Task 8 two-circle end-to-end acceptance, software/vcan layer",
+ "date": "2026-10-21",
+ "scope": {
+  "qualified_here": "Linux processes, loopback UDP, deployed systemd services, actual C-core model, management HTTP, gateway semantic gates",
+  "not_qualified_here": "physical CAN FD, physical network interfaces, IRIG/clock hardware, hard real-time qualification",
+  "statement": "All results below are Linux software/vcan acceptance evidence and must not be reported as physical CAN FD or RT qualification."
+ },
+ "environment": {
+  "host_os": "Ubuntu 18.04 (glibc 2.27)",
+  "kernel": "Linux 5.4.10-rt5",
+  "deployment_root": "/opt/hil",
+  "units": ["hil-core@current", "hil-gateway", "hil-prepare", "input-simulator", "hil-preparation", "hil-telemetry", "hil-vcan"],
+  "ports": {"c_core": 9997, "gateway": 36100, "source": 36102, "feedback": 36101,
+            "simulator_http": 18080, "preparation_http": 18081, "telemetry_ws": 8765},
+  "model_id": "quadrotor_hil",
+  "definition_version": "HIL-ICD-1.0",
+  "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27"
+ },
+ "scheduling_change": {
+  "file": "config/minimal-integration-simulator.json",
+  "stop_lead_steps": {"before": 100, "after": 180},
+  "status_poll_ms": {"before": 50, "after": 20},
+  "test_update": "tests/icd_gateway/test_management_http.py now pins (180, .02)",
+  "rationale": "Wire captures showed ID10 staging only 27-35 model steps before the frozen step-250 boundary at the old settings. The gateway needs the stage request before C reaches 250; the executor's first heartbeat after START is the controlling latency. Polling at the contract heartbeat period and triggering at a larger lead moves the stage to model steps 98-137 on an idle/fresh store."
+ },
+ "positive_flow": {
+  "clean_fresh_store_batch": {
+   "configuration": {"stop_lead_steps": 180, "status_poll_ms": 20},
+   "runs": [
+    {"case": 6, "run_id": "run-12968b32873ed2e01fc20843", "result": "TASK8_POSITIVE_PASS", "target_step": 250, "tx_count": 1, "stage_current_step": 98, "margin_steps": 152, "stopped_step": 1182},
+    {"case": 7, "run_id": "run-496e4d4ed72d89fdb97cbf04", "result": "TASK8_POSITIVE_PASS", "target_step": 250, "tx_count": 1, "stage_current_step": 98, "margin_steps": 152, "stopped_step": 1213},
+    {"case": 8, "run_id": "run-873a2466caf51404ac3337cb", "result": "TASK8_POSITIVE_PASS", "target_step": 250, "tx_count": 1, "stage_current_step": 111, "margin_steps": 139, "stopped_step": 1293},
+    {"case": 9, "run_id": "run-ccd4e24fa43090f2b439a006", "result": "TASK8_POSITIVE_PASS", "target_step": 250, "tx_count": 1, "stage_current_step": 127, "margin_steps": 123, "stopped_step": 1435},
+    {"case": 10, "run_id": "run-683cea6d79fc5151c277c10a", "result": "TASK8_POSITIVE_PASS", "target_step": 250, "tx_count": 1, "stage_current_step": 137, "margin_steps": 113, "stopped_step": 1462}
+   ],
+   "summary": "5/5 passes, one ID10 TX each, scenario APPLIED at model step 250, STOP with HIL_STOP_APPLIED and status-stopped-safe, final state COMPLETED/INCOMPLETE"
+  },
+  "deployed_smoke": {
+   "run_id": "run-8a6eb5bcb91f564fa0ce2f30",
+   "status": "MINIMAL_FULL_FLOW_READY",
+   "scenario_input_applied": true,
+   "hil_stop_applied": true,
+   "result": "INCOMPLETE",
+   "record_count": 7
+  },
+  "coverage_in_positive_harness": {
+   "create_ready_and_hil_no_side_effect": true,
+   "config_drift_rejected": {"http": 400, "code": "REFERENCE_INVALID"},
+   "baseline_drift_rejected": {"http": 422, "code": "BASELINE_MISMATCH"},
+   "duplicate_request_id_different_content": {"http": 409, "code": "IDEMPOTENCY_CONFLICT"},
+   "duplicate_start": {"http": 409, "code": "STATE_CONFLICT"},
+   "duplicate_stop": {"http": 409, "code": "STATE_CONFLICT"},
+   "second_active_run": {"http": 409, "code": "CONTROL_CONFLICT"},
+   "telemetry_state_frame": "STATE_TELEMETRY with lifecycle RUNNING and sequence matching the model step",
+   "stop_safety": "STOPPED, control_source NONE, motor_command [0,0,0,0], sequence == model_step, exactly one HIL_START_APPLIED and one HIL_STOP_APPLIED"
+  }
+ },
+ "negative_flow": {
+  "message3_drift_direct_formal": {
+   "status": "PASS",
+   "setup": "SourceSession opened through the deployed gateway; message ID 3 sent with random_seed changed 1 -> 2 while HIL was CONFIGURED",
+   "reply": {"message_id": 130, "stage": "FAILED", "error": "STATE", "request_message_id": 3},
+   "c_state_before": {"lifecycle": "CONFIGURED", "sequence": 0, "model_revision": 1, "model_step": 0},
+   "c_state_after": {"lifecycle": "CONFIGURED", "sequence": 0, "model_revision": 1, "model_step": 0},
+   "c_configure_commands_observed": 0,
+   "conclusion": "Rejected at the gateway semantic gate before any C configure write"
+  },
+  "unprepared_first_circle": {
+   "status": "FAIL",
+   "finding": "STOPPED-configure gap",
+   "setup": "hil-prepare stopped; hil-core@current restarted without preparation; core was STOPPED, sequence 0, model_revision 0",
+   "run_id": "run-44676a0c4bc3c6e12fb3b427",
+   "observed": {
+    "create": "READY",
+    "start": "HIL_START_APPLIED",
+    "scenario_tx_count": 1,
+    "scenario_applied": true,
+    "stop": "HIL_STOP_APPLIED",
+    "final_state": "COMPLETED/INCOMPLETE",
+    "c_before": {"lifecycle": "STOPPED", "sequence": 0, "model_revision": 0},
+    "c_after": {"lifecycle": "STOPPED", "sequence": 876, "model_revision": 1},
+    "wire_commands": [
+     {"cmd": "configure", "request_id": "run-configure-apply", "time_epoch_s": 1792595608.693},
+     {"cmd": "stage_lifecycle", "request_id": "lifecycle-start", "action": "START", "target_step": 0, "time_epoch_s": 1792595608.803},
+     {"cmd": "stage_icd_group", "request_id": "icd10-916475626-5-5", "target_step": 250, "time_epoch_s": 1792595608.956},
+     {"cmd": "stage_lifecycle", "request_id": "lifecycle-stop", "action": "STOP", "target_step": 876, "time_epoch_s": 1792595609.559}
+    ]
+   },
+   "required_result": "no TX when the first circle was never prepared",
+   "actual_result": "the second circle configured the model itself and transmitted ID10",
+   "note": "This is Finding B, deliberately not fixed in this acceptance run; it must remain an open acceptance gap."
+  },
+  "residual_margin_failure_under_load": {
+   "status": "FAIL (resource contention), root cause identified",
+   "run_id": "run-4972166d200dad9f73a9d991",
+   "configuration": {"stop_lead_steps": 180, "status_poll_ms": 20},
+   "context": "Full 1275-test ICD regression suite running concurrently; run store held about 300 remembered requests (~1.1 MB)",
+   "failure_code": "EVIDENCE_TIMEOUT",
+   "wire_timeline_epoch_s": {
+    "start_source_send": 1792595206.052498,
+    "start_feedback_reply": 1792595206.095454,
+    "first_heartbeat_source_send": 1792595206.356489
+   },
+   "start_reply_to_first_heartbeat_ms": 261.0,
+   "conclusion": "The first scenario heartbeat observed a model step beyond the frozen 250 boundary, so no ID10 TX was possible. The delay is the executor persisting HIL_START_APPLIED evidence through the run store, which rewrites and fsyncs the whole store. Scenario lead tuning cannot recover a 261 ms post-START stall."
+  },
+  "growing_store_batch": {
+   "runs": [
+    {"case": 1, "run_id": "run-ba60aeb25c472d98f375edbd", "result": "TASK8_POSITIVE_PASS", "margin_steps": 54},
+    {"case": 2, "run_id": "run-586c00c11f441b712c5a9384", "result": "TASK8_POSITIVE_PASS", "margin_steps": 54},
+    {"case": 3, "run_id": "run-a2e2bdaf8e51e8c5a163bb83", "result": "TASK8_POSITIVE_PASS", "margin_steps": 35},
+    {"case": 4, "run_id": "run-82ed6591d9cafa1d7783061c", "result": "TASK8_POSITIVE_PASS", "margin_steps": 32}
+   ],
+   "summary": "Margins shrink as the store grows; case 5 then missed the boundary under suite load"
+  }
+ },
+ "deployed_defects": {
+  "request_registry_capacity": {
+   "observation": "run store reached 512/512 remembered requests; remember() raised CAPACITY and management HTTP returned 400 invalid_request for CREATE/GET/RECORDS",
+   "cause": "max_requests=512 with no eviction of terminal runs or read-only command ids",
+   "archived_store": "/opt/hil/runtime/input-simulator-state-archive/run-store-exhausted-20261021T1452Z.json (1,378,162 bytes, 14 runs, 512 requests)",
+   "workaround_used": "stop input-simulator, move the store to the archive directory, restart; test evidence preserved"
+  },
+  "full_store_persistence_in_hot_path": {
+   "observation": "every management command rewrites and fsyncs the entire store under an RLock; the executor's RUNNING evidence write sits between START APPLIED and the first scenario heartbeat",
+   "measured": "fresh/idle store: START reply to first heartbeat 97-145 ms and scenario margins 113-152 steps; grown/loaded store: 196-304 ms and margins 32-54 steps, with one boundary miss",
+   "recommendation": "use an append-only journal or bounded/compacted persistence and keep the post-START evidence write out of the ID10 staging critical path",
+   "archived_store": "/opt/hil/runtime/input-simulator-state-archive/run-store-after-run5-load-failure-20261021T1508Z.json (1,149,118 bytes)"
+  }
+ },
+ "regression": {
+  "full_suite": {"tests": 1275, "errors": 1, "failure": "test_scenario_driver.ScenarioDriverTests.test_service_poll_session_change_cannot_cache_completion raised TARGET_MISSING under the loaded 32-minute run", "isolated_rerun": "tests/icd_gateway/test_scenario_driver.py: 31 tests OK", "classification": "load-induced timing flake, unrelated to the simulator runtime-config change"},
+  "focused_management_http": {"tests": 8, "result": "OK", "command": "runtime/python3.12/bin/python3.12 -X utf8 -m unittest discover -s tests/icd_gateway -p 'test_management_http.py'"},
+  "suite_command": "runtime/python3.12/bin/python3.12 -X utf8 scripts/test_icd_runtime.py"
+ },
+ "artifacts": {
+  "positive_clean": [
+   "artifacts/icd_gateway/task8-positive-clean-case6-run-12968b32873ed2e01fc20843.json",
+   "artifacts/icd_gateway/task8-positive-clean-case7-run-496e4d4ed72d89fdb97cbf04.json",
+   "artifacts/icd_gateway/task8-positive-clean-case8-run-873a2466caf51404ac3337cb.json",
+   "artifacts/icd_gateway/task8-positive-clean-case9-run-ccd4e24fa43090f2b439a006.json",
+   "artifacts/icd_gateway/task8-positive-clean-case10-run-683cea6d79fc5151c277c10a.json"
+  ],
+  "positive_growing_store": [
+   "artifacts/icd_gateway/task8-positive-tuned-case1-run-ba60aeb25c472d98f375edbd.json",
+   "artifacts/icd_gateway/task8-positive-tuned-case2-run-586c00c11f441b712c5a9384.json",
+   "artifacts/icd_gateway/task8-positive-tuned-case3-run-a2e2bdaf8e51e8c5a163bb83.json",
+   "artifacts/icd_gateway/task8-positive-tuned-case4-run-82ed6591d9cafa1d7783061c.json"
+  ],
+  "failures": [
+   "artifacts/icd_gateway/task8-scenario-margin-failure-run-4972166d200dad9f73a9d991.json",
+   "artifacts/icd_gateway/task8-negative-unprepared-20261021.json"
+  ],
+  "negatives": [
+   "artifacts/icd_gateway/task8-negative-message3-drift-20261021.json",
+   "artifacts/icd_gateway/task8-negative-unprepared-20261021.json"
+  ]
+ }
+}

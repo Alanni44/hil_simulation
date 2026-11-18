@@ -1,0 +1,190 @@
+{
+ "evidence": {
+  "after_create_status": {
+   "accepted": true,
+   "control_source": "none",
+   "lifecycle": "CONFIGURED",
+   "model_revision": 1,
+   "model_step": 0,
+   "sequence": 0,
+   "sim_time_s": 0
+  },
+  "after_mismatch_status": {
+   "accepted": true,
+   "control_source": "none",
+   "lifecycle": "CONFIGURED",
+   "model_revision": 1,
+   "model_step": 0,
+   "sequence": 0,
+   "sim_time_s": 0
+  },
+  "completed_get": {
+   "result": "INCOMPLETE",
+   "revision": "5",
+   "state": "COMPLETED"
+  },
+  "create": {
+   "http": 200,
+   "revision": "1",
+   "run_id": "run-496e4d4ed72d89fdb97cbf04",
+   "state": "VALIDATING"
+  },
+  "create_get": {
+   "available_actions": [
+    "START"
+   ],
+   "result": "NOT_RUN",
+   "revision": "1",
+   "state": "READY"
+  },
+  "duplicate_request_id_different_content": {
+   "code": "IDEMPOTENCY_CONFLICT",
+   "http": 409,
+   "message": "request_id was already used for another command",
+   "status": "REJECTED"
+  },
+  "duplicate_start": {
+   "code": "STATE_CONFLICT",
+   "http": 409,
+   "message": "START is not available for this Run",
+   "status": "REJECTED"
+  },
+  "duplicate_stop": {
+   "code": "STATE_CONFLICT",
+   "http": 409,
+   "message": "STOP is not available for this Run",
+   "status": "REJECTED"
+  },
+  "final_record_reasons": [
+   "START_QUEUED",
+   "HIL_START_APPLIED",
+   "SCENARIO_INPUT_TX",
+   "SCENARIO_INPUT_APPLIED",
+   "STOP_REQUESTED",
+   "HIL_STOP_APPLIED",
+   "EXECUTION_INCOMPLETE"
+  ],
+  "first_running_status": {
+   "accepted": true,
+   "control_source": "none",
+   "lifecycle": "RUNNING",
+   "model_revision": 1,
+   "model_step": 352,
+   "sequence": 352,
+   "sim_time_s": 0.35200000000000026
+  },
+  "mismatched_baseline_create": {
+   "code": "BASELINE_MISMATCH",
+   "http": 422,
+   "message": "management baseline differs from the frozen contract",
+   "status": "REJECTED"
+  },
+  "mismatched_config_create": {
+   "code": "REFERENCE_INVALID",
+   "http": 400,
+   "message": "run_configuration differs from the fixed deployment template",
+   "status": "REJECTED"
+  },
+  "pre_status": {
+   "accepted": true,
+   "control_source": "none",
+   "lifecycle": "CONFIGURED",
+   "model_revision": 1,
+   "model_step": 0,
+   "sequence": 0,
+   "sim_time_s": 0
+  },
+  "run_id": "run-496e4d4ed72d89fdb97cbf04",
+  "running_get": {
+   "available_actions": [
+    "STOP"
+   ],
+   "revision": "3",
+   "state": "RUNNING"
+  },
+  "running_samples": [
+   {
+    "accepted": true,
+    "control_source": "none",
+    "lifecycle": "RUNNING",
+    "model_revision": 1,
+    "model_step": 810,
+    "sequence": 810,
+    "sim_time_s": 0.8100000000000006
+   },
+   {
+    "accepted": true,
+    "control_source": "none",
+    "lifecycle": "RUNNING",
+    "model_revision": 1,
+    "model_step": 961,
+    "sequence": 961,
+    "sim_time_s": 0.9610000000000007
+   }
+  ],
+  "scenario_applied": {
+   "event_id": "wind-step-01",
+   "input_event_id": "wind-step-01",
+   "message_id": "10",
+   "step_index": "250"
+  },
+  "scenario_tx_count": 1,
+  "second_active_run_create": {
+   "code": "CONTROL_CONFLICT",
+   "http": 409,
+   "message": "one non-terminal simulator Run is already registered",
+   "status": "REJECTED"
+  },
+  "start": {
+   "http": 200,
+   "operation_id": "operation-242915415201734f3631225a",
+   "state": "WAITING",
+   "status": "ACCEPTED"
+  },
+  "start_fact_count": 1,
+  "stop": {
+   "http": 200,
+   "operation_id": "operation-d6d53880cd0da59427382aef",
+   "state": "STOPPING",
+   "status": "ACCEPTED"
+  },
+  "stop_evidence_refs": [
+   "lifecycle-stop-applied",
+   "session-692071820",
+   "transaction-23"
+  ],
+  "stop_safe_refs": [
+   "lifecycle-stop-applied",
+   "scenario-wind-step-01-applied",
+   "session-692071820",
+   "transaction-5",
+   "lifecycle-stop-applied",
+   "session-692071820",
+   "transaction-23",
+   "status-stopped-safe"
+  ],
+  "stopped_motor_command": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "stopped_status": {
+   "accepted": true,
+   "control_source": "none",
+   "lifecycle": "STOPPED",
+   "model_revision": 1,
+   "model_step": 1213,
+   "sequence": 1213,
+   "sim_time_s": 1.2129999999999772
+  },
+  "telemetry_frame_count": 2,
+  "telemetry_running": {
+   "lifecycle": "RUNNING",
+   "sequence": "796",
+   "sim_time_s": 0.7960000000000006,
+   "timestamp_ms": 1792595448046
+  }
+ },
+ "status": "TASK8_POSITIVE_PASS"
+}

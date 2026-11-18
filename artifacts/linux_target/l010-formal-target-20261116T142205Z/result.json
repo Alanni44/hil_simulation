@@ -1,0 +1,659 @@
+{
+  "format": "HIL_L010_FORMAL_TARGET_VALIDATION_1",
+  "status": "PASSED",
+  "scope": "DEPLOYED_FORMAL_UDP_LIFECYCLE_AND_CCORE",
+  "before": {
+    "api_version": "1.0",
+    "cmd": "hil_status_get",
+    "code": "OK",
+    "data": {
+      "control_source": "NONE",
+      "fresh": true,
+      "model_id": "quadrotor_hil",
+      "model_revision": "6",
+      "model_step": "283",
+      "sim_time_us": "283000",
+      "state": "STOPPED"
+    },
+    "error": null,
+    "kind": "HIL_PREPARATION_RESPONSE",
+    "message": "HIL current status",
+    "request_id": "l010-target-before-l010-formal-target-20261116T142205Z",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-16T14:22:07.153Z"
+  },
+  "reset": {
+    "api_version": "1.0",
+    "cmd": "hil_reset",
+    "code": "OK",
+    "data": {
+      "control_source": "NONE",
+      "model_id": "quadrotor_hil",
+      "model_revision": "6",
+      "model_step": "0",
+      "reset": true,
+      "reset_id": "l010-target-reset-l010-formal-target-20261116T142205Z",
+      "run_id": "l010-formal-target-20261116T142205Z",
+      "sim_time_us": "0",
+      "state": "STOPPED"
+    },
+    "error": null,
+    "kind": "HIL_PREPARATION_RESPONSE",
+    "message": "HIL reset confirmed",
+    "request_id": "l010-target-reset-l010-formal-target-20261116T142205Z",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-16T14:22:07.158Z"
+  },
+  "preparation": {
+    "api_version": "1.0",
+    "cmd": "hil_prepare",
+    "code": "OK",
+    "data": {
+      "baseline_sha256": "22163dc21526ceadd63260b3d5670404a1064c4301e52b2a80edcf41a4fe8a27",
+      "config_id": "5220aa06d6ddb3948bfdda76a91d6ebda4c3550436cbbb6c6da78f39ffa3ca8f",
+      "config_sha256": "5220aa06d6ddb3948bfdda76a91d6ebda4c3550436cbbb6c6da78f39ffa3ca8f",
+      "configured": true,
+      "control_source": "NONE",
+      "model_id": "quadrotor_hil",
+      "model_revision": "7",
+      "model_step": "0",
+      "prepare_id": "l010-target-prepare-l010-formal-target-20261116T142205Z",
+      "run_id": "l010-formal-target-20261116T142205Z",
+      "state": "CONFIGURED"
+    },
+    "error": null,
+    "kind": "HIL_PREPARATION_RESPONSE",
+    "message": "HIL prepared",
+    "request_id": "l010-target-prepare-l010-formal-target-20261116T142205Z",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-16T14:22:07.192Z"
+  },
+  "actions": [
+    {
+      "action": "START",
+      "request": {
+        "header": {
+          "sequence": 2,
+          "session_id": 759496936,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "START",
+          "expected_state": "CONFIGURED",
+          "reset_policy": "NOT_APPLICABLE"
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496936,
+          "target_step": 0,
+          "transaction_id": 2,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 0,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 2,
+          "stage": "APPLIED"
+        }
+      }
+    },
+    {
+      "action": "PAUSE",
+      "request": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496936,
+          "target_step": 276,
+          "transaction_id": 3,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "PAUSE",
+          "expected_state": "RUNNING",
+          "reset_policy": "NOT_APPLICABLE"
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 5,
+          "session_id": 759496936,
+          "target_step": 0,
+          "transaction_id": 3,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 276,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 3,
+          "stage": "APPLIED"
+        }
+      }
+    },
+    {
+      "action": "STEP",
+      "request": {
+        "header": {
+          "sequence": 2,
+          "session_id": 759496937,
+          "target_step": 276,
+          "transaction_id": 5,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "STEP",
+          "expected_state": "PAUSED",
+          "reset_policy": "NOT_APPLICABLE",
+          "step_count": 10
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496937,
+          "target_step": 0,
+          "transaction_id": 5,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 286,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 2,
+          "stage": "APPLIED"
+        }
+      },
+      "stage_request_id": "lifecycle-step-759496937-2",
+      "samples": [
+        {
+          "state_vector": [
+            277,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333506829
+        },
+        {
+          "state_vector": [
+            278,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333511649
+        },
+        {
+          "state_vector": [
+            279,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333516419
+        },
+        {
+          "state_vector": [
+            280,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333521089
+        },
+        {
+          "state_vector": [
+            281,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333525879
+        },
+        {
+          "state_vector": [
+            282,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333530709
+        },
+        {
+          "state_vector": [
+            283,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333535649
+        },
+        {
+          "state_vector": [
+            284,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333540229
+        },
+        {
+          "state_vector": [
+            285,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333545109
+        },
+        {
+          "state_vector": [
+            286,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            0,
+            0,
+            9.806650161743164
+          ],
+          "actuator_output": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sampled_ns": 367338333549759
+        }
+      ]
+    },
+    {
+      "action": "RESUME",
+      "request": {
+        "header": {
+          "sequence": 2,
+          "session_id": 759496938,
+          "target_step": 286,
+          "transaction_id": 7,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "RESUME",
+          "expected_state": "PAUSED",
+          "reset_policy": "NOT_APPLICABLE"
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496938,
+          "target_step": 0,
+          "transaction_id": 7,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 286,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 2,
+          "stage": "APPLIED"
+        }
+      }
+    },
+    {
+      "action": "PAUSE_AFTER_RESUME",
+      "request": {
+        "header": {
+          "sequence": 2,
+          "session_id": 759496939,
+          "target_step": 596,
+          "transaction_id": 9,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "PAUSE",
+          "expected_state": "RUNNING",
+          "reset_policy": "NOT_APPLICABLE"
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496939,
+          "target_step": 0,
+          "transaction_id": 9,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 596,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 2,
+          "stage": "APPLIED"
+        }
+      }
+    },
+    {
+      "action": "STOP",
+      "request": {
+        "header": {
+          "sequence": 2,
+          "session_id": 759496940,
+          "target_step": 596,
+          "transaction_id": 11,
+          "valid_for_ms": 1000
+        },
+        "message_id": 4,
+        "payload": {
+          "action": "STOP",
+          "expected_state": "PAUSED",
+          "reset_policy": "NOT_APPLICABLE"
+        }
+      },
+      "reply": {
+        "header": {
+          "sequence": 3,
+          "session_id": 759496940,
+          "target_step": 0,
+          "transaction_id": 11,
+          "valid_for_ms": 1000
+        },
+        "message_id": 130,
+        "payload": {
+          "applied_step": 596,
+          "error": "OK",
+          "model_revision": 7,
+          "probe_id": 1004,
+          "request_message_id": 4,
+          "request_sequence": 2,
+          "stage": "APPLIED"
+        }
+      }
+    }
+  ],
+  "final_status": {
+    "lifecycle": "STOPPED",
+    "sequence": 596,
+    "sim_time_s": 0.5960000000000004,
+    "control_source": "none",
+    "actuator_output": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "actuator_output_sequence": 596,
+    "model_loaded": true,
+    "initial_state_abi": true,
+    "full_configuration_abi": true,
+    "model_revision": 7,
+    "initial_state": {
+      "position": {
+        "north_m": 0,
+        "east_m": 0,
+        "down_m": 0
+      },
+      "velocity_n_mps": 0,
+      "velocity_e_mps": 0,
+      "velocity_d_mps": 0,
+      "orientation": {
+        "q_w": 1,
+        "q_x": 0,
+        "q_y": 0,
+        "q_z": 0
+      },
+      "p_radps": 0,
+      "q_radps": 0,
+      "r_radps": 0,
+      "airborne": false
+    },
+    "model_state": {
+      "model_step": 596,
+      "position": {
+        "north_m": 0,
+        "east_m": 0,
+        "down_m": 0
+      },
+      "vn_mps": 0,
+      "ve_mps": 0,
+      "vd_mps": 0,
+      "orientation": {
+        "q_w": 1,
+        "q_x": 0,
+        "q_y": 0,
+        "q_z": 0
+      },
+      "p_radps": 0,
+      "q_radps": 0,
+      "r_radps": 0,
+      "airborne": false,
+      "ax_mps2": 0,
+      "ay_mps2": 0,
+      "az_mps2": 9.806650161743164,
+      "engine_rpm": 0,
+      "fuel_remaining_kg": 0,
+      "hydraulic_pressure_pa": 0,
+      "electrical_voltage_v": 28,
+      "avionics_state": "UNAVAILABLE"
+    }
+  },
+  "not_verified": [
+    "PHYSICAL_ACTUATOR_OR_ESC_READBACK",
+    "RT_DEADLINE_AND_HARDWARE_SAFETY"
+  ]
+}

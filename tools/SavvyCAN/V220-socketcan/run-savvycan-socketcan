@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tool_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+export LD_LIBRARY_PATH="$tool_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$tool_dir/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+exec "$tool_dir/SavvyCAN" "$@"

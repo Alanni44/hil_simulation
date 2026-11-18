@@ -1,0 +1,6 @@
+{
+  "format": "HIL_L010_FORMAL_TARGET_VALIDATION_1",
+  "status": "FAILED",
+  "error": "MODEL",
+  "detail": "MODEL: C-core STEP history is incomplete: {'request_id': 'l010-target-step-history', 'accepted': False, 'reason': 'unknown lifecycle STEP history', 'effective_sequence': 283, 'lifecycle': 'PAUSED'}"
+}

@@ -1,0 +1,62 @@
+{
+  "status": "THREE_CHAINS_MODEL_APPLIED_DEVELOPMENT_VERIFIED",
+  "execution_host": "Linux 5.4.10-rt5 x86_64",
+  "git_head": "664f8fd2a2d3865d8cec61228a360dacf1e4df0e",
+  "interpreter": "runtime/python3.12/bin/python3.12 3.12.12",
+  "model": {
+    "executable": "artifacts/z_mission/bin/quadrotor_hil_rt",
+    "contract": "artifacts/z_mission/model/hil_contract.json",
+    "bridge_endpoint": "127.0.0.1:9997",
+    "mode": "HIL_ALLOW_NONRT=1"
+  },
+  "chains": [
+    {
+      "source": "PROTOCOL",
+      "transport": "original CANT/python-can VirtualBus/CANGateway",
+      "message_id": 10,
+      "samples": 3,
+      "terminal_stage": "APPLIED",
+      "probe_id": 1010,
+      "applied_steps": [47454, 47534, 47614],
+      "model_revisions": [4, 5, 6],
+      "evidence": "artifacts/icd_gateway/protocol-model-20261018T000001Z.jsonl",
+      "sha256": "38c1bafc0f1023bc46f737e50b1d8802c0449d2343e6de423579b03582559c96"
+    },
+    {
+      "source": "SCENARIO",
+      "transport": "original Scapy L2 virtual Ethernet relay/UDPGateway",
+      "message_id": 10,
+      "samples": 3,
+      "terminal_stage": "APPLIED",
+      "probe_id": 1010,
+      "applied_steps": [12014, 12094, 12174],
+      "model_revisions": [1, 2, 3],
+      "evidence": "artifacts/icd_gateway/scenario-model-20261018T000001Z.jsonl",
+      "sha256": "2e6ab5daf29fffd8169330b6569c48b9c6f1bf4abe26279f1caa37e0550987a5"
+    },
+    {
+      "source": "HISTORY",
+      "transport": "reference PCAP decode/reprepare/UDP replay/UDPGateway",
+      "message_id": 7,
+      "samples": 1,
+      "terminal_stage": "APPLIED",
+      "probe_id": 1007,
+      "applied_steps": [21052],
+      "model_revisions": [1],
+      "evidence": "artifacts/icd_gateway/history-model-20261018T000001Z.jsonl",
+      "sha256": "941fa45f1c8a98b87c4863b49dc131b78b1b47762a8bb296cfb9dcb4ca42c6e0"
+    }
+  ],
+  "regression": {
+    "command": "PYTHONPATH=.:tests/icd_gateway runtime/python3.12/bin/python3.12 -X utf8 -m unittest -v test_protocol_reception_demo test_scenario_reception_demo test_history_reception_demo test_model_consumer",
+    "result": "PASS",
+    "tests": 14
+  },
+  "not_qualified": [
+    "SocketCAN/CANFD physical bus",
+    "physical Ethernet or tcpreplay",
+    "real-time timing",
+    "all 97 model bindings and lifecycle safety",
+    "real 3.3 replacement"
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "execution_host": "Linux Ubuntu 18.04.6 LTS 5.4.10-rt5 PREEMPT_RT",
+  "status": "LINUX_TARGET_VERIFIED",
+  "completed_linux_items": [
+    "L-001"
+  ],
+  "verification": {
+    "completed_utc": "2026-10-18T13:23:08.500818Z",
+    "acceptance": {
+      "command": "HIL_UDP_CMD_PORT=19997 HIL_UDP_STATUS_PORT=19998 HIL_UE4_ACCEPTANCE_PORT=15001 PATH=/tmp/hil-l001-py36-1H1yfu/venv/bin:$PATH bash scripts/run_ubuntu_acceptance.sh",
+      "temporary_clean_checkout": "/tmp/hil-l001-acceptance-worktree",
+      "git_head": "fadf2386cfdf37a88f540b3f50348e41a2e6473b",
+      "result_status": "passed",
+      "assertion_count": 42,
+      "unit_tests": 181,
+      "runtime_checks": {
+        "ert_gcc_build": "passed",
+        "ue4_state_stream": {
+          "frames": 501,
+          "average_hz_range": "49..51",
+          "sequence_strictly_increasing": true
+        },
+        "reset_scene_event": "passed",
+        "second_deployment_single_instance": "passed"
+      },
+      "evidence_source": "/tmp/hil-l001-acceptance-worktree/artifacts/acceptance/20261018T132006Z-fadf2386cfdf-week1-baseline",
+      "evidence_sha256": {
+        "result.json": "32515d4685973286945c72d1804244e16ee10bbd4631035cb64461fc5798f42d",
+        "environment.json": "b9159600a3d6965e45216e23cec3790f6cc4e4a8aad08614bf1368763839bcc8",
+        "source-manifest.json": "32c170dc0f6844b9c2134e4333158e1dbf0408b5a3cf15458a3ed906d2ba020a",
+        "assertions.json": "2fc1d1fe922ce270b9c3269a89d78b6f8c6f855e1cc3a4926fbe943b93682ff1",
+        "test-report.json": "422565235858ec0537133b32a0854a80246b663336d87a180a19e77651450940"
+      }
+    },
+    "host_inventory": {
+      "repository_git_head_before_l001_changes": "664f8fd2a2d3865d8cec61228a360dacf1e4df0e",
+      "system_python": "Python 3.6.9 (/usr/bin/python3.6)",
+      "isolated_python": "Python 3.12.12 (runtime/python3.12)",
+      "isolated_python_pip_check": "No broken requirements found.",
+      "legacy_python_acceptance_venv": "/tmp/hil-l001-py36-1H1yfu/venv (Python 3.6.9; pip check passed)",
+      "matlab": "9.5.0.944444 (R2018b)",
+      "model_artifacts_sha256": {
+        "artifacts/z_mission/bin/quadrotor_hil_rt": "146e2136ed6e89f2d556cc8d32e4d78d72a91cd1984c2cb856569d183d1f0b35",
+        "artifacts/z_mission/model/hil_contract.json": "56f3b802426f6f1c293fe41eadf416280d1eefdef4c1cc85230cf427ab11489d",
+        "artifacts/z_mission/model/quadrotor_hil.slx": "08a9e161aae1321ae000ac939ba56d84e013d8f7aec7d0c5be9ce34f737d8854"
+      }
+    },
+    "legacy_startup_path": {
+      "historical_opt_hil_path": "Absent on this host; no /opt/hil runtime was modified or claimed as hashed.",
+      "current_workspace_service": "hil-python-services-workspace.service executes /home/user/桌面/hil-simulator/python_services/main.py with system Python 3.6.",
+      "acceptance_isolation": "The temporary clean checkout used independent UDP 19997/19998 and TCP 15001, so the running workspace service was not stopped or changed."
+    },
+    "scope": {
+      "system_python_replaced": false,
+      "production_service_restarted": false,
+      "realtime_claim": "none; HIL_SKIP_REALTIME_GATE=1 and HIL_ALLOW_NONRT=1 were used only for development acceptance",
+      "not_completed": [
+        "L-004",
+        "L-010",
+        "formal production release"
+      ]
+    }
+  }
+}

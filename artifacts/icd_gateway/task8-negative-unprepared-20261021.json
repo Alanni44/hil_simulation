@@ -1,0 +1,118 @@
+{
+ "after": {
+  "accepted": true,
+  "lifecycle": "STOPPED",
+  "model_revision": 1,
+  "model_step": 876,
+  "sequence": 876
+ },
+ "before": {
+  "accepted": true,
+  "lifecycle": "STOPPED",
+  "model_revision": 0,
+  "model_step": 0,
+  "sequence": 0
+ },
+ "create": {
+  "code": "OK",
+  "http": 200,
+  "state": "VALIDATING",
+  "status": "SUCCESS"
+ },
+ "create_get": {
+  "state": "READY"
+ },
+ "final": {
+  "result": "INCOMPLETE",
+  "state": "COMPLETED"
+ },
+ "finding": "STOPPED-configure gap: with hil-prepare stopped and the core restarted, the second circle issued C configure (model_revision 0->1), STARTed, transmitted ID10 at target step 250, and stopped at step 876. The required no-TX negative is NOT met.",
+ "label": "Linux software/vcan diagnostic, not physical qualification",
+ "records": [
+  {
+   "cursor": "1",
+   "kind": "RESPONSE",
+   "operation_result": null,
+   "reason_code": "START_QUEUED"
+  },
+  {
+   "cursor": "2",
+   "kind": "RESPONSE",
+   "operation_result": null,
+   "reason_code": "HIL_START_APPLIED"
+  },
+  {
+   "cursor": "3",
+   "kind": "TX",
+   "operation_result": null,
+   "reason_code": "SCENARIO_INPUT_TX"
+  },
+  {
+   "cursor": "4",
+   "kind": "APPLIED",
+   "operation_result": null,
+   "reason_code": "SCENARIO_INPUT_APPLIED"
+  },
+  {
+   "cursor": "5",
+   "kind": "SAFETY",
+   "operation_result": null,
+   "reason_code": "STOP_REQUESTED"
+  },
+  {
+   "cursor": "6",
+   "kind": "RESPONSE",
+   "operation_result": null,
+   "reason_code": "HIL_STOP_APPLIED"
+  },
+  {
+   "cursor": "7",
+   "kind": "OPERATION_RESULT",
+   "operation_result": "FAILED",
+   "reason_code": "EXECUTION_INCOMPLETE"
+  }
+ ],
+ "run_id": "run-44676a0c4bc3c6e12fb3b427",
+ "scenario_applied": true,
+ "scenario_tx_count": 1,
+ "scope": "Linux software/vcan diagnostic; not physical CAN FD or RT qualification",
+ "start": {
+  "code": "QUEUED",
+  "http": 200,
+  "state": "WAITING",
+  "status": "ACCEPTED"
+ },
+ "status": "NEGATIVE_UNPREPARED_SECOND_CIRCLE_TX",
+ "stop": {
+  "code": "QUEUED",
+  "http": 200,
+  "status": "ACCEPTED"
+ },
+ "wire_commands": [
+  {
+   "cmd": "configure",
+   "request_id": "run-configure-apply",
+   "time_epoch_s": 1792595608.693
+  },
+  {
+   "action": "START",
+   "cmd": "stage_lifecycle",
+   "request_id": "lifecycle-start",
+   "target_step": 0,
+   "time_epoch_s": 1792595608.803
+  },
+  {
+   "cmd": "stage_icd_group",
+   "request_id": "icd10-916475626-5-5",
+   "target_step": 250,
+   "time_epoch_s": 1792595608.956
+  },
+  {
+   "action": "STOP",
+   "cmd": "stage_lifecycle",
+   "request_id": "lifecycle-stop",
+   "target_step": 876,
+   "time_epoch_s": 1792595609.559
+  }
+ ]
+}

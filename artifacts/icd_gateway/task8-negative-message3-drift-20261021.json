@@ -1,0 +1,40 @@
+{
+ "after": {
+  "accepted": true,
+  "lifecycle": "CONFIGURED",
+  "model_revision": 1,
+  "model_step": 0,
+  "sequence": 0
+ },
+ "before": {
+  "accepted": true,
+  "lifecycle": "CONFIGURED",
+  "model_revision": 1,
+  "model_step": 0,
+  "sequence": 0
+ },
+ "c_configure_commands_observed": 0,
+ "drift": {
+  "expected": 1,
+  "field": "random_seed",
+  "sent": 2
+ },
+ "label": "Linux software/vcan diagnostic, not physical qualification",
+ "rejected": true,
+ "reply": {
+  "message_id": 130,
+  "payload": {
+   "applied_step": 0,
+   "error": "STATE",
+   "model_revision": 0,
+   "probe_id": 0,
+   "request_message_id": 3,
+   "request_sequence": 2,
+   "stage": "FAILED"
+  }
+ },
+ "scope": "Linux software/vcan diagnostic; not physical CAN FD or RT qualification",
+ "session_id": 1525210283,
+ "status": "NEGATIVE_MESSAGE3_REJECTED_NO_C_WRITE",
+ "wire_evidence": "/tmp/sniff_neg3b.txt (NOT retained); zero occurrences of the C configure command, C status unchanged"
+}

@@ -1,0 +1,6 @@
+{
+  "format": "HIL_L010_FORMAL_TARGET_VALIDATION_1",
+  "status": "FAILED",
+  "error": "STATE",
+  "detail": "STATE: first-circle reset did not restore CONFIGURED/step=0: {'api_version': '1.0', 'cmd': 'hil_reset', 'code': 'OK', 'data': {'control_source': 'NONE', 'model_id': 'quadrotor_hil', 'model_revision': '1', 'model_step': '0', 'reset': True, 'reset_id': 'l010-target-reset-l010-formal-target-20261116T221052', 'run_id': 'l010-formal-target-20261116T221052', 'sim_time_us': '0', 'state': 'STOPPED'}, 'error': None, 'kind': 'HIL_PREPARATION_RESPONSE', 'message': 'HIL reset confirmed', 'request_id': 'l010-target-reset-l010-formal-target-20261116T221052', 'status': 'SUCCESS', 'timestamp': '2026-11-16T14:10:53.155Z'}"
+}

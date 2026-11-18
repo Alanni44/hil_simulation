@@ -1,0 +1,6 @@
+{
+  "format": "HIL_L010_FORMAL_TARGET_VALIDATION_1",
+  "status": "FAILED",
+  "error": "BUSINESS_FAILED",
+  "detail": "BUSINESS_FAILED: STEP lacks formal APPLIED receipt: {'header': {'sequence': 3, 'session_id': 1962322806, 'target_step': 0, 'transaction_id': 5, 'valid_for_ms': 1000}, 'message_id': 130, 'payload': {'applied_step': 0, 'error': 'UNSUPPORTED', 'model_revision': 0, 'probe_id': 0, 'request_message_id': 4, 'request_sequence': 2, 'stage': 'FAILED'}}"
+}

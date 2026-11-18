@@ -1,0 +1,43 @@
+{
+ "config": {
+  "status_poll_ms": 20,
+  "stop_lead_steps": 180
+ },
+ "failure_code": "EVIDENCE_TIMEOUT",
+ "label": "Linux software/vcan diagnostic; not physical CAN FD or RT qualification",
+ "note": "Under an idle box the same tuned configuration passed four consecutive acceptance runs; the store was archived after this failure and the acceptance batch was repeated on a fresh store.",
+ "records": [
+  {
+   "cursor": "1",
+   "kind": "RESPONSE",
+   "reason_code": "START_QUEUED"
+  },
+  {
+   "cursor": "2",
+   "kind": "RESPONSE",
+   "reason_code": "HIL_START_APPLIED"
+  },
+  {
+   "cursor": "3",
+   "kind": "REJECTED",
+   "reason_code": "EVIDENCE_TIMEOUT"
+  },
+  {
+   "cursor": "4",
+   "kind": "OPERATION_RESULT",
+   "operation_result": "FAILED",
+   "reason_code": "EXECUTION_FAILED"
+  }
+ ],
+ "root_cause": "The first scenario heartbeat was sent 261 ms after the gateway's START reply because the executor persisted HIL_START_APPLIED evidence through the run store (full-store rewrite + fsync). The frozen scenario boundary is model step 250, so the first heartbeat already observed a step beyond 250 and the executor raised TIMEOUT with no ID10 TX. The 1275-test full regression suite was running concurrently and the run store held about 300 remembered requests.",
+ "run_id": "run-4972166d200dad9f73a9d991",
+ "status": "TASK8_SCENARIO_MARGIN_FAILURE",
+ "wire_timeline_epoch_s": {
+  "first_heartbeat_source_send": 1792595206.356489,
+  "run_configure_source_send": 1792595205.935675,
+  "session_open_source_send": 1792595205.797585,
+  "start_feedback_reply": 1792595206.095454,
+  "start_reply_to_first_heartbeat_ms": 261.0,
+  "start_source_send": 1792595206.052498
+ }
+}

@@ -1,0 +1,6 @@
+{
+  "format": "HIL_L010_FORMAL_TARGET_VALIDATION_1",
+  "status": "FAILED",
+  "error": "TIMEOUT",
+  "detail": "TIMEOUT: request exhausted original retries and bounded completion wait"
+}

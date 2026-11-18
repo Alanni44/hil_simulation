@@ -1,0 +1,1098 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><link rel="stylesheet" type="text/css" href="rtwreport.css" /><script language="JavaScript" type="text/javascript">function rtwTableShrink(o) {var t = o.nextSibling;if (t.nodeType != 1) {t = t.nextSibling;}if (t.style.display == "none") {t.style.display = "";o.innerHTML = "[-]"} else {t.style.display = "none";o.innerHTML = "[+] ... "}}</script><script language="JavaScript" type="text/javascript" src="rtwreport_utils.js"></script><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>
+Code Interface Report for quadrotor_hil
+</title>
+
+</head>
+<body ONLOAD="try {if (top) {if (top.rtwPageOnLoad) top.rtwPageOnLoad('rtwIdCodeInterface'); else local_onload();}} catch(err) {};">
+<h1>
+Code Interface Report for quadrotor_hil
+</h1>
+<h3>
+Table of Contents
+</h3>
+<ul>
+<li>
+<a href="#sec_Entry-Point_Functions">
+Entry-Point Functions
+</a>
+
+</li>
+<li>
+<a href="#sec_Inports">
+Inports
+</a>
+
+</li>
+<li>
+<a href="#sec_Outports">
+Outports
+</a>
+
+</li>
+<li>
+<a href="#sec_Interface_Parameters">
+Interface Parameters
+</a>
+
+</li>
+<li>
+<a href="#sec_Data_Stores">
+Data Stores
+</a>
+
+</li>
+
+</ul>
+<h3>
+<a name="sec_Entry-Point_Functions">
+Entry-Point Functions
+</a>
+
+</h3>
+<p>
+Function: <a href="quadrotor_hil_c.html#fcn_quadrotor_hil_initialize">quadrotor_hil_initialize</a>
+</p>
+<table width="100%" class="AltRow" cellspacing="0">
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Prototype
+</td>
+<td width="75%" align="left" valign="top">
+<b>
+void quadrotor_hil_initialize(void)
+</b>
+
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Description
+</td>
+<td width="75%" align="left" valign="top">
+Initialization entry point of generated code
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Timing
+</td>
+<td width="75%" align="left" valign="top">
+Must be called exactly once
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Arguments
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Return value
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Header file
+</td>
+<td width="75%" align="left" valign="top">
+<a href="quadrotor_hil_h.html">quadrotor_hil.h</a>
+</td>
+
+</tr>
+
+</table>
+<p>
+Function: <a href="quadrotor_hil_c.html#fcn_quadrotor_hil_step">quadrotor_hil_step</a>
+</p>
+<table width="100%" class="AltRow" cellspacing="0">
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Prototype
+</td>
+<td width="75%" align="left" valign="top">
+<b>
+void quadrotor_hil_step(void)
+</b>
+
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Description
+</td>
+<td width="75%" align="left" valign="top">
+Output entry point of generated code
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Timing
+</td>
+<td width="75%" align="left" valign="top">
+Must be called periodically, every 0.001 seconds
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Arguments
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Return value
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Header file
+</td>
+<td width="75%" align="left" valign="top">
+<a href="quadrotor_hil_h.html">quadrotor_hil.h</a>
+</td>
+
+</tr>
+
+</table>
+<p>
+Function: <a href="quadrotor_hil_c.html#fcn_quadrotor_hil_terminate">quadrotor_hil_terminate</a>
+</p>
+<table width="100%" class="AltRow" cellspacing="0">
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Prototype
+</td>
+<td width="75%" align="left" valign="top">
+<b>
+void quadrotor_hil_terminate(void)
+</b>
+
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Description
+</td>
+<td width="75%" align="left" valign="top">
+Termination entry point of generated code
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Timing
+</td>
+<td width="75%" align="left" valign="top">
+Must be called exactly once
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Arguments
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="even">
+<td width="25%" align="left" valign="top">
+Return value
+</td>
+<td width="75%" align="left" valign="top">
+None
+</td>
+
+</tr>
+<tr class="odd">
+<td width="25%" align="left" valign="top">
+Header file
+</td>
+<td width="75%" align="left" valign="top">
+<a href="quadrotor_hil_h.html">quadrotor_hil.h</a>
+</td>
+
+</tr>
+
+</table>
+<h3>
+<a name="sec_Inports">
+Inports
+</a>
+
+</h3>
+<span title="Click to shrink or expand table" onclick="rtwTableShrink(this)">[-]</span><table width="100%" class="AltRow FirstColumn" cellspacing="0">
+<tr class="heading">
+<th width="42%" align="left" valign="top">
+<b>
+Block Name
+</b>
+
+</th>
+<th width="26%" align="left" valign="top">
+<b>
+Code Identifier
+</b>
+
+</th>
+<th width="21%" align="left" valign="top">
+<b>
+Data Type
+</b>
+
+</th>
+<th width="10%" align="right" valign="top">
+<b>
+Dimension
+</b>
+
+</th>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:1')" name="code2model" class="code2model">&lt;Root&gt;/motor_command</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.motor_command
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+[4]
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:2')" name="code2model" class="code2model">&lt;Root&gt;/wind_n_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.wind_n_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:3')" name="code2model" class="code2model">&lt;Root&gt;/wind_e_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.wind_e_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:4')" name="code2model" class="code2model">&lt;Root&gt;/wind_d_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.wind_d_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:5')" name="code2model" class="code2model">&lt;Root&gt;/pressure_pa</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.pressure_pa
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:6')" name="code2model" class="code2model">&lt;Root&gt;/temperature_k</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.temperature_k
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:7')" name="code2model" class="code2model">&lt;Root&gt;/ground_height_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.ground_height_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:8')" name="code2model" class="code2model">&lt;Root&gt;/gps_bias_n_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.gps_bias_n_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:9')" name="code2model" class="code2model">&lt;Root&gt;/gps_bias_e_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.gps_bias_e_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:10')" name="code2model" class="code2model">&lt;Root&gt;/gps_bias_d_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.gps_bias_d_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:11')" name="code2model" class="code2model">&lt;Root&gt;/imu_bias_p_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.imu_bias_p_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:12')" name="code2model" class="code2model">&lt;Root&gt;/imu_bias_q_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.imu_bias_q_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:13')" name="code2model" class="code2model">&lt;Root&gt;/imu_bias_r_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.imu_bias_r_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:14')" name="code2model" class="code2model">&lt;Root&gt;/motor_1_failed</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.motor_1_failed
+</td>
+<td width="21%" align="left" valign="top">
+boolean_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:15')" name="code2model" class="code2model">&lt;Root&gt;/motor_2_failed</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.motor_2_failed
+</td>
+<td width="21%" align="left" valign="top">
+boolean_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:16')" name="code2model" class="code2model">&lt;Root&gt;/motor_3_failed</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.motor_3_failed
+</td>
+<td width="21%" align="left" valign="top">
+boolean_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:17')" name="code2model" class="code2model">&lt;Root&gt;/motor_4_failed</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.motor_4_failed
+</td>
+<td width="21%" align="left" valign="top">
+boolean_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:18')" name="code2model" class="code2model">&lt;Root&gt;/command_delay_ms</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.command_delay_ms
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:19')" name="code2model" class="code2model">&lt;Root&gt;/sensor_delay_ms</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.sensor_delay_ms
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:20')" name="code2model" class="code2model">&lt;Root&gt;/packet_loss_ratio</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_U.packet_loss_ratio
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+
+</table>
+<h3>
+<a name="sec_Outports">
+Outports
+</a>
+
+</h3>
+<span title="Click to shrink or expand table" onclick="rtwTableShrink(this)">[-]</span><table width="100%" class="AltRow FirstColumn" cellspacing="0">
+<tr class="heading">
+<th width="42%" align="left" valign="top">
+<b>
+Block Name
+</b>
+
+</th>
+<th width="26%" align="left" valign="top">
+<b>
+Code Identifier
+</b>
+
+</th>
+<th width="21%" align="left" valign="top">
+<b>
+Data Type
+</b>
+
+</th>
+<th width="10%" align="right" valign="top">
+<b>
+Dimension
+</b>
+
+</th>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:22')" name="code2model" class="code2model">&lt;Root&gt;/north_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.north_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:23')" name="code2model" class="code2model">&lt;Root&gt;/east_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.east_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:24')" name="code2model" class="code2model">&lt;Root&gt;/down_m</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.down_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:25')" name="code2model" class="code2model">&lt;Root&gt;/vn_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.vn_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:26')" name="code2model" class="code2model">&lt;Root&gt;/ve_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.ve_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:27')" name="code2model" class="code2model">&lt;Root&gt;/vd_mps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.vd_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:28')" name="code2model" class="code2model">&lt;Root&gt;/q_w</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.q_w
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:29')" name="code2model" class="code2model">&lt;Root&gt;/q_x</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.q_x
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:30')" name="code2model" class="code2model">&lt;Root&gt;/q_y</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.q_y
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:31')" name="code2model" class="code2model">&lt;Root&gt;/q_z</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.q_z
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:32')" name="code2model" class="code2model">&lt;Root&gt;/p_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.p_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:33')" name="code2model" class="code2model">&lt;Root&gt;/q_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.q_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:34')" name="code2model" class="code2model">&lt;Root&gt;/r_radps</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.r_radps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:35')" name="code2model" class="code2model">&lt;Root&gt;/airborne</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.airborne
+</td>
+<td width="21%" align="left" valign="top">
+boolean_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:36')" name="code2model" class="code2model">&lt;Root&gt;/ax_mps2</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.ax_mps2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:37')" name="code2model" class="code2model">&lt;Root&gt;/ay_mps2</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.ay_mps2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+<a href="matlab:coder.internal.code2model('quadrotor_hil:38')" name="code2model" class="code2model">&lt;Root&gt;/az_mps2</a>
+</td>
+<td width="26%" align="left" valign="top">
+quadrotor_hil_Y.az_mps2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+
+</table>
+<h3>
+<a name="sec_Interface_Parameters">
+Interface Parameters
+</a>
+
+</h3>
+<span title="Click to shrink or expand table" onclick="rtwTableShrink(this)">[-]</span><table width="100%" class="AltRow FirstColumn" cellspacing="0">
+<tr class="heading">
+<th width="42%" align="left" valign="top">
+<b>
+Parameter Source
+</b>
+
+</th>
+<th width="26%" align="left" valign="top">
+<b>
+Code Identifier
+</b>
+
+</th>
+<th width="21%" align="left" valign="top">
+<b>
+Data Type
+</b>
+
+</th>
+<th width="10%" align="right" valign="top">
+<b>
+Dimension
+</b>
+
+</th>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_angular_drag_nms
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_inertia_xx_kgm2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_inertia_yy_kgm2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_inertia_zz_kgm2
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_linear_drag_ns_m
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_mass_kg
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_moment_coefficient_nm
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_motor_efficiency
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_thrust_coefficient_n
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_wind_d_bias_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="even">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_wind_e_bias_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+<tr class="odd">
+<td width="42%" align="left" valign="top">
+synthesized block
+</td>
+<td width="26%" align="left" valign="top">
+uav_wind_n_bias_mps
+</td>
+<td width="21%" align="left" valign="top">
+real_T
+</td>
+<td width="10%" align="right" valign="top">
+1
+</td>
+
+</tr>
+
+</table>
+<h3>
+<a name="sec_Data_Stores">
+Data Stores
+</a>
+
+</h3>
+<p>
+No data stores in the model; note that this report lists only data stores with non-auto storage class and global data stores
+</p>
+
+</body>
+
+</html>

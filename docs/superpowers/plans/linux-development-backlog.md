@@ -775,6 +775,12 @@ Linux完成证据：L-004 -> artifacts/linux_target/l004-three-model-boundary-20
 - 从本次 L-010 源码在独立候选目录重新生成 C 模型后，通过既有 `hil-deploy` 校验部署器临时替换运行核心。候选状态实际包含 `actuator_output`/序号，且 `get_lifecycle_step_result` 已由“不支持命令”变为参数校验拒绝，证明 STEP 消费者已进入候选 C 核心。
 - 仅执行了本机最小栈烟测：`input_simulator.smoke` 请求本机 `127.0.0.1:18080`，准备、管理与遥测也均为本机 systemd 服务。它完成 CREATE、START、固定 ID10 输入、STOP 及记录校验，输出为 `MINIMAL_FULL_FLOW_READY`，`scenario_input_applied=true`、`hil_stop_applied=true`、记录数为 7；该结果不是实际 3.3/3.6 前后端联调，真实外部 API/模型消费者尚未执行。随后用同一 SHA-256 校验部署器恢复原核心；恢复后执行器读回字段消失且 STEP 再次报告不支持，六项 systemd 服务均为 active。完整证据为 `artifacts/linux_target/l010-two-circle-temporary-20261116T203949/`。
 
+### 2026-11-17 L-010 STEP 使用边界
+
+- `STEP` 保留为模型侧受控诊断、逐步历史核验与自动化回归能力；仅允许在 `PAUSED`、控制源为 `NONE` 的离线安全边界运行。它不属于当前三链路实时联调的业务路径，也不以非零执行器输出替代在线闭环验证。
+- 当前 3.3/3.6 流程不新增 STEP 按钮、自动步进或逐步画面回放。既有流程继续使用“准备 → START → 实时联调 → PAUSE/STOP/RESET”；未来若接入前端，必须另行提供经授权的生命周期命令入口、历史读取 API、暂停态展示与审计，不得由前端直连 C 核心。
+- 本机正式 UDP 证据 `artifacts/linux_target/l010-formal-target-20261116T142205Z/result.json` 已完成 `START → PAUSE → STEP(10) → RESUME → PAUSE → STOP`；该结果证明模型侧实现和安全边界，不提升为 3.3/3.6 已展示或实体执行器验收。
+
 ### 2026-11-12 后续开发目标机基线
 
 - 用户明确指定当前 Linux 主机为后续开发、联调和软件验收的目标机基线。后续任务应优先在本机完成目标 C 模型、服务、原工具链、SocketCAN/vcan、网络隔离、生命周期和证据闭环；不得因缺少另一台“目标机”而停滞或重复建立替代开发环境。

@@ -1,0 +1,88 @@
+%implements "chartSource" "C"
+%function ChartConfig(block, system) void
+  %createrecord chartConfiguration { ...
+          executeAtInitialization  0 ...
+  }
+  %return chartConfiguration
+%endfunction
+%function ChartDataMap(block, system) void
+  %createrecord ChartDataElements {\
+    NumChartData   9 \
+    ChartDataDefaults {\
+      RecordType   "ChartData"\
+      Dimensions   []\
+      IsTestPoint  0\
+    }\
+    ChartData {\
+      Name         "position_ned"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:705-717"\
+      Dimensions   [3]\
+    }\
+    ChartData {\
+      Name         "velocity_ned"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:718-730"\
+      Dimensions   [3]\
+    }\
+    ChartData {\
+      Name         "quaternion_frd_to_ned"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:731-752"\
+      Dimensions   [4]\
+    }\
+    ChartData {\
+      Name         "body_rates"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:753-763"\
+      Dimensions   [3]\
+    }\
+    ChartData {\
+      Name         "motor_response"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:764-778"\
+      Dimensions   [4]\
+    }\
+    ChartData {\
+      Name         "command_history"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:779-794"\
+      Dimensions   [4,1001]\
+    }\
+    ChartData {\
+      Name         "held_command"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:795-807"\
+      Dimensions   [4]\
+    }\
+    ChartData {\
+      Name         "loss_accumulator"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:808-824"\
+    }\
+    ChartData {\
+      Name         "command_index"\
+      Description  "EmlPersistent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  "quadrotor_hil:21:825-838"\
+    }\
+  }
+  %return ChartDataElements
+%endfunction
