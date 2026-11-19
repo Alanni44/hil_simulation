@@ -448,6 +448,14 @@ class SimulatorRunServiceTests(GatewayTest):
         self.assertEqual(records[3]["operation_id"], "operation-pause")
         self.assertEqual(records[5]["operation_id"], "operation-resume")
 
+    def test_business_refresh_is_not_forwarded_to_the_frozen_simulator_schema(self):
+        """V2 requires 3.3 to translate business REFRESH to source RESUME."""
+        run_id = self.service.handle(copy.deepcopy(self.create))["data"]["run_id"]
+        self.rejects("SCHEMA", lambda: self.service.handle({
+            "cmd": "simulator_run_control", "params": {
+                "api_version": "0.3", "request_id": "business-refresh-not-source-action",
+                "run_id": run_id, "expected_revision": "1", "action": "REFRESH"}}))
+
     def test_formal_execution_stop_is_bound_to_its_registered_operation(self):
         from input_simulator.run_executor import FormalHILExecutionBackend
 

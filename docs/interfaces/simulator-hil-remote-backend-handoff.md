@@ -1,4 +1,12 @@
-# 模拟器/HIL 异机后端两圈联调交接单
+# 模拟器/HIL 异机后端两圈联调交接单 V2
+
+> 文档版本：2.0.0；更新日期：2026-11-19；状态：Draft，待双方实现并联合冻结。
+>
+> V2 保留模拟器的 `RESUME` 动作及来源记录
+> `RESUME_QUEUED`、`HIL_RESUME_APPLIED`；业务侧继续动作为 `REFRESH`，由
+> 3.3 转换。业务命名不得修改底层 action、冻结 Schema 或来源回执名称。
+> V2 的业务门禁、恢复和记录边界须由 3.3/3.6 实现并联合验收，不因本文档而
+> 宣称其已部署到模拟器/HIL 服务。
 
 ## 已就绪的模拟器/HIL 接口
 
@@ -15,7 +23,8 @@
 
 无需由后端启动目标机进程。模拟器/HIL 侧在联调前启动 `hil-core@current`、`hil-prepare`、`hil-gateway`、`input-simulator`、`hil-preparation` 和 `hil-telemetry` 服务。
 
-`8765` 只向 3.6 推送 `STATE_TELEMETRY`，拒绝 `INITIALIZE`、`START` 和 `STOP`。
+`8765` 只向 3.6 推送 `STATE_TELEMETRY`，不承载 `INITIALIZE`、`START`、
+`PAUSE`、`RESUME` 或业务 `REFRESH` 控制。
 第一圈唯一由 18081 的 `hil_prepare` 执行；控制请求只按下述两圈路径处理。模拟器记录也不是高频遥测替代品。
 
 ## 责任边界
@@ -37,7 +46,12 @@ model_id        = quadrotor_hil
 3. 前端以同一业务 `runId` 向 3.3 发 START。3.3 先向 3.6 查询准备上下文，核对模型、基线和配置快照；不满足时不调用模拟器。
 4. 3.3 用当前固定 CANT CreateParams 调用 `simulator_run_create`，保存模拟器 `run_id`、`revision`、后端命令 ID 和管理 `request_id`，并向 3.6 登记同一业务 Run 的执行关联。
 5. 登记成功后，3.3 调用 `simulator_run_control/START`。模拟器对 HIL 只核对第一圈已准备的同一配置，再发送正式 Lifecycle START 和固定场景输入。
-6. 运行中，3.3 可调用 `simulator_run_control/PAUSE` 或 `RESUME`。暂停在真实下一模型边界生效，安全置零并撤销控制权；继续保留暂停时的模型内部状态、不补跑暂停期间的步数，并建立新的正式会话。3.3 每秒调用 `simulator_run_get` 与 `simulator_records_list`；3.6 同时订阅 8765 的新鲜 `STATE_TELEMETRY`，并用已登记关联归入同一业务 `runId`。
+6. 运行中，业务 PAUSE 由 3.3 原样投递为 `simulator_run_control/PAUSE`；
+   业务 REFRESH 由 3.3 转换为 `simulator_run_control/RESUME`。暂停在真实下一模型边界
+   生效，安全置零并撤销控制权；继续保留暂停时的模型内部状态、不补跑暂停期间的步数，并
+   建立新的正式会话。3.3 每秒调用 `simulator_run_get` 与
+   `simulator_records_list`；3.6 同时订阅 8765 的新鲜 `STATE_TELEMETRY`，并用已登记
+   关联归入同一业务 `runId`。
 7. 前端 STOP 经 3.3 调用 `simulator_run_control/STOP`。模拟器停止本 Run 的场景调度后，对仍在运行的 HIL 发送 Lifecycle `STOP`，并在同一会话读回 `STOPPED`、`control_source=NONE`。若正式会话因自身证据容量或传输故障不能确认 STOP，模拟器只在本机调用 C-core safety STOP，并再次读回 `STOPPED`、`control_source=NONE`；它记录 `HIL_EMERGENCY_STOP_APPLIED`，不得伪称为正式 Lifecycle STOP。两种路径均无停止读回时，必须报告停止未确认，不能把 Run 解释为模型已停止。3.3 轮询到该真实停止证据后回传给 3.6；3.6 统一发布业务终态。若停止步数非零，3.6 必须先调用第一圈 `hil_reset`，并确认 `STOPPED/NONE/model_step=0/sim_time_us=0`，再执行下一次 `hil_prepare` 恢复 `CONFIGURED`。
 
 不把 HTTP 202/`ACCEPTED`、报文 `RECEIVED`、WebSocket 已连接或单帧旧遥测当作实际运行成功。实际 START 以 HIL Lifecycle 应用回执或同次运行的新鲜推进状态确认；实际 STOP 以 `HIL_STOP_APPLIED` 和安全状态读回确认。
@@ -52,7 +66,7 @@ model_id        = quadrotor_hil
 
 ## 3.3 调用模拟器的约定
 
-结构定义是 `docs/interfaces/baseline/input-simulator-api-v0.3.schema.json`。当前部署唯一接受的完整 CreateParams 是 [`config/quadrotor_hil.external.json`](../../config/quadrotor_hil.external.json) 的整个 JSON 对象；历史 `management_create_schema_fixture` 仅是 schema fixture，不得用于本次部署。当前只有四类命令：
+结构定义是 `docs/interfaces/baseline/input-simulator-api-v0.3.schema.json`。当前部署唯一接受的完整 CreateParams 是 [`config/quadrotor_hil.external.json`](../../config/quadrotor_hil.external.json) 的整个 JSON 对象；历史 `management_create_schema_fixture` 仅是 schema fixture，不得用于本次部署。V2 沿用四类管理命令及既有底层动作名称：
 
 | 命令 | 用途 |
 |---|---|
@@ -65,7 +79,7 @@ model_id        = quadrotor_hil
 
 `params.api_version` 必须是 `"0.3"`，`request_id` 是幂等键。CREATE 的其余八个字段必须逐字段采用 `quadrotor_hil.external.json` 的完整内容，不得使用旧 fixture、旧 ETHGEN 值或候选文件的哈希。响应中的模拟器 `run_id` 与业务 `runId` 不同，必须由 3.3 保存映射。
 
-PAUSE/RESUME 的请求体与 START/STOP 相同，仅替换 `action`。`expected_revision` 必须使用最近一次 GET 或控制响应中的字符串 revision；同一请求超时重试必须保留完全相同的 `request_id` 和请求体。HTTP `200` 且 `status=ACCEPTED`、`code=QUEUED` 仅表示请求已登记，不能据此更新业务状态。3.3 必须等待 GET 和 Records 的实际证据：
+PAUSE/RESUME 的请求体与 START/STOP 相同，仅替换 `action`。`expected_revision` 必须使用最近一次 GET 或控制响应中的字符串 revision；同一请求超时重试必须保留完全相同的 `request_id` 和请求体。HTTP `200` 且 `status=ACCEPTED`、`code=QUEUED` 仅表示请求已登记，不能据此更新业务状态。业务 REFRESH 绝不原样发送给模拟器。3.3 必须等待 GET 和 Records 的实际证据：
 
 | 动作 | 已应用后的 Run | Records 中必须存在 |
 |---|---|---|
@@ -87,9 +101,67 @@ PAUSE/RESUME 的请求体与 START/STOP 相同，仅替换 `action`。`expected_
 }
 ```
 
-继续时将 `action` 改为 `RESUME`，并使用暂停确认后的最新 revision。`409` 时必须重新 GET 后再决定是否发起新请求；`422` 表示 HIL 回执、状态读回或证据不足，不能把该操作视为已生效。
+继续时将 `action` 改为 `RESUME`，并使用暂停确认后的最新 revision。3.3 对前端/业务回执仍命名为 REFRESH，同时保存其与来源 `request_id`、`operation_id` 的映射。`409` 时必须重新 GET 后再决定是否发起新请求；`422` 表示 HIL 回执、状态读回或证据不足，不能把该操作视为已生效。
 
 固定场景会向 HIL 应用 ID 10 Environment 输入（`wind_n_mps=1`）。3.3 应在 Records 中观察 `APPLIED/SCENARIO_INPUT_APPLIED` 和 `message_id="10"`，随后使用最新 revision 发 STOP。最小 smoke 的 `result=INCOMPLETE` 表示没有完整业务断言裁决，不等同链路失败或业务 PASS。
+
+## V2 统一业务状态、门禁与动作映射
+
+3.6 是业务 Run 状态的唯一维护者；3.3 保存命令交付和执行关联，按模拟器/HIL
+事实回传；前端不得自行推断模型成功。业务状态为
+`CREATED`、`STARTING`、`RUNNING`、`PAUSED`、`STOPPING`、`STOPPED`、`FAILED`、
+`UNKNOWN`。模拟器 `READY`/`COMPLETED`、HIL `CONFIGURED` 等原始状态保留，
+不要求和业务枚举同名。
+
+| 业务状态 | 允许的业务动作 | 3.3 投递前必须确认的来源条件 |
+|---|---|---|
+| CREATED | START | CREATE 后 GET 为 READY，且 `available_actions` 含 START |
+| STARTING、STOPPING | 无普通控制 | 等待本次操作的实际证据 |
+| RUNNING | PAUSE、STOP | GET 为 RUNNING，且 `available_actions` 含请求动作 |
+| PAUSED | REFRESH、STOP | GET 为 PAUSED；REFRESH 对应来源 `available_actions` 中的 RESUME |
+| STOPPED、FAILED、UNKNOWN | 无普通控制 | 只读核实或走独立受控安全处置 |
+
+所有动作还要求无未决命令、关联和配置有效、权限与资源条件满足。PAUSE 或
+REFRESH 尚未确认时，业务层保持原 RUNNING/PAUSED 状态，锁定普通控制并展示
+处理中；来源服务也只保留 STOP 为可用动作。
+
+| 功能 | 前端 → 3.3 / 3.3 ↔ 3.6 | 3.3 → 模拟器 action | 来源 Records |
+|---|---|---|---|
+| 暂停 | PAUSE | PAUSE | PAUSE_QUEUED、HIL_PAUSE_APPLIED |
+| 继续 | REFRESH | RESUME | RESUME_QUEUED、HIL_RESUME_APPLIED |
+
+REFRESH/RESUME 仅表示继续同一暂停模型；不是页面刷新、重新创建 Run、RESET 或
+重新准备。RESUME 建立新正式会话后，3.3/3.6 必须登记新会话段与原业务 Run 的关联。
+来源 Records 的 `evidence_refs` 会保留新 `session-<sid>` 引用；3.3 不得自行构造
+会话字段，须按正式 schema 和来源证据保存关联。
+
+## V2 确认、错误与恢复
+
+- PAUSE/REFRESH 成功要求同一次操作的 GET 状态、`available_actions` 及上述 Records；
+  旧 RUNNING 帧、HTTP 受理、WebSocket 连接或旧记录都不能确认新命令。
+- 对 `409`，先 GET 并核实后才决定是否提交新的业务意图。对 `422`、来源 FAILED 或
+  缺少应用证据，不得视为成功。
+- 仅在明确拒绝且能证明未执行时，业务层才可保持或恢复原状态。例如 PAUSED 下 STOP
+  被拒绝且未执行时，业务状态恢复 PAUSED。若已可能执行但无法确认，命令应标为
+  UNCONFIRMED、业务状态为 UNKNOWN；不得用新 request_id 自动重复物理控制。
+- UNKNOWN/FAILED 不开放普通控制按钮。需要安全停止时走独立的受控处置，核验身份、
+  保留动作记录并取得实际安全读回；FAILED 不表示模型已经停止。
+- 浏览器断线、上传失败、模拟器 COMPLETED 或单帧旧遥测均不能推断 STOPPED。正常 STOP
+  不关闭 HIL 服务进程。
+
+## V2 记录缓存边界与联合验收
+
+模型控制回执只确认模型行为，不保证记录缓存已排空或文件已归档。暂停后记录器可继续
+保存边界前数据及独立采集数据，但不得把独立采集伪装为新的模型步；继续不覆盖旧分片；
+STOP 后记录器可独立处于 FINALIZING。记录水位、缺失区间、文件清单、落盘与服务器校验
+状态属于记录服务后续数据契约，不扩展本接口的控制请求/响应。
+
+联合验收至少覆盖：
+
+1. START → RUNNING → PAUSE → PAUSED → REFRESH → RUNNING → STOP → STOPPED；
+2. PAUSED → STOP；
+3. 幂等重试、旧记录不能确认新命令、RESUME 新会话后的 STOP 关联；
+4. 拒绝恢复、超时 UNKNOWN、重连/重启后的只读核实，以及暂停/停止期间的记录收尾。
 
 ## 联调前检查与可见结果
 
