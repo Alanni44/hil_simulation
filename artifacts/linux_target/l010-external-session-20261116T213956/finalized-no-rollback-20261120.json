@@ -1,0 +1,17 @@
+{
+  "format": "HIL_L010_DEPLOYMENT_FINALIZATION_1",
+  "session_id": "l010-external-session-20261116T213956",
+  "finalized_date": "2026-11-20",
+  "state": "ACTIVE_NO_ROLLBACK",
+  "current_service": "hil-core@current.service",
+  "current_artifact": "/opt/hil/runtime/verified/current_rt",
+  "current_sha256": "cac5848bb68afa126e0859edc2a58666b5eaa503d4968fcc60db26c9f806dd57",
+  "removed_original_artifact": "/opt/hil/runtime/work/l010-external-session-20261116T213956/original_rt",
+  "removed_original_sha256": "f8a093f735fbbffb9475a132bf01cf12d095c3e65f9e6194a96e6a5e1608c3f0",
+  "verification": {
+    "service_active_after_removal": true,
+    "l010_actuator_output_readback_available": true,
+    "l010_actuator_output_sequence_readback_available": true
+  },
+  "note": "The original core backup was deliberately removed at the user's request. The deployment cannot be restored through the previous L-010 rollback path."
+}
